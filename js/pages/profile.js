@@ -1,0 +1,143 @@
+// Eigenes Profil: Name, Pronomen, Sprache, Darstellung, Passwort
+import { html, useState, useEffect } from '../lib/h.js';
+import { sb, q, rpc, flushMail } from '../lib/sb.js';
+import { pushSupported, pushConfigured, isIOS, isStandalone, currentSubscription, enablePush, disablePush, forgetDevice } from '../lib/push.js';
+import { t, PRONOUNS, pronounText } from '../lib/i18n.js';
+import { useStore, setState, toast, toastError, isGuest, confirmDialog } from '../lib/store.js';
+import { Icon, Field, Avatar, LangSelect, ThemeSwitch } from '../lib/ui.js';
+
+export function ProfilePage() {
+  const { user, profile } = useStore();
+  const [name, setName] = useState(profile ? profile.display_name : '');
+  const [pron, setPron] = useState(profile ? profile.pronouns : '');
+  const [custom, setCustom] = useState(profile ? profile.pronouns_custom : '');
+  const [pw, setPw] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (!profile) return null;
+
+  const preview = { ...profile, display_name: name, pronouns: pron, pronouns_custom: custom };
+  const save = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) return toast(t('auth.name_required'), 'error');
+    setBusy(true);
+    try {
+      const patch = { display_name: name.trim(), pronouns: pron, pronouns_custom: pron === 'custom' ? custom.trim() : '' };
+      await q(sb.from('profiles').update(patch).eq('id', user.id));
+      setState({ profile: { ...profile, ...patch } });
+      toast(t('common.saved'));
+    } catch (err) { toastError(err); } finally { setBusy(false); }
+  };
+  const changePw = async (e) => {
+    e.preventDefault();
+    if (pw.length < 8) return toast(t('err.password'), 'error');
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if (error) return toastError(error);
+    setPw('');
+    toast(t('auth.password_changed'));
+  };
+  const logout = async () => {
+    if (isGuest() && !(await confirmDialog({ title: t('profile.logout'), text: t('profile.guest_logout_warning'), danger: true, ok: t('profile.logout') }))) return;
+    await forgetDevice();
+    await sb.auth.signOut();
+    location.hash = '#/login';
+  };
+
+  return html`<div style="max-width:720px" class="stack">
+    <div class="hero">
+      <div class="row nowrap">
+        <${Avatar} profile=${preview} size="lg" />
+        <div class="grow">
+          <h1 style="margin:0">${name || '…'}</h1>
+          ${pronounText(preview) && html`<div class="muted">${pronounText(preview)}</div>`}
+          ${isGuest() && html`<span class="chip" style="margin-top:6px">${t('common.guest')}</span>`}
+        </div>
+      </div>
+    </div>
+
+    <form class="card stack" onSubmit=${save}>
+      <h3>${t('profile.title')}</h3>
+      <${Field} label=${t('profile.name')} hint=${t('profile.name_hint')}><input class="input" required maxlength="60" value=${name} onInput=${(e) => setName(e.target.value)} /><//>
+      <${Field} label=${t('profile.pronouns')} hint=${t('profile.pronouns_hint')}>
+        <select class="input" value=${pron} onChange=${(e) => setPron(e.target.value)}>
+          <option value="">${t('profile.pronouns_none')}</option>
+          ${PRONOUNS.map((k) => html`<option value=${k}>${pronounText({ pronouns: k })}</option>`)}
+          <option value="custom">${t('profile.pronouns_custom')}</option>
+        </select>
+      <//>
+      ${pron === 'custom' && html`<${Field} label=${t('profile.pronouns_custom_label')}><input class="input" maxlength="40" value=${custom} onInput=${(e) => setCustom(e.target.value)} placeholder="xier/xiem" /><//>`}
+      <div class="row"><button class="btn primary" disabled=${busy}><${Icon} name="check" />${t('common.save')}</button></div>
+    </form>
+
+    <div class="card stack">
+      <h3>${t('profile.display')}</h3>
+      <div class="field"><span class="label">${t('profile.language')}</span><${LangSelect} /></div>
+      <div class="field"><span class="label">${t('profile.theme')}</span><${ThemeSwitch} /></div>
+    </div>
+
+    ${!isGuest() && html`<form class="card stack" onSubmit=${changePw}>
+      <h3>${t('profile.account')}</h3>
+      <div class="muted"><${Icon} name="mail" size=${16} /> ${user.email}</div>
+      <${Field} label=${t('auth.new_password')} hint=${t('auth.password_hint')}><input class="input" type="password" autocomplete="new-password" minlength="8" value=${pw} onInput=${(e) => setPw(e.target.value)} /><//>
+      <div class="row"><button class="btn" disabled=${pw.length < 8}><${Icon} name="key" />${t('auth.change_password')}</button></div>
+    </form>`}
+
+    <${PushSettings} />
+
+    ${isGuest() && html`<div class="notice">${t('profile.guest_info')}</div>`}
+
+    <div class="row"><button class="btn danger" onClick=${logout}><${Icon} name="logout" />${t('profile.logout')}</button></div>
+  </div>`;
+}
+
+const PUSH_KINDS = ['shift', 'deadline', 'mention', 'assignment'];
+
+function PushSettings() {
+  const { user, profile } = useStore();
+  const [on, setOn] = useState(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { currentSubscription().then((s) => setOn(!!s)).catch(() => setOn(false)); }, []);
+  const prefs = { assignment: true, shift: true, deadline: true, mention: true, ...(profile.push_prefs || {}) };
+
+  const toggleDevice = async () => {
+    setBusy(true);
+    try {
+      if (on) { await disablePush(); setOn(false); toast(t('push.off_done')); }
+      else { await enablePush(); setOn(true); toast(t('push.on_done')); }
+    } catch (e) {
+      const m = String(e && e.message);
+      toast(m === 'denied' ? t('push.denied') : m === 'unsupported' ? t('push.unsupported') : t('err.generic') + ' (' + m + ')', 'error');
+    } finally { setBusy(false); }
+  };
+  const setPref = async (k, v) => {
+    const next = { ...prefs, [k]: v };
+    try {
+      await q(sb.from('profiles').update({ push_prefs: next }).eq('id', user.id));
+      setState({ profile: { ...profile, push_prefs: next } });
+    } catch (e) { toastError(e); }
+  };
+  const test = async () => {
+    try { await rpc('queue_test_push'); await flushMail(); toast(t('push.test_sent')); } catch (e) { toastError(e); }
+  };
+
+  let hint = null;
+  if (!pushConfigured()) hint = t('push.not_configured');
+  else if (!pushSupported()) hint = isIOS() && !isStandalone() ? t('push.ios_hint') : t('push.unsupported');
+  else if (typeof Notification !== 'undefined' && Notification.permission === 'denied') hint = t('push.denied');
+
+  return html`<div class="card stack">
+    <h3>${t('push.title')}</h3>
+    <p class="small muted" style="margin:0">${t('push.intro')}</p>
+    ${hint && html`<div class="notice warn">${hint}</div>`}
+    ${!hint && html`<div class="row">
+      <button class=${'btn ' + (on ? 'ghost' : 'primary')} disabled=${busy || on === null} onClick=${toggleDevice}>
+        <${Icon} name="bell" />${on ? t('push.disable') : t('push.enable')}</button>
+      ${on && html`<button class="btn small ghost" onClick=${test}>${t('push.test')}</button>`}
+    </div>`}
+    <div class="field"><span class="label">${t('push.what')}</span>
+      ${PUSH_KINDS.map((k) => html`<label class="check" key=${k}>
+        <input type="checkbox" checked=${prefs[k] !== false} onChange=${(e) => setPref(k, e.target.checked)} />
+        <span><b>${t('push.kind_' + k)}</b><span class="small faint" style="display:block">${t('push.kind_' + k + '.desc')}</span></span>
+      </label>`)}
+    </div>
+  </div>`;
+}

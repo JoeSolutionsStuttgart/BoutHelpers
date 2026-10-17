@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Teamplaner</title>
+  <meta name="description" content="Teams, Events, Schichten und Aufgaben gemeinsam planen.">
+  <meta name="theme-color" content="#fff7f0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="icon" href="img/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/app.css">
+  <script>
+    /* Hell/Dunkel sofort setzen, damit nichts aufblitzt */
+    try { document.documentElement.dataset.theme = localStorage.getItem('tp.theme') || 'system'; }
+    catch (e) { document.documentElement.dataset.theme = 'system'; }
+  </script>
+  <script src="config.js"></script>
+  <script src="js/vendor/supabase.js"></script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <div id="app"><div class="boot"><div class="spinner"></div></div></div>
+  <noscript>Bitte JavaScript aktivieren. / Please enable JavaScript.</noscript>
+</body>
+</html>

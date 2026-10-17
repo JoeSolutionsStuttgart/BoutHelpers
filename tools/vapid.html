@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Push-Schlüssel erzeugen</title>
+<style>
+  :root { --bg: #fff7f0; --card: #fff; --text: #241d3b; --muted: #5d5677; --line: #ece4f7; --primary: #7c5cff; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #13111f; --card: #1e1a30; --text: #f3f0ff; --muted: #c2bbdc; --line: #353052; --primary: #9a82ff; } }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+  main { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px; margin-top: 16px; }
+  button { font: inherit; font-weight: 700; background: var(--primary); color: #fff; border: 0; border-radius: 999px; padding: 10px 18px; cursor: pointer; }
+  textarea { width: 100%; box-sizing: border-box; font: 13px ui-monospace, monospace; padding: 10px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--text); }
+  label { font-weight: 700; display: block; margin: 14px 0 6px; }
+  .muted { color: var(--muted); }
+  .warn { background: #fff0d9; color: #8a4b00; padding: 10px 12px; border-radius: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Push-Schlüssel (VAPID) erzeugen</h1>
+  <p class="muted">Diese Seite erzeugt die zwei Schlüssel für Push-Benachrichtigungen – direkt hier in deinem Browser.
+    Nichts wird verschickt oder gespeichert.</p>
+  <button id="go">Schlüssel erzeugen</button>
+  <div class="card" id="out" hidden>
+    <label for="pub">1. Öffentlicher Schlüssel → in <code>planer/config.js</code> bei <code>vapidPublicKey</code> und als Secret <code>VAPID_PUBLIC_KEY</code></label>
+    <textarea id="pub" rows="3" readonly></textarea>
+    <label for="priv">2. Privater Schlüssel → nur als Secret <code>VAPID_PRIVATE_KEY</code> in Supabase (Edge Functions → Secrets)</label>
+    <textarea id="priv" rows="2" readonly></textarea>
+    <p class="warn">Den privaten Schlüssel niemals in config.js oder auf GitHub speichern.</p>
+  </div>
+</main>
+<script>
+  const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  document.getElementById('go').onclick = async () => {
+    const key = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+    const raw = await crypto.subtle.exportKey('raw', key.publicKey);
+    const jwk = await crypto.subtle.exportKey('jwk', key.privateKey);
+    document.getElementById('pub').value = b64url(raw);
+    document.getElementById('priv').value = jwk.d;
+    document.getElementById('out').hidden = false;
+  };
+</script>
+</body>
+</html>
