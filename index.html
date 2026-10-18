@@ -7,9 +7,12 @@
   <meta name="description" content="Teams, Events, Schichten und Aufgaben gemeinsam planen.">
   <meta name="theme-color" content="#fff7f0">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Teamplaner">
+  <meta name="application-name" content="Teamplaner">
   <link rel="icon" href="img/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="manifest" id="tp-manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="css/app.css">
   <script>
     /* Hell/Dunkel sofort setzen, damit nichts aufblitzt */
@@ -17,6 +20,38 @@
     catch (e) { document.documentElement.dataset.theme = 'system'; }
   </script>
   <script src="config.js"></script>
+  <script>
+    /* App-Name aus config.js überall einsetzen: Browser-Tab, Startbildschirm-Verknüpfung (Android & iPhone) */
+    (function () {
+      var c = window.TP_CONFIG || {};
+      var name = (c.appName || 'Teamplaner').trim();
+      var short = (c.appShortName || name).trim();
+      document.title = name;
+      function meta(n, v) {
+        var m = document.querySelector('meta[name="' + n + '"]');
+        if (!m) { m = document.createElement('meta'); m.name = n; document.head.appendChild(m); }
+        m.content = v;
+      }
+      meta('apple-mobile-web-app-title', short);
+      meta('application-name', short);
+      try {
+        var base = new URL('./', location.href).href;
+        var abs = function (p) { return new URL(p, base).href; };
+        var manifest = {
+          id: base, name: name, short_name: short,
+          start_url: base, scope: base,
+          display: 'standalone', background_color: '#fff7f0', theme_color: '#7c5cff',
+          icons: [
+            { src: abs('img/icon-192.png'), sizes: '192x192', type: 'image/png', purpose: 'any' },
+            { src: abs('img/icon-512.png'), sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+            { src: abs('img/icon.svg'), sizes: 'any', type: 'image/svg+xml', purpose: 'any' }
+          ]
+        };
+        document.getElementById('tp-manifest').href =
+          'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
+      } catch (e) { /* dann gilt manifest.webmanifest */ }
+    })();
+  </script>
   <script src="js/vendor/supabase.js"></script>
   <script type="module" src="js/app.js"></script>
 </head>

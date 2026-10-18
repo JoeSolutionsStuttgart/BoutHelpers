@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anmelde-Mails gestalten</title>
+<style>
+  :root { --bg: #fff7f0; --card: #fff; --text: #241d3b; --muted: #5d5677; --line: #ece4f7; --primary: #7c5cff; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #13111f; --card: #1e1a30; --text: #f3f0ff; --muted: #c2bbdc; --line: #353052; --primary: #9a82ff; } }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px; margin-top: 16px; }
+  button { font: inherit; font-weight: 700; background: var(--primary); color: #fff; border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--primary); border: 1px solid var(--line); }
+  input, select { font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--text); width: 100%; box-sizing: border-box; }
+  textarea { width: 100%; box-sizing: border-box; font: 12px ui-monospace, monospace; padding: 10px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--text); }
+  label { font-weight: 700; display: block; margin: 12px 0 6px; }
+  .grid { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+  .muted { color: var(--muted); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .row input { flex: 1; width: auto; min-width: 200px; }
+  iframe { width: 100%; height: 520px; border: 1px solid var(--line); border-radius: 14px; background: #f5f1ff; }
+  code { background: rgba(124, 92, 255, .12); padding: 1px 5px; border-radius: 6px; }
+  h2 { margin: 0 0 4px; font-size: 20px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Anmelde-Mails gestalten</h1>
+  <p class="muted">Supabase verschickt die Mails rund ums Konto selbst (Registrierung bestätigen, Passwort vergessen …).
+    Diese Seite baut dafür Vorlagen im gleichen Design wie die übrigen Mails der App – mit dem Namen aus
+    <code>config.js</code>. Kopiere jeweils <b>Betreff</b> und <b>Inhalt</b> nach
+    Supabase → <b>Authentication → Emails</b> (bzw. <i>Email Templates</i>).</p>
+
+  <div class="card">
+    <div class="grid">
+      <div><label for="app">App-Name</label><input id="app"></div>
+      <div><label for="lang">Sprache der Mails</label>
+        <select id="lang">
+          <option value="de">Deutsch</option>
+          <option value="en">English</option>
+          <option value="de+en">Deutsch + English (beides in einer Mail)</option>
+        </select></div>
+    </div>
+    <label for="url">Adresse der App (für das Logo in der Mail)</label>
+    <input id="url" placeholder="https://deinname.github.io/chronik/planer/">
+  </div>
+
+  <div id="out"></div>
+</main>
+
+<script src="../config.js"></script>
+<script>
+  // Supabase-Platzhalter. Werden hier zusammengesetzt, damit GitHub Pages sie nicht anrührt.
+  var O = '{' + '{', Cl = '}' + '}';
+  var V = function (name) { return O + ' .' + name + ' ' + Cl; };
+
+  var TX = {
+    de: {
+      confirmation: { label: 'Confirm signup – Registrierung bestätigen', subject: 'Bestätige deine Anmeldung bei {app}', title: 'Willkommen bei {app}!',
+        text: 'Schön, dass du dabei bist. Bitte bestätige noch kurz deine E-Mail-Adresse – dann kann es losgehen.', button: 'E-Mail-Adresse bestätigen',
+        note: 'Du hast dich nicht registriert? Dann kannst du diese E-Mail einfach ignorieren.' },
+      recovery: { label: 'Reset password – Passwort zurücksetzen', subject: 'Neues Passwort für {app}', title: 'Passwort zurücksetzen',
+        text: 'Für dein Konto bei {app} wurde ein neues Passwort angefordert. Klicke auf den Button und lege ein neues fest.', button: 'Neues Passwort festlegen',
+        note: 'Das warst du nicht? Dann ignoriere diese E-Mail – dein Passwort bleibt unverändert.' },
+      magic_link: { label: 'Magic link – Anmeldelink', subject: 'Dein Anmeldelink für {app}', title: 'Hier ist dein Anmeldelink',
+        text: 'Mit einem Klick auf den Button bist du bei {app} angemeldet.', button: 'Jetzt anmelden',
+        note: 'Der Link ist nur kurze Zeit gültig und funktioniert nur einmal.' },
+      email_change: { label: 'Change email address – E-Mail-Adresse ändern', subject: 'Neue E-Mail-Adresse für {app} bestätigen', title: 'E-Mail-Adresse ändern',
+        text: 'Bitte bestätige, dass deine E-Mail-Adresse von ' + V('Email') + ' auf ' + V('NewEmail') + ' geändert werden soll.', button: 'Änderung bestätigen',
+        note: 'Das warst du nicht? Dann ignoriere diese E-Mail.' },
+      fallback: 'Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:',
+      footer: 'Diese E-Mail wurde automatisch von {app} verschickt, weil mit deiner Adresse ein Konto angelegt oder geändert wurde.'
+    },
+    en: {
+      confirmation: { subject: 'Confirm your sign-up for {app}', title: 'Welcome to {app}!',
+        text: 'Great to have you. Please confirm your email address – then you are ready to go.', button: 'Confirm email address',
+        note: 'Didn’t sign up? You can simply ignore this email.' },
+      recovery: { subject: 'New password for {app}', title: 'Reset your password',
+        text: 'A new password was requested for your {app} account. Click the button to choose a new one.', button: 'Set a new password',
+        note: 'Wasn’t you? Ignore this email – your password stays the same.' },
+      magic_link: { subject: 'Your sign-in link for {app}', title: 'Here is your sign-in link',
+        text: 'One click on the button and you are signed in to {app}.', button: 'Sign in now',
+        note: 'The link is only valid for a short time and works once.' },
+      email_change: { subject: 'Confirm your new email address for {app}', title: 'Change email address',
+        text: 'Please confirm that your email address should be changed from ' + V('Email') + ' to ' + V('NewEmail') + '.', button: 'Confirm change',
+        note: 'Wasn’t you? Simply ignore this email.' },
+      fallback: 'If the button does not work, copy this link into your browser:',
+      footer: 'This email was sent automatically by {app} because an account was created or changed with your address.'
+    }
+  };
+  var KINDS = ['confirmation', 'recovery', 'magic_link', 'email_change'];
+  var C = { bg: '#f5f1ff', card: '#ffffff', ink: '#241d3b', soft: '#5d5677', muted: '#8c86a3', brand: '#7c5cff', pink: '#ff4f8b' };
+  var FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  // Platzhalter wie {{ .Email }} dürfen nicht escaped werden
+  function escKeep(s) { return esc(s).replace(/\{\{ \.(\w+) \}\}/g, function (m, n) { return V(n); }); }
+  function fillApp(s, app) { return s.replace(/\{app\}/g, app); }
+
+  function block(t, app, link) {
+    return '<h1 style="margin:0 0 14px;font-size:24px;line-height:1.25;font-weight:800;color:' + C.ink + '">' + esc(fillApp(t.title, app)) + '</h1>'
+      + '<p style="margin:0 0 14px">' + escKeep(fillApp(t.text, app)) + '</p>'
+      + '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:22px 0 8px"><tr>'
+      + '<td align="center" bgcolor="' + C.brand + '" style="border-radius:999px;background:' + C.brand + '">'
+      + '<a href="' + link + '" target="_blank" style="display:inline-block;padding:14px 28px;font-family:' + FONT + ';font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:999px">'
+      + esc(t.button) + '&nbsp;&rarr;</a></td></tr></table>'
+      + '<p style="margin:18px 0 0;font-size:14px;color:' + C.soft + '">' + esc(t.note) + '</p>';
+  }
+
+  function build(kind, lang, app, base) {
+    var langs = lang === 'de+en' ? ['de', 'en'] : [lang];
+    var link = V('ConfirmationURL');
+    var logo = base ? base.replace(/\/?$/, '/') + 'img/icon-192.png' : '';
+    var parts = langs.map(function (l) { return block(TX[l][kind], app, link); });
+    var inner = parts.join('<hr style="border:0;border-top:1px solid #ebe6f7;margin:28px 0">');
+    var fb = langs.map(function (l) { return esc(TX[l].fallback); }).join(' / ');
+    var foot = langs.map(function (l) { return esc(fillApp(TX[l].footer, app)); }).join('<br>');
+    var subject = langs.map(function (l) { return fillApp(TX[l][kind].subject, app); }).join(' / ');
+    var html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+      + '<meta name="color-scheme" content="light"><title>' + esc(subject) + '</title></head>'
+      + '<body style="margin:0;padding:0;background:' + C.bg + '">'
+      + '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="' + C.bg + '" style="background:' + C.bg + '"><tr><td align="center" style="padding:28px 12px">'
+      + '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:580px">'
+      + '<tr><td style="padding:0 8px 16px;font-family:' + FONT + '"><table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr>'
+      + (logo ? '<td style="padding-right:10px;vertical-align:middle"><img src="' + esc(logo) + '" width="36" height="36" alt="" style="display:block;border:0;border-radius:10px"></td>' : '')
+      + '<td style="vertical-align:middle;font-size:17px;font-weight:800;color:' + C.ink + '">' + esc(app) + '</td></tr></table></td></tr>'
+      + '<tr><td bgcolor="' + C.card + '" style="background:' + C.card + ';border-radius:22px;overflow:hidden">'
+      + '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">'
+      + '<tr><td height="6" bgcolor="' + C.brand + '" style="height:6px;line-height:6px;font-size:6px;background:' + C.brand + ';background-image:linear-gradient(90deg,' + C.brand + ',' + C.pink + ')">&nbsp;</td></tr>'
+      + '<tr><td style="padding:30px 32px 30px;font-family:' + FONT + ';font-size:16px;line-height:1.6;color:' + C.ink + '">' + inner
+      + '<p style="margin:22px 0 0;font-size:12px;line-height:1.5;color:' + C.muted + '">' + fb + '<br><a href="' + link + '" style="color:' + C.brand + ';word-break:break-all">' + link + '</a></p>'
+      + '</td></tr></table></td></tr>'
+      + '<tr><td style="padding:20px 24px 8px;font-family:' + FONT + ';font-size:12px;line-height:1.6;color:' + C.muted + ';text-align:center">' + foot + '</td></tr>'
+      + '</table></td></tr></table></body></html>';
+    return { subject: subject, html: html };
+  }
+
+  function copy(btn, el) {
+    el.select();
+    var done = function () { var o = btn.textContent; btn.textContent = 'Kopiert ✓'; setTimeout(function () { btn.textContent = o; }, 1500); };
+    if (navigator.clipboard) navigator.clipboard.writeText(el.value).then(done, function () { document.execCommand('copy'); done(); });
+    else { document.execCommand('copy'); done(); }
+  }
+
+  function render() {
+    var app = document.getElementById('app').value.trim() || 'Teamplaner';
+    var lang = document.getElementById('lang').value;
+    var base = document.getElementById('url').value.trim();
+    var out = document.getElementById('out');
+    out.innerHTML = '';
+    KINDS.forEach(function (k, i) {
+      var r = build(k, lang, app, base);
+      var card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = '<h2>' + (i + 1) + '. ' + esc(TX.de[k].label) + '</h2>'
+        + '<label>Betreff (Subject)</label><div class="row"><input readonly class="s"><button class="ghost cs">Kopieren</button></div>'
+        + '<label>Inhalt (Message body / Source)</label><textarea rows="5" readonly class="h"></textarea>'
+        + '<div class="row" style="margin-top:8px"><button class="ch">Inhalt kopieren</button></div>'
+        + '<label>Vorschau</label><iframe title="Vorschau"></iframe>';
+      out.appendChild(card);
+      var s = card.querySelector('.s'), h = card.querySelector('.h');
+      s.value = r.subject; h.value = r.html;
+      card.querySelector('.cs').onclick = function () { copy(this, s); };
+      card.querySelector('.ch').onclick = function () { copy(this, h); };
+      card.querySelector('iframe').srcdoc = r.html.split(V('ConfirmationURL')).join('#')
+        .split(V('Email')).join('alt@example.org').split(V('NewEmail')).join('neu@example.org');
+    });
+  }
+
+  var cfg = window.TP_CONFIG || {};
+  document.getElementById('app').value = cfg.appName || 'Teamplaner';
+  document.getElementById('lang').value = cfg.defaultLanguage === 'en' ? 'en' : 'de';
+  document.getElementById('url').value = cfg.appUrl || new URL('../', location.href).href;
+  ['app', 'lang', 'url'].forEach(function (id) { document.getElementById(id).addEventListener('input', render); });
+  render();
+</script>
+</body>
+</html>

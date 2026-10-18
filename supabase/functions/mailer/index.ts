@@ -1,47 +1,70 @@
 // =============================================================
-// TEAMPLANER — Edge Function "mailer"
+// Edge Function "mailer"
 // Verschickt alle E-Mails der App über Brevo und alle Push-Nachrichten (Web Push):
 //   * Einteilungen (Button "E-Mails senden")
 //   * Nachrücken von der Warteliste
 //   * Einladungslinks
 //   * Erinnerungen vor der Gruppen-Deadline (offene Punkte)
 //   * Bestätigte Beitrittsanfragen
+// Außerdem: Abmelden per Klick (Link in jeder Mail und "List-Unsubscribe"-Kopfzeile).
 //
 // Benötigte Secrets (Supabase → Edge Functions → Secrets):
 //   BREVO_API_KEY   API-Schlüssel aus Brevo (SMTP & API → API Keys)
-//   MAIL_FROM       Absenderadresse, in Brevo als Absender bestätigt
-//   MAIL_FROM_NAME  Absendername, z. B. "Teamplaner"
+//   MAIL_FROM       Absenderadresse auf deiner eigenen, in Brevo bestätigten Domain
 //   APP_URL         Adresse der App, z. B. https://name.github.io/chronik/planer/
-//   TIMEZONE        optional, Zeitzone für Datumsangaben (Standard Europe/Berlin)
+// Optional:
+//   MAIL_FROM_NAME  Absendername (Standard: appName aus config.js der App)
+//   REPLY_TO        Adresse für Antworten, z. B. dein normales Postfach
+//   TIMEZONE        Zeitzone für Datumsangaben (Standard Europe/Berlin)
 //   VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY  für Push-Benachrichtigungen (tools/vapid.html)
-//   VAPID_SUBJECT   optional, z. B. mailto:du@example.org (Standard: mailto:MAIL_FROM)
+//   VAPID_SUBJECT   z. B. mailto:du@example.org (Standard: mailto:MAIL_FROM)
 // SUPABASE_URL und SUPABASE_SERVICE_ROLE_KEY stellt Supabase automatisch bereit.
+// Wichtig: Bei dieser Funktion "Verify JWT" ausschalten, damit Abmelde-Klicks aus
+// Mailprogrammen (ohne Anmeldung) ankommen.
 // =============================================================
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
 
-const BREVO_KEY = Deno.env.get('BREVO_API_KEY') ?? '';
-const FROM = Deno.env.get('MAIL_FROM') ?? '';
-const FROM_NAME = Deno.env.get('MAIL_FROM_NAME') ?? 'Teamplaner';
-const APP_URL = (Deno.env.get('APP_URL') ?? '').replace(/\/?$/, '/');
-const TZ = Deno.env.get('TIMEZONE') ?? 'Europe/Berlin';
-const VAPID_PUBLIC = Deno.env.get('VAPID_PUBLIC_KEY') ?? '';
-const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE_KEY') ?? '';
+const env = (k: string) => (Deno.env.get(k) ?? '').trim();
+const BREVO_KEY = env('BREVO_API_KEY');
+const FROM = env('MAIL_FROM');
+const REPLY_TO = env('REPLY_TO');
+const APP_URL = env('APP_URL').replace(/\/?$/, '/');
+const TZ = env('TIMEZONE') || 'Europe/Berlin';
+const SUPABASE_URL = env('SUPABASE_URL').replace(/\/$/, '');
+const SERVICE_KEY = env('SUPABASE_SERVICE_ROLE_KEY');
+const UNSUB_SECRET = env('UNSUB_SECRET') || SERVICE_KEY;
+const VAPID_PUBLIC = env('VAPID_PUBLIC_KEY');
+const VAPID_PRIVATE = env('VAPID_PRIVATE_KEY');
 const PUSH_ON = !!(VAPID_PUBLIC && VAPID_PRIVATE);
-if (PUSH_ON) webpush.setVapidDetails(Deno.env.get('VAPID_SUBJECT') || `mailto:${FROM || 'admin@example.org'}`, VAPID_PUBLIC, VAPID_PRIVATE);
+if (PUSH_ON) webpush.setVapidDetails(env('VAPID_SUBJECT') || `mailto:${FROM || 'admin@example.org'}`, VAPID_PUBLIC, VAPID_PRIVATE);
 
-const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
-  auth: { persistSession: false },
-});
+const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
+// ---------------- App-Name aus config.js ----------------
+// Der Name steht nur an einer Stelle: in config.js der App. Die Funktion liest ihn von dort.
+let APP = env('APP_NAME') || 'Teamplaner';
+let appLoaded = !!env('APP_NAME');
+async function loadAppName() {
+  if (appLoaded || !APP_URL.startsWith('http')) return;
+  try {
+    const res = await fetch(APP_URL + 'config.js', { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return;
+    const m = (await res.text()).match(/appName\s*:\s*(["'`])((?:\\.|(?!\1).)*)\1/);
+    if (m && m[2].trim()) APP = m[2].replace(/\\(.)/g, '$1').trim();
+    appLoaded = true;
+  } catch { /* beim nächsten Aufruf erneut versuchen */ }
+}
+const fromName = () => env('MAIL_FROM_NAME') || APP;
+
 type Outbox = {
-  id: string; to_email: string; to_name: string; kind: string; lang: string; attempts: number;
+  id: string; to_user: string | null; to_email: string; to_name: string; kind: string; lang: string; attempts: number;
   payload: Record<string, any>;
 };
 
@@ -69,43 +92,184 @@ function range(lang: string, a?: string | null, b?: string | null) {
   return `${fmt(lang, a)} – ${fmt(lang, b)}`;
 }
 
-function layout(lang: string, title: string, inner: string) {
-  const T = TEXTS[lang] ?? TEXTS.de;
-  return `<!doctype html><html lang="${esc(lang)}"><body style="margin:0;background:#fff7f0;font-family:Segoe UI,Helvetica,Arial,sans-serif;color:#241d3b">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#fff7f0;padding:24px 12px"><tr><td align="center">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 8px 24px rgba(36,29,59,.08)">
-      <tr><td style="background:linear-gradient(135deg,#7c5cff,#ff4f8b);background-color:#7c5cff;padding:22px 26px;color:#ffffff">
-        <div style="font-size:13px;font-weight:700;letter-spacing:.06em;opacity:.9;text-transform:uppercase">${esc(FROM_NAME)}</div>
-        <div style="font-size:22px;font-weight:800;margin-top:4px">${esc(title)}</div>
-      </td></tr>
-      <tr><td style="padding:24px 26px;font-size:15px;line-height:1.55">${inner}</td></tr>
-      <tr><td style="padding:14px 26px 22px;font-size:12px;color:#8c86a3">${esc(fill(T.footer, { app: FROM_NAME }))}</td></tr>
-    </table>
-  </td></tr></table></body></html>`;
+// ---------------- Abmelden ----------------
+// Welche Einstellung (profiles.mail_prefs) eine Mail-Art abschaltet
+const category = (kind: string) => (kind === 'invite' ? null : kind === 'deadline_reminder' ? 'deadline' : 'assignment');
+
+async function sign(u: string, c: string) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(UNSUB_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`unsub:${u}:${c}`)));
+  return btoa(String.fromCharCode(...mac.slice(0, 18))).replace(/\+/g, '-').replace(/\//g, '_');
+}
+function sameText(a: string, b: string) {
+  if (a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+type Unsub = { page: string; oneClick: string };
+async function unsubLinks(m: Outbox): Promise<Unsub | null> {
+  const c = category(m.kind);
+  if (!c || !m.to_user || !UNSUB_SECRET) return null;
+  const s = await sign(m.to_user, c);
+  return {
+    page: `${APP_URL}#/unsubscribe/${m.to_user}/${c}/${s}`,
+    oneClick: `${SUPABASE_URL}/functions/v1/mailer?unsub=1&u=${m.to_user}&c=${c}&s=${s}`,
+  };
 }
 
-const button = (href: string, label: string) =>
-  `<p style="margin:22px 0 6px"><a href="${esc(href)}" style="display:inline-block;background:#7c5cff;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:999px">${esc(label)}</a></p>`;
+// ---------------- Kalendereintrag (.ics) ----------------
+function icsText(s: unknown) {
+  return String(s ?? '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+}
+function icsFold(line: string) {
+  // Zeilen nach RFC 5545 bei 75 Bytes umbrechen, ohne UTF-8-Zeichen zu zerteilen
+  const enc = new TextEncoder();
+  const out: string[] = [];
+  let cur = '';
+  let bytes = 0;
+  for (const ch of line) {
+    const n = enc.encode(ch).length;
+    if (bytes + n > (out.length ? 74 : 75)) { out.push(cur); cur = ''; bytes = 0; }
+    cur += ch;
+    bytes += n;
+  }
+  out.push(cur);
+  return out.join('\r\n ');
+}
+const icsDate = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+function buildIcs(p: Record<string, any>, link: string) {
+  const startIso = p.position_start || p.event_start;
+  if (!startIso) return null;
+  const start = new Date(startIso);
+  const endIso = p.position_start ? p.position_end : p.event_end;
+  const end = endIso ? new Date(endIso) : new Date(start.getTime() + 2 * 3600 * 1000);
+  let host = 'app';
+  try { host = new URL(APP_URL).host || host; } catch { /* egal */ }
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:-//${icsText(APP)}//Planer//EN`, 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${p.assignment_id || p.position_id || crypto.randomUUID()}@${host}`,
+    `DTSTAMP:${icsDate(new Date())}`, `DTSTART:${icsDate(start)}`, `DTEND:${icsDate(end)}`,
+    `SUMMARY:${icsText(`${p.position_name} – ${p.event_title}`)}`,
+    p.location ? `LOCATION:${icsText(p.location)}` : '',
+    `DESCRIPTION:${icsText([p.team_name, p.position_description, link].filter(Boolean).join('\n'))}`,
+    `URL:${link}`,
+    'END:VEVENT', 'END:VCALENDAR',
+  ].filter(Boolean);
+  const text = lines.map(icsFold).join('\r\n') + '\r\n';
+  const bytes = new TextEncoder().encode(text);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
 
-const rows = (items: [string, string][]) =>
-  `<table role="presentation" cellspacing="0" cellpadding="0" style="width:100%;margin:12px 0;border-collapse:collapse">${items
-    .filter(([, v]) => v)
-    .map(([k, v]) => `<tr><td style="padding:7px 10px 7px 0;color:#8c86a3;font-size:13px;white-space:nowrap;vertical-align:top">${esc(k)}</td><td style="padding:7px 0;font-weight:600">${esc(v)}</td></tr>`)
-    .join('')}</table>`;
+// ---------------- Mail-Layout ----------------
+// Tabellen-Layout mit festen Farben: sieht in Gmail, Outlook, Apple Mail und auf dem Handy gleich aus.
+const C = { bg: '#f5f1ff', card: '#ffffff', ink: '#241d3b', soft: '#5d5677', muted: '#8c86a3', brand: '#7c5cff', pink: '#ff4f8b', tint: '#f3efff', line: '#ebe6f7' };
+const FONT = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif`;
+
+function layout(o: { lang: string; title: string; preheader: string; inner: string; reason: string; unsub: Unsub | null }) {
+  const T = TEXTS[o.lang] ?? TEXTS.de;
+  const logo = APP_URL.startsWith('http') ? `${APP_URL}img/icon-192.png` : '';
+  const links = [
+    `<a href="${esc(APP_URL + '#/profile')}" style="color:${C.muted};text-decoration:underline">${esc(T.footer_settings)}</a>`,
+    o.unsub ? `<a href="${esc(o.unsub.page)}" style="color:${C.muted};text-decoration:underline">${esc(T.footer_unsub)}</a>` : '',
+  ].filter(Boolean).join(' &nbsp;·&nbsp; ');
+  return `<!doctype html>
+<html lang="${esc(o.lang)}" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>${esc(o.title)}</title>
+<style>
+  body { margin:0 !important; padding:0 !important; width:100% !important; }
+  a { color:${C.brand}; }
+  @media (max-width:600px) { .px { padding-left:20px !important; padding-right:20px !important; } .h1 { font-size:22px !important; } }
+  @media (prefers-color-scheme: dark) {
+    .bg { background:#16121f !important; } .card { background:#221c30 !important; }
+    .ink { color:#f1edfb !important; } .soft { color:#c9c2dd !important; } .ticket { background:#2c2540 !important; }
+  }
+</style>
+</head>
+<body class="bg" style="margin:0;padding:0;background:${C.bg};-webkit-text-size-adjust:100%">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all">${esc(o.preheader)}${'&#847;&zwnj;&nbsp;'.repeat(40)}</div>
+<table role="presentation" class="bg" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="${C.bg}" style="background:${C.bg}">
+<tr><td align="center" style="padding:28px 12px">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:580px">
+    <tr><td class="px" style="padding:0 8px 16px;font-family:${FONT}">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr>
+        ${logo ? `<td style="padding-right:10px;vertical-align:middle"><img src="${esc(logo)}" width="36" height="36" alt="" style="display:block;border:0;border-radius:10px"></td>` : ''}
+        <td class="ink" style="vertical-align:middle;font-size:17px;font-weight:800;color:${C.ink};letter-spacing:-.01em">${esc(APP)}</td>
+      </tr></table>
+    </td></tr>
+    <tr><td class="card" bgcolor="${C.card}" style="background:${C.card};border-radius:22px;overflow:hidden">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+        <tr><td height="6" bgcolor="${C.brand}" style="height:6px;line-height:6px;font-size:6px;background:${C.brand};background-image:linear-gradient(90deg,${C.brand},${C.pink})">&nbsp;</td></tr>
+        <tr><td class="px" style="padding:30px 36px 8px;font-family:${FONT}">
+          <h1 class="h1 ink" style="margin:0;font-size:24px;line-height:1.25;font-weight:800;color:${C.ink}">${esc(o.title)}</h1>
+        </td></tr>
+        <tr><td class="px ink" style="padding:12px 36px 32px;font-family:${FONT};font-size:16px;line-height:1.6;color:${C.ink}">${o.inner}</td></tr>
+      </table>
+    </td></tr>
+    <tr><td class="px" style="padding:20px 24px 8px;font-family:${FONT};font-size:12px;line-height:1.6;color:${C.muted};text-align:center">
+      ${esc(o.reason)}<br>${links}
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+const para = (s: string) => `<p style="margin:0 0 14px">${esc(s)}</p>`;
+
+// "Bulletproof"-Button: funktioniert auch ohne CSS-Unterstützung, plus Link zum Kopieren
+function button(lang: string, href: string, label: string) {
+  const T = TEXTS[lang] ?? TEXTS.de;
+  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0 8px"><tr>
+    <td align="center" bgcolor="${C.brand}" style="border-radius:999px;background:${C.brand}">
+      <a href="${esc(href)}" target="_blank" style="display:inline-block;padding:14px 28px;font-family:${FONT};font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:999px">${esc(label)}&nbsp;&rarr;</a>
+    </td></tr></table>
+  <p class="soft" style="margin:10px 0 0;font-size:12px;line-height:1.5;color:${C.muted}">${esc(T.btn_fallback)}<br>
+    <a href="${esc(href)}" style="color:${C.brand};word-break:break-all">${esc(href)}</a></p>`;
+}
+
+// Infokasten ("Ticket") mit Event, Datum, Ort ...
+function ticket(items: [string, string][]) {
+  const rowsHtml = items.filter(([, v]) => v).map(([k, v]) =>
+    `<tr><td class="soft" style="padding:6px 14px 6px 0;font-size:13px;color:${C.soft};white-space:nowrap;vertical-align:top">${esc(k)}</td>`
+    + `<td class="ink" style="padding:6px 0;font-size:15px;font-weight:700;color:${C.ink};vertical-align:top">${esc(v)}</td></tr>`).join('');
+  return `<table role="presentation" class="ticket" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="${C.tint}" style="margin:6px 0 4px;background:${C.tint};border-radius:16px;border-left:5px solid ${C.brand}">
+    <tr><td style="padding:14px 18px;font-family:${FONT}"><table role="presentation" cellspacing="0" cellpadding="0" border="0">${rowsHtml}</table></td></tr></table>`;
+}
+
+const footerText = (T: MailTexts, reason: string, unsub: Unsub | null) =>
+  `\n\n--\n${reason}\n${T.footer_settings}: ${APP_URL}#/profile${unsub ? `\n${T.footer_unsub}: ${unsub.page}` : ''}`;
+
+type Rendered = { subject: string; html: string; text: string; ics: string | null };
 
 // Inhalt einer Mail zusammenbauen
-function render(m: Outbox): { subject: string; html: string; text: string } {
+function render(m: Outbox, unsub: Unsub | null = null): Rendered {
   const lang = TEXTS[m.lang] ? m.lang : 'de';
   const T = TEXTS[lang];
   const p = m.payload ?? {};
-  const hello = fill(T.hello, { name: m.to_name || '' });
+  const hello = fill(T.hello, { name: m.to_name || '' }).replace(/\s+,/, ',');
+  let reason = fill(T.footer_reason, { app: APP });
   let subject = '';
+  let title = '';
+  let preheader = '';
   let inner = '';
   let text = '';
+  let ics: string | null = null;
 
   if (m.kind === 'assignment' || m.kind === 'waitlist_promoted') {
     const promoted = m.kind === 'waitlist_promoted';
     subject = fill(promoted ? T.wl_subject : T.as_subject, { position: p.position_name, event: p.event_title });
+    title = subject;
     const status = T['st_' + (promoted ? 'proposed' : p.status)] ?? '';
     const when = p.position_start ? range(lang, p.position_start, p.position_end) : range(lang, p.event_start, p.event_end);
     const link = `${APP_URL}#/event/${p.event_id}`;
@@ -113,48 +277,76 @@ function render(m: Outbox): { subject: string; html: string; text: string } {
       [T.lbl_event, p.event_title], [T.lbl_date, when], [T.lbl_location, p.location],
       [T.lbl_position, p.position_name], [T.lbl_status, status], [T.lbl_team, p.team_name],
     ];
-    inner = `<p style="margin:0 0 6px">${esc(hello)}</p><p style="margin:0">${esc(promoted ? T.wl_intro : T.as_intro)}</p>${rows(facts)}`
-      + (p.position_description ? `<p style="margin:0;color:#5d5677;font-size:14px">${esc(p.position_description)}</p>` : '')
-      + button(link, T.as_cta) + `<p style="margin:12px 0 0;font-size:13px;color:#5d5677">${esc(T.as_note)}</p>`;
-    text = `${hello}\n${promoted ? T.wl_intro : T.as_intro}\n\n${facts.filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\n${T.as_cta}: ${link}\n\n${T.as_note}`;
+    ics = buildIcs(p, link);
+    preheader = `${when}${p.location ? ' · ' + p.location : ''} – ${T.p_confirm}`;
+    inner = para(hello) + para(promoted ? T.wl_intro : T.as_intro) + ticket(facts)
+      + (p.position_description ? `<p class="soft" style="margin:12px 0 0;font-size:14px;color:${C.soft}">${esc(p.position_description)}</p>` : '')
+      + button(lang, link, T.as_cta)
+      + `<p class="soft" style="margin:20px 0 0;font-size:14px;color:${C.soft}">${esc(T.as_note)}${ics ? ' ' + esc(T.cal_hint) : ''}</p>`;
+    text = `${hello}\n${promoted ? T.wl_intro : T.as_intro}\n\n${facts.filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join('\n')}`
+      + `${p.position_description ? `\n\n${p.position_description}` : ''}\n\n${T.as_cta}:\n${link}\n\n${T.as_note}${ics ? ' ' + T.cal_hint : ''}`;
   } else if (m.kind === 'invite') {
     subject = fill(T.inv_subject, { team: p.team_name });
+    title = subject;
+    reason = fill(T.footer_reason_invite, { app: APP, inviter: p.inviter || '?' });
     const link = `${APP_URL}#/invite/${p.token}`;
     const intro = fill(T.inv_intro, { inviter: p.inviter, team: p.team_name });
-    inner = `<p style="margin:0 0 10px">${esc(intro)}</p>${p.note ? `<p style="margin:0 0 10px;font-style:italic;color:#5d5677">„${esc(p.note)}“</p>` : ''}`
-      + button(link, T.inv_cta) + `<p style="margin:12px 0 0;font-size:13px;color:#5d5677">${esc(T.inv_valid)}</p>`;
-    text = `${intro}\n${p.note ? `"${p.note}"\n` : ''}\n${T.inv_cta}: ${link}\n${T.inv_valid}`;
+    preheader = `${intro} ${T.inv_valid}`;
+    inner = para(intro)
+      + (p.note ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="ticket" bgcolor="${C.tint}" style="background:${C.tint};border-radius:16px;border-left:5px solid ${C.pink}"><tr><td style="padding:14px 18px;font-family:${FONT};font-style:italic;color:${C.soft}" class="soft">„${esc(p.note)}“</td></tr></table>` : '')
+      + button(lang, link, T.inv_cta) + `<p class="soft" style="margin:18px 0 0;font-size:14px;color:${C.soft}">${esc(T.inv_valid)}</p>`;
+    text = `${intro}\n${p.note ? `"${p.note}"\n` : ''}\n${T.inv_cta}:\n${link}\n\n${T.inv_valid}`;
   } else if (m.kind === 'deadline_reminder') {
     const date = fmt(lang, p.deadline);
     subject = fill(T.dl_subject, { group: p.position_name, date });
+    title = subject;
     const link = `${APP_URL}#/group/${p.position_id}`;
     const intro = fill(T.dl_intro, { group: p.position_name, event: p.event_title, date });
     const tasks: string[] = Array.isArray(p.open_tasks) ? p.open_tasks : [];
-    inner = `<p style="margin:0 0 6px">${esc(hello)}</p><p style="margin:0 0 10px">${esc(intro)}</p>`
-      + `<ul style="margin:0 0 6px;padding-left:20px">${tasks.map((x) => `<li style="margin:4px 0">${esc(x)}</li>`).join('')}</ul>`
-      + button(link, T.dl_cta);
-    text = `${hello}\n${intro}\n\n${tasks.map((x) => `• ${x}`).join('\n')}\n\n${T.dl_cta}: ${link}`;
+    preheader = tasks.slice(0, 4).join(' · ');
+    const list = tasks.map((x) =>
+      `<tr><td style="padding:6px 10px 6px 0;vertical-align:top;font-size:15px;color:${C.brand}">&#9744;</td><td class="ink" style="padding:6px 0;font-size:15px;color:${C.ink}">${esc(x)}</td></tr>`).join('');
+    inner = para(hello) + para(intro)
+      + `<table role="presentation" class="ticket" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="${C.tint}" style="background:${C.tint};border-radius:16px;border-left:5px solid ${C.pink}"><tr><td style="padding:12px 18px;font-family:${FONT}"><table role="presentation" cellspacing="0" cellpadding="0" border="0">${list}</table></td></tr></table>`
+      + button(lang, link, T.dl_cta);
+    text = `${hello}\n${intro}\n\n${tasks.map((x) => `[ ] ${x}`).join('\n')}\n\n${T.dl_cta}:\n${link}`;
   } else if (m.kind === 'join_approved') {
     subject = fill(T.ja_subject, { team: p.team_name });
+    title = subject;
     const link = `${APP_URL}#/team/${p.team_id}`;
-    inner = `<p style="margin:0 0 6px">${esc(hello)}</p><p style="margin:0">${esc(T.ja_intro)}</p>` + button(link, T.ja_cta);
-    text = `${hello}\n${T.ja_intro}\n\n${T.ja_cta}: ${link}`;
+    preheader = T.ja_intro;
+    inner = para(hello) + para(T.ja_intro) + button(lang, link, T.ja_cta);
+    text = `${hello}\n${T.ja_intro}\n\n${T.ja_cta}:\n${link}`;
   } else {
     throw new Error('unknown kind ' + m.kind);
   }
-  return { subject, html: layout(lang, subject, inner), text };
+  return {
+    subject,
+    html: layout({ lang, title, preheader, inner, reason, unsub }),
+    text: text + footerText(T, reason, unsub),
+    ics,
+  };
 }
 
 async function sendBrevo(m: Outbox) {
-  const { subject, html, text } = render(m);
+  const unsub = await unsubLinks(m);
+  const { subject, html, text, ics } = render(m, unsub);
+  const headers: Record<string, string> = {};
+  if (unsub) {
+    headers['List-Unsubscribe'] = `<${unsub.oneClick}>`;
+    headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+  }
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: { 'api-key': BREVO_KEY, 'content-type': 'application/json', accept: 'application/json' },
     body: JSON.stringify({
-      sender: { email: FROM, name: FROM_NAME },
-      to: [{ email: m.to_email, name: m.to_name || undefined }],
+      sender: { email: FROM, name: fromName() },
+      to: [{ email: m.to_email, ...(m.to_name ? { name: m.to_name } : {}) }],
+      ...(REPLY_TO ? { replyTo: { email: REPLY_TO } } : {}),
       subject, htmlContent: html, textContent: text,
-      tags: ['teamplaner', m.kind],
+      ...(Object.keys(headers).length ? { headers } : {}),
+      ...(ics ? { attachment: [{ name: 'event.ics', content: ics }] } : {}),
+      tags: [m.kind],
     }),
   });
   if (!res.ok) throw new Error(`Brevo ${res.status}: ${(await res.text()).slice(0, 300)}`);
@@ -231,10 +423,28 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { ...CORS, 'content-type': 'application/json' } });
+  const url = new URL(req.url);
 
-  if (!BREVO_KEY || !FROM || !APP_URL || APP_URL === '/') {
+  // Abmelden: GET (Link geöffnet) → Seite in der App, POST (Ein-Klick aus dem Mailprogramm oder App) → abschalten
+  if (url.searchParams.has('unsub')) {
+    const u = url.searchParams.get('u') ?? '';
+    const c = url.searchParams.get('c') ?? '';
+    const s = url.searchParams.get('s') ?? '';
+    if (req.method === 'GET') {
+      return new Response(null, { status: 302, headers: { location: `${APP_URL}#/unsubscribe/${u}/${c}/${s}` } });
+    }
+    const valid = /^[0-9a-f-]{36}$/i.test(u) && (c === 'assignment' || c === 'deadline') && sameText(await sign(u, c), s);
+    if (!valid) return json({ error: 'invalid link' }, 400);
+    const { data } = await db.from('profiles').select('mail_prefs').eq('id', u).maybeSingle();
+    if (data) await db.from('profiles').update({ mail_prefs: { ...(data.mail_prefs ?? {}), [c]: false } }).eq('id', u);
+    return json({ ok: true });
+  }
+
+  if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
+  if (!BREVO_KEY || !FROM || !APP_URL.startsWith('http')) {
     return json({ error: 'Secrets BREVO_API_KEY, MAIL_FROM und APP_URL fehlen.' }, 500);
   }
+  await loadAppName();
 
   // 1. Erinnerungen vor Deadlines und "gleich geht's los" einreihen
   const { error: remErr } = await db.rpc('queue_deadline_reminders');
@@ -266,7 +476,7 @@ Deno.serve(async (req) => {
       }
     }
   }
-  return json({ sent, failed, push });
+  return json({ sent, failed, push, app: APP });
 });
 
 // ---------------- Texte ----------------
@@ -275,7 +485,7 @@ type MailTexts = Record<string, string>;
 const TEXTS: Record<string, MailTexts> = {
   de: {
     p_confirm: "Bitte bestätige deine Einteilung in der App.", p_soon_title: "Gleich geht's los: {position}", p_soon_body: "Beginn um {time} – {event}", p_mention_title: "{name} hat dich erwähnt · {room}", p_test_title: "Push funktioniert! 🎉", p_test_body: "So sehen deine Benachrichtigungen aus.",
-    hello: 'Hallo {name},', footer: 'Diese E-Mail wurde von {app} verschickt.',
+    hello: 'Hallo {name},', footer_reason: "Du bekommst diese E-Mail, weil du bei {app} angemeldet bist und diese Benachrichtigung eingeschaltet ist.", footer_reason_invite: "Du bekommst diese E-Mail, weil {inviter} dich zu {app} eingeladen hat. Falls du damit nichts anfangen kannst, ignoriere sie einfach.", footer_settings: "E-Mail-Einstellungen", footer_unsub: "Abmelden", cal_hint: "Im Anhang findest du einen Kalendereintrag zum Speichern.", btn_fallback: "Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:",
     lbl_event: 'Event', lbl_date: 'Datum', lbl_location: 'Ort', lbl_position: 'Position', lbl_status: 'Status', lbl_team: 'Team',
     st_proposed: 'Vorgemerkt – bitte bestätigen', st_confirmed: 'Bestätigt', st_uncertain: 'Ungewiss',
     as_subject: 'Deine Einteilung: {position} bei {event}', as_intro: 'du bist für folgendes Event eingeteilt:', as_cta: 'Einteilung ansehen & bestätigen', as_note: 'Bitte bestätige deine Einteilung – oder sag ab, falls du nicht kannst. Dann rückt automatisch jemand von der Warteliste nach.',
@@ -286,7 +496,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   en: {
     p_confirm: "Please confirm your assignment in the app.", p_soon_title: "Starting soon: {position}", p_soon_body: "Starts at {time} – {event}", p_mention_title: "{name} mentioned you · {room}", p_test_title: "Push works! 🎉", p_test_body: "This is how your notifications look.",
-    hello: 'Hello {name},', footer: 'This email was sent by {app}.',
+    hello: 'Hello {name},', footer_reason: "You are receiving this email because you have an account with {app} and this notification is switched on.", footer_reason_invite: "You are receiving this email because {inviter} invited you to {app}. If this means nothing to you, simply ignore it.", footer_settings: "Email settings", footer_unsub: "Unsubscribe", cal_hint: "A calendar entry is attached so you can save the date.", btn_fallback: "If the button does not work, copy this link into your browser:",
     lbl_event: 'Event', lbl_date: 'Date', lbl_location: 'Location', lbl_position: 'Position', lbl_status: 'Status', lbl_team: 'Team',
     st_proposed: 'Pending – please confirm', st_confirmed: 'Confirmed', st_uncertain: 'Uncertain',
     as_subject: 'Your assignment: {position} at {event}', as_intro: 'you have been assigned to the following event:', as_cta: 'View & confirm assignment', as_note: 'Please confirm your assignment – or decline if you cannot make it. Someone from the waiting list will then move up automatically.',
@@ -297,7 +507,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   fr: {
     p_confirm: "Merci de confirmer ton affectation dans l’app.", p_soon_title: "Ça commence bientôt : {position}", p_soon_body: "Début à {time} – {event}", p_mention_title: "{name} t’a mentionné·e · {room}", p_test_title: "Le push fonctionne ! 🎉", p_test_body: "Voici à quoi ressemblent tes notifications.",
-    hello: 'Bonjour {name},', footer: 'Cet e-mail a été envoyé par {app}.',
+    hello: 'Bonjour {name},', footer_reason: "Tu reçois cet e-mail parce que tu as un compte sur {app} et que cette notification est activée.", footer_reason_invite: "Tu reçois cet e-mail parce que {inviter} t’a invité·e sur {app}. Si cela ne te dit rien, ignore-le simplement.", footer_settings: "Paramètres e-mail", footer_unsub: "Se désabonner", cal_hint: "Un événement de calendrier est joint pour enregistrer la date.", btn_fallback: "Si le bouton ne fonctionne pas, copie ce lien dans ton navigateur :",
     lbl_event: 'Événement', lbl_date: 'Date', lbl_location: 'Lieu', lbl_position: 'Poste', lbl_status: 'Statut', lbl_team: 'Équipe',
     st_proposed: 'Pressenti·e – merci de confirmer', st_confirmed: 'Confirmé', st_uncertain: 'Incertain',
     as_subject: 'Ton affectation : {position} à {event}', as_intro: 'tu es affecté·e à l’événement suivant :', as_cta: 'Voir et confirmer', as_note: 'Merci de confirmer ton affectation – ou de te désister si tu ne peux pas. Une personne de la liste d’attente prendra alors ta place.',
@@ -308,7 +518,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   es: {
     p_confirm: "Confirma tu asignación en la app.", p_soon_title: "Empieza pronto: {position}", p_soon_body: "Comienza a las {time} – {event}", p_mention_title: "{name} te ha mencionado · {room}", p_test_title: "¡Las notificaciones funcionan! 🎉", p_test_body: "Así se ven tus notificaciones.",
-    hello: 'Hola, {name}:', footer: 'Este correo lo ha enviado {app}.',
+    hello: 'Hola, {name}:', footer_reason: "Recibes este correo porque tienes una cuenta en {app} y esta notificación está activada.", footer_reason_invite: "Recibes este correo porque {inviter} te ha invitado a {app}. Si no sabes de qué se trata, simplemente ignóralo.", footer_settings: "Ajustes de correo", footer_unsub: "Darse de baja", cal_hint: "Adjuntamos una entrada de calendario para que guardes la fecha.", btn_fallback: "Si el botón no funciona, copia este enlace en tu navegador:",
     lbl_event: 'Evento', lbl_date: 'Fecha', lbl_location: 'Lugar', lbl_position: 'Puesto', lbl_status: 'Estado', lbl_team: 'Equipo',
     st_proposed: 'Preasignado – confirma, por favor', st_confirmed: 'Confirmado', st_uncertain: 'Incierto',
     as_subject: 'Tu asignación: {position} en {event}', as_intro: 'te han asignado al siguiente evento:', as_cta: 'Ver y confirmar', as_note: 'Confirma tu asignación o recházala si no puedes. Entonces subirá automáticamente alguien de la lista de espera.',
@@ -319,7 +529,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   it: {
     p_confirm: "Conferma la tua assegnazione nell’app.", p_soon_title: "Si comincia presto: {position}", p_soon_body: "Inizio alle {time} – {event}", p_mention_title: "{name} ti ha menzionato/a · {room}", p_test_title: "Le notifiche funzionano! 🎉", p_test_body: "Ecco come appaiono le tue notifiche.",
-    hello: 'Ciao {name},', footer: 'Questa e-mail è stata inviata da {app}.',
+    hello: 'Ciao {name},', footer_reason: "Ricevi questa e-mail perché hai un account su {app} e questa notifica è attiva.", footer_reason_invite: "Ricevi questa e-mail perché {inviter} ti ha invitato su {app}. Se non ti dice nulla, ignorala pure.", footer_settings: "Impostazioni e-mail", footer_unsub: "Annulla iscrizione", cal_hint: "In allegato trovi un evento da salvare nel calendario.", btn_fallback: "Se il pulsante non funziona, copia questo link nel browser:",
     lbl_event: 'Evento', lbl_date: 'Data', lbl_location: 'Luogo', lbl_position: 'Posizione', lbl_status: 'Stato', lbl_team: 'Team',
     st_proposed: 'Proposto – conferma, per favore', st_confirmed: 'Confermato', st_uncertain: 'Incerto',
     as_subject: 'La tua assegnazione: {position} a {event}', as_intro: 'sei stato/a assegnato/a al seguente evento:', as_cta: 'Vedi e conferma', as_note: 'Conferma la tua assegnazione oppure rinuncia se non puoi. Qualcuno dalla lista d’attesa prenderà automaticamente il tuo posto.',
@@ -330,7 +540,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   pt: {
     p_confirm: "Confirma a tua atribuição na app.", p_soon_title: "Começa já a seguir: {position}", p_soon_body: "Início às {time} – {event}", p_mention_title: "{name} mencionou-te · {room}", p_test_title: "As notificações funcionam! 🎉", p_test_body: "É assim que as tuas notificações aparecem.",
-    hello: 'Olá, {name},', footer: 'Este e-mail foi enviado por {app}.',
+    hello: 'Olá, {name},', footer_reason: "Recebes este e-mail porque tens uma conta em {app} e esta notificação está ativada.", footer_reason_invite: "Recebes este e-mail porque {inviter} te convidou para {app}. Se não sabes do que se trata, ignora-o.", footer_settings: "Definições de e-mail", footer_unsub: "Cancelar subscrição", cal_hint: "Em anexo encontras uma entrada de calendário para guardar a data.", btn_fallback: "Se o botão não funcionar, copia este link para o teu navegador:",
     lbl_event: 'Evento', lbl_date: 'Data', lbl_location: 'Local', lbl_position: 'Posição', lbl_status: 'Estado', lbl_team: 'Equipa',
     st_proposed: 'Pré-atribuído – confirma, por favor', st_confirmed: 'Confirmado', st_uncertain: 'Incerto',
     as_subject: 'A tua atribuição: {position} em {event}', as_intro: 'foste atribuído/a ao seguinte evento:', as_cta: 'Ver e confirmar', as_note: 'Confirma a tua atribuição – ou recusa, se não puderes. Alguém da lista de espera sobe então automaticamente.',
@@ -341,7 +551,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   nl: {
     p_confirm: "Bevestig je indeling in de app.", p_soon_title: "Zo meteen: {position}", p_soon_body: "Begint om {time} – {event}", p_mention_title: "{name} heeft je genoemd · {room}", p_test_title: "Push werkt! 🎉", p_test_body: "Zo zien je meldingen eruit.",
-    hello: 'Hallo {name},', footer: 'Deze e-mail is verstuurd door {app}.',
+    hello: 'Hallo {name},', footer_reason: "Je ontvangt deze e-mail omdat je een account hebt bij {app} en deze melding aan staat.", footer_reason_invite: "Je ontvangt deze e-mail omdat {inviter} je heeft uitgenodigd voor {app}. Zegt dit je niets, negeer hem dan gewoon.", footer_settings: "E-mailinstellingen", footer_unsub: "Afmelden", cal_hint: "In de bijlage vind je een agenda-item om de datum op te slaan.", btn_fallback: "Werkt de knop niet? Kopieer deze link naar je browser:",
     lbl_event: 'Evenement', lbl_date: 'Datum', lbl_location: 'Locatie', lbl_position: 'Positie', lbl_status: 'Status', lbl_team: 'Team',
     st_proposed: 'Voorgesteld – graag bevestigen', st_confirmed: 'Bevestigd', st_uncertain: 'Onzeker',
     as_subject: 'Je indeling: {position} bij {event}', as_intro: 'je bent ingedeeld voor het volgende evenement:', as_cta: 'Indeling bekijken en bevestigen', as_note: 'Bevestig je indeling – of zeg af als je niet kunt. Dan schuift er automatisch iemand van de wachtlijst door.',
@@ -352,7 +562,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   pl: {
     p_confirm: "Potwierdź przydział w aplikacji.", p_soon_title: "Zaraz zaczynasz: {position}", p_soon_body: "Początek o {time} – {event}", p_mention_title: "{name} wspomniał(a) o tobie · {room}", p_test_title: "Powiadomienia działają! 🎉", p_test_body: "Tak wyglądają twoje powiadomienia.",
-    hello: 'Cześć {name},', footer: 'Tę wiadomość wysłała aplikacja {app}.',
+    hello: 'Cześć {name},', footer_reason: "Otrzymujesz tę wiadomość, ponieważ masz konto w {app} i to powiadomienie jest włączone.", footer_reason_invite: "Otrzymujesz tę wiadomość, ponieważ {inviter} zaprosił(a) cię do {app}. Jeśli nic ci to nie mówi, po prostu ją zignoruj.", footer_settings: "Ustawienia e-mail", footer_unsub: "Wypisz się", cal_hint: "W załączniku znajdziesz wpis do kalendarza.", btn_fallback: "Jeśli przycisk nie działa, skopiuj ten link do przeglądarki:",
     lbl_event: 'Wydarzenie', lbl_date: 'Data', lbl_location: 'Miejsce', lbl_position: 'Stanowisko', lbl_status: 'Status', lbl_team: 'Zespół',
     st_proposed: 'Wstępnie przydzielony – prosimy o potwierdzenie', st_confirmed: 'Potwierdzony', st_uncertain: 'Niepewny',
     as_subject: 'Twój przydział: {position} – {event}', as_intro: 'przydzielono cię do następującego wydarzenia:', as_cta: 'Zobacz i potwierdź', as_note: 'Potwierdź przydział – albo odmów, jeśli nie możesz. Wtedy automatycznie wejdzie ktoś z listy rezerwowej.',
@@ -363,7 +573,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   uk: {
     p_confirm: "Підтвердьте призначення в застосунку.", p_soon_title: "Скоро початок: {position}", p_soon_body: "Початок о {time} — {event}", p_mention_title: "{name} згадав(ла) вас · {room}", p_test_title: "Сповіщення працюють! 🎉", p_test_body: "Ось так виглядають ваші сповіщення.",
-    hello: 'Привіт, {name}!', footer: 'Цей лист надіслав застосунок {app}.',
+    hello: 'Привіт, {name}!', footer_reason: "Ви отримали цей лист, бо маєте обліковий запис у {app} і це сповіщення увімкнене.", footer_reason_invite: "Ви отримали цей лист, бо {inviter} запросив(ла) вас до {app}. Якщо вам це ні про що не говорить, просто проігноруйте його.", footer_settings: "Налаштування e-mail", footer_unsub: "Відписатися", cal_hint: "У вкладенні — подія для календаря, щоб зберегти дату.", btn_fallback: "Якщо кнопка не працює, скопіюйте це посилання в браузер:",
     lbl_event: 'Подія', lbl_date: 'Дата', lbl_location: 'Місце', lbl_position: 'Позиція', lbl_status: 'Статус', lbl_team: 'Команда',
     st_proposed: 'Попередньо — будь ласка, підтвердьте', st_confirmed: 'Підтверджено', st_uncertain: 'Невідомо',
     as_subject: 'Ваше призначення: {position} — {event}', as_intro: 'вас призначено на таку подію:', as_cta: 'Переглянути й підтвердити', as_note: 'Будь ласка, підтвердьте призначення — або відмовтеся, якщо не можете. Тоді автоматично посунеться хтось із листа очікування.',
@@ -374,7 +584,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   ru: {
     p_confirm: "Подтвердите назначение в приложении.", p_soon_title: "Скоро начало: {position}", p_soon_body: "Начало в {time} — {event}", p_mention_title: "{name} упомянул(а) вас · {room}", p_test_title: "Уведомления работают! 🎉", p_test_body: "Так выглядят ваши уведомления.",
-    hello: 'Привет, {name}!', footer: 'Это письмо отправлено приложением {app}.',
+    hello: 'Привет, {name}!', footer_reason: "Вы получили это письмо, потому что у вас есть аккаунт в {app} и это уведомление включено.", footer_reason_invite: "Вы получили это письмо, потому что {inviter} пригласил(а) вас в {app}. Если вам это ни о чём не говорит, просто проигнорируйте его.", footer_settings: "Настройки e-mail", footer_unsub: "Отписаться", cal_hint: "Во вложении — событие для календаря, чтобы сохранить дату.", btn_fallback: "Если кнопка не работает, скопируйте эту ссылку в браузер:",
     lbl_event: 'Мероприятие', lbl_date: 'Дата', lbl_location: 'Место', lbl_position: 'Позиция', lbl_status: 'Статус', lbl_team: 'Команда',
     st_proposed: 'Предварительно — пожалуйста, подтвердите', st_confirmed: 'Подтверждено', st_uncertain: 'Под вопросом',
     as_subject: 'Ваше назначение: {position} — {event}', as_intro: 'вы назначены на следующее мероприятие:', as_cta: 'Посмотреть и подтвердить', as_note: 'Пожалуйста, подтвердите назначение — или откажитесь, если не можете. Тогда автоматически продвинется кто-то из листа ожидания.',
@@ -385,7 +595,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   ro: {
     p_confirm: "Te rugăm să confirmi repartizarea în aplicație.", p_soon_title: "Începe în curând: {position}", p_soon_body: "Începe la {time} – {event}", p_mention_title: "{name} te-a menționat · {room}", p_test_title: "Notificările funcționează! 🎉", p_test_body: "Așa arată notificările tale.",
-    hello: 'Salut, {name},', footer: 'Acest e-mail a fost trimis de {app}.',
+    hello: 'Salut, {name},', footer_reason: "Primești acest e-mail pentru că ai un cont în {app} și această notificare este activată.", footer_reason_invite: "Primești acest e-mail pentru că {inviter} te-a invitat în {app}. Dacă nu îți spune nimic, ignoră-l.", footer_settings: "Setări e-mail", footer_unsub: "Dezabonare", cal_hint: "În atașament găsești un eveniment de calendar pentru a salva data.", btn_fallback: "Dacă butonul nu funcționează, copiază acest link în browser:",
     lbl_event: 'Eveniment', lbl_date: 'Data', lbl_location: 'Loc', lbl_position: 'Poziție', lbl_status: 'Stare', lbl_team: 'Echipă',
     st_proposed: 'Propus – te rugăm să confirmi', st_confirmed: 'Confirmat', st_uncertain: 'Nesigur',
     as_subject: 'Repartizarea ta: {position} la {event}', as_intro: 'ai fost repartizat la următorul eveniment:', as_cta: 'Vezi și confirmă', as_note: 'Te rugăm să confirmi repartizarea – sau să refuzi dacă nu poți. Atunci avansează automat cineva de pe lista de așteptare.',
@@ -396,7 +606,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   tr: {
     p_confirm: "Lütfen atamanı uygulamada onayla.", p_soon_title: "Birazdan başlıyor: {position}", p_soon_body: "Başlangıç {time} – {event}", p_mention_title: "{name} senden bahsetti · {room}", p_test_title: "Bildirimler çalışıyor! 🎉", p_test_body: "Bildirimlerin böyle görünecek.",
-    hello: 'Merhaba {name},', footer: 'Bu e-posta {app} tarafından gönderildi.',
+    hello: 'Merhaba {name},', footer_reason: "Bu e-postayı {app} hesabın olduğu ve bu bildirim açık olduğu için alıyorsun.", footer_reason_invite: "Bu e-postayı {inviter} seni {app} uygulamasına davet ettiği için alıyorsun. Sana bir şey ifade etmiyorsa yok sayabilirsin.", footer_settings: "E-posta ayarları", footer_unsub: "Abonelikten çık", cal_hint: "Tarihi kaydetmen için ekte bir takvim kaydı var.", btn_fallback: "Düğme çalışmazsa bu bağlantıyı tarayıcına kopyala:",
     lbl_event: 'Etkinlik', lbl_date: 'Tarih', lbl_location: 'Yer', lbl_position: 'Pozisyon', lbl_status: 'Durum', lbl_team: 'Ekip',
     st_proposed: 'Önerildi – lütfen onayla', st_confirmed: 'Onaylandı', st_uncertain: 'Belirsiz',
     as_subject: 'Atamanız: {event} – {position}', as_intro: 'aşağıdaki etkinliğe atandın:', as_cta: 'Görüntüle ve onayla', as_note: 'Lütfen atamanı onayla – katılamıyorsan reddet. O zaman bekleme listesinden biri otomatik olarak yükselir.',
@@ -407,7 +617,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   el: {
     p_confirm: "Επιβεβαίωσε την ανάθεσή σου στην εφαρμογή.", p_soon_title: "Ξεκινά σε λίγο: {position}", p_soon_body: "Έναρξη στις {time} – {event}", p_mention_title: "{name} σε ανέφερε · {room}", p_test_title: "Οι ειδοποιήσεις λειτουργούν! 🎉", p_test_body: "Έτσι φαίνονται οι ειδοποιήσεις σου.",
-    hello: 'Γεια σου {name},', footer: 'Αυτό το email στάλθηκε από το {app}.',
+    hello: 'Γεια σου {name},', footer_reason: "Λαμβάνεις αυτό το email επειδή έχεις λογαριασμό στο {app} και αυτή η ειδοποίηση είναι ενεργή.", footer_reason_invite: "Λαμβάνεις αυτό το email επειδή ο/η {inviter} σε προσκάλεσε στο {app}. Αν δεν σου λέει κάτι, απλώς αγνόησέ το.", footer_settings: "Ρυθμίσεις email", footer_unsub: "Απεγγραφή", cal_hint: "Στο συνημμένο θα βρεις μια καταχώριση ημερολογίου για να αποθηκεύσεις την ημερομηνία.", btn_fallback: "Αν το κουμπί δεν λειτουργεί, αντέγραψε αυτόν τον σύνδεσμο στον browser:",
     lbl_event: 'Εκδήλωση', lbl_date: 'Ημερομηνία', lbl_location: 'Τοποθεσία', lbl_position: 'Θέση', lbl_status: 'Κατάσταση', lbl_team: 'Ομάδα',
     st_proposed: 'Προτεινόμενο – παρακαλούμε επιβεβαίωσε', st_confirmed: 'Επιβεβαιωμένο', st_uncertain: 'Αβέβαιο',
     as_subject: 'Η ανάθεσή σου: {position} στην {event}', as_intro: 'σου ανατέθηκε θέση στην παρακάτω εκδήλωση:', as_cta: 'Προβολή και επιβεβαίωση', as_note: 'Επιβεβαίωσε την ανάθεση – ή αρνήσου αν δεν μπορείς. Τότε ανεβαίνει αυτόματα κάποιος από τη λίστα αναμονής.',
@@ -418,7 +628,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   hu: {
     p_confirm: "Kérjük, erősítsd meg a beosztásodat az appban.", p_soon_title: "Hamarosan kezdődik: {position}", p_soon_body: "Kezdés {time} – {event}", p_mention_title: "{name} megemlített · {room}", p_test_title: "Működnek az értesítések! 🎉", p_test_body: "Így néznek ki az értesítéseid.",
-    hello: 'Szia {name}!', footer: 'Ezt az e-mailt a(z) {app} küldte.',
+    hello: 'Szia {name}!', footer_reason: "Azért kapod ezt az e-mailt, mert van fiókod a(z) {app} alkalmazásban, és ez az értesítés be van kapcsolva.", footer_reason_invite: "Azért kapod ezt az e-mailt, mert {inviter} meghívott a(z) {app} alkalmazásba. Ha nem tudod, miről van szó, egyszerűen hagyd figyelmen kívül.", footer_settings: "E-mail-beállítások", footer_unsub: "Leiratkozás", cal_hint: "A mellékletben egy naptárbejegyzést találsz a dátum mentéséhez.", btn_fallback: "Ha a gomb nem működik, másold ezt a linket a böngésződbe:",
     lbl_event: 'Esemény', lbl_date: 'Dátum', lbl_location: 'Helyszín', lbl_position: 'Pozíció', lbl_status: 'Állapot', lbl_team: 'Csapat',
     st_proposed: 'Előjegyezve – kérjük, erősítsd meg', st_confirmed: 'Megerősítve', st_uncertain: 'Bizonytalan',
     as_subject: 'Beosztásod: {position} – {event}', as_intro: 'beosztottak a következő eseményre:', as_cta: 'Megtekintés és megerősítés', as_note: 'Kérjük, erősítsd meg a beosztásodat – vagy mondd le, ha nem tudsz jönni. Ekkor automatikusan feljebb lép valaki a várólistáról.',
@@ -429,7 +639,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   cs: {
     p_confirm: "Potvrď prosím přiřazení v aplikaci.", p_soon_title: "Brzy začínáš: {position}", p_soon_body: "Začátek v {time} – {event}", p_mention_title: "{name} tě zmínil/a · {room}", p_test_title: "Upozornění fungují! 🎉", p_test_body: "Takhle vypadají tvoje upozornění.",
-    hello: 'Ahoj {name},', footer: 'Tento e-mail odeslala aplikace {app}.',
+    hello: 'Ahoj {name},', footer_reason: "Tento e-mail dostáváš, protože máš účet v {app} a toto upozornění je zapnuté.", footer_reason_invite: "Tento e-mail dostáváš, protože tě {inviter} pozval(a) do {app}. Pokud ti to nic neříká, jednoduše ho ignoruj.", footer_settings: "Nastavení e-mailů", footer_unsub: "Odhlásit odběr", cal_hint: "V příloze najdeš událost do kalendáře.", btn_fallback: "Pokud tlačítko nefunguje, zkopíruj tento odkaz do prohlížeče:",
     lbl_event: 'Akce', lbl_date: 'Datum', lbl_location: 'Místo', lbl_position: 'Pozice', lbl_status: 'Stav', lbl_team: 'Tým',
     st_proposed: 'Předběžně – prosím potvrď', st_confirmed: 'Potvrzeno', st_uncertain: 'Nejisté',
     as_subject: 'Tvoje přiřazení: {position} – {event}', as_intro: 'byl/a jsi přiřazen/a na tuto akci:', as_cta: 'Zobrazit a potvrdit', as_note: 'Potvrď prosím přiřazení – nebo ho odmítni, pokud nemůžeš. Pak automaticky postoupí někdo z čekací listiny.',
@@ -440,7 +650,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   sv: {
     p_confirm: "Bekräfta din indelning i appen.", p_soon_title: "Snart dags: {position}", p_soon_body: "Börjar {time} – {event}", p_mention_title: "{name} nämnde dig · {room}", p_test_title: "Push fungerar! 🎉", p_test_body: "Så här ser dina aviseringar ut.",
-    hello: 'Hej {name},', footer: 'Det här mejlet skickades av {app}.',
+    hello: 'Hej {name},', footer_reason: "Du får det här mejlet eftersom du har ett konto hos {app} och den här aviseringen är påslagen.", footer_reason_invite: "Du får det här mejlet eftersom {inviter} har bjudit in dig till {app}. Om det inte säger dig något kan du bara ignorera det.", footer_settings: "E-postinställningar", footer_unsub: "Avregistrera", cal_hint: "En kalenderhändelse är bifogad så att du kan spara datumet.", btn_fallback: "Om knappen inte fungerar, kopiera den här länken till din webbläsare:",
     lbl_event: 'Evenemang', lbl_date: 'Datum', lbl_location: 'Plats', lbl_position: 'Position', lbl_status: 'Status', lbl_team: 'Team',
     st_proposed: 'Föreslagen – bekräfta gärna', st_confirmed: 'Bekräftad', st_uncertain: 'Osäker',
     as_subject: 'Din indelning: {position} på {event}', as_intro: 'du har delats in på följande evenemang:', as_cta: 'Visa och bekräfta', as_note: 'Bekräfta din indelning – eller tacka nej om du inte kan. Då flyttas någon från väntelistan upp automatiskt.',
@@ -451,7 +661,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   bg: {
     p_confirm: "Моля, потвърди разпределението си в приложението.", p_soon_title: "Скоро започва: {position}", p_soon_body: "Начало в {time} – {event}", p_mention_title: "{name} те спомена · {room}", p_test_title: "Известията работят! 🎉", p_test_body: "Така изглеждат твоите известия.",
-    hello: 'Здравей, {name},', footer: 'Този имейл е изпратен от {app}.',
+    hello: 'Здравей, {name},', footer_reason: "Получаваш този имейл, защото имаш акаунт в {app} и това известие е включено.", footer_reason_invite: "Получаваш този имейл, защото {inviter} те покани в {app}. Ако не ти говори нищо, просто го игнорирай.", footer_settings: "Настройки за имейл", footer_unsub: "Отписване", cal_hint: "В прикачения файл има събитие за календара, за да запазиш датата.", btn_fallback: "Ако бутонът не работи, копирай тази връзка в браузъра:",
     lbl_event: 'Събитие', lbl_date: 'Дата', lbl_location: 'Място', lbl_position: 'Позиция', lbl_status: 'Статус', lbl_team: 'Екип',
     st_proposed: 'Предложен – моля, потвърди', st_confirmed: 'Потвърден', st_uncertain: 'Несигурно',
     as_subject: 'Твоето разпределение: {position} – {event}', as_intro: 'разпределен си за следното събитие:', as_cta: 'Виж и потвърди', as_note: 'Моля, потвърди разпределението си – или откажи, ако не можеш. Тогава автоматично ще се придвижи някой от списъка на чакащите.',
@@ -462,7 +672,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   sr: {
     p_confirm: "Molimo potvrdi raspored u aplikaciji.", p_soon_title: "Uskoro počinje: {position}", p_soon_body: "Početak u {time} – {event}", p_mention_title: "{name} te je pomenuo/la · {room}", p_test_title: "Obaveštenja rade! 🎉", p_test_body: "Ovako izgledaju tvoja obaveštenja.",
-    hello: 'Zdravo {name},', footer: 'Ovaj imejl je poslala aplikacija {app}.',
+    hello: 'Zdravo {name},', footer_reason: "Добијаш овај имејл јер имаш налог на {app} и ово обавештење је укључено.", footer_reason_invite: "Добијаш овај имејл јер те је {inviter} позвао/ла у {app}. Ако ти то ништа не значи, само га занемари.", footer_settings: "Подешавања имејла", footer_unsub: "Одјави се", cal_hint: "У прилогу је догађај за календар да сачуваш датум.", btn_fallback: "Ако дугме не ради, копирај овај линк у прегледач:",
     lbl_event: 'Događaj', lbl_date: 'Datum', lbl_location: 'Mesto', lbl_position: 'Pozicija', lbl_status: 'Status', lbl_team: 'Tim',
     st_proposed: 'Predloženo – molimo potvrdi', st_confirmed: 'Potvrđeno', st_uncertain: 'Neizvesno',
     as_subject: 'Tvoj raspored: {position} – {event}', as_intro: 'raspoređen/a si na sledeći događaj:', as_cta: 'Pogledaj i potvrdi', as_note: 'Molimo potvrdi raspored – ili otkaži ako ne možeš. Tada automatski napreduje neko sa liste čekanja.',
@@ -473,7 +683,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   da: {
     p_confirm: "Bekræft venligst din vagt i appen.", p_soon_title: "Snart i gang: {position}", p_soon_body: "Starter kl. {time} – {event}", p_mention_title: "{name} har nævnt dig · {room}", p_test_title: "Push virker! 🎉", p_test_body: "Sådan ser dine notifikationer ud.",
-    hello: 'Hej {name},', footer: 'Denne mail er sendt af {app}.',
+    hello: 'Hej {name},', footer_reason: "Du modtager denne e-mail, fordi du har en konto hos {app}, og denne notifikation er slået til.", footer_reason_invite: "Du modtager denne e-mail, fordi {inviter} har inviteret dig til {app}. Hvis det ikke siger dig noget, kan du bare ignorere den.", footer_settings: "E-mailindstillinger", footer_unsub: "Afmeld", cal_hint: "Der er vedhæftet en kalenderbegivenhed, så du kan gemme datoen.", btn_fallback: "Hvis knappen ikke virker, så kopiér dette link ind i din browser:",
     lbl_event: 'Arrangement', lbl_date: 'Dato', lbl_location: 'Sted', lbl_position: 'Position', lbl_status: 'Status', lbl_team: 'Hold',
     st_proposed: 'Foreslået – bekræft venligst', st_confirmed: 'Bekræftet', st_uncertain: 'Usikker',
     as_subject: 'Din vagt: {position} til {event}', as_intro: 'du er sat på følgende arrangement:', as_cta: 'Se og bekræft', as_note: 'Bekræft venligst din vagt – eller meld fra, hvis du ikke kan. Så rykker en fra ventelisten automatisk op.',
@@ -484,7 +694,7 @@ const TEXTS: Record<string, MailTexts> = {
   },
   fi: {
     p_confirm: "Vahvistathan sijoituksesi sovelluksessa.", p_soon_title: "Pian alkaa: {position}", p_soon_body: "Alkaa klo {time} – {event}", p_mention_title: "{name} mainitsi sinut · {room}", p_test_title: "Ilmoitukset toimivat! 🎉", p_test_body: "Tältä ilmoituksesi näyttävät.",
-    hello: 'Hei {name},', footer: 'Tämän viestin lähetti {app}.',
+    hello: 'Hei {name},', footer_reason: "Saat tämän sähköpostin, koska sinulla on tili palvelussa {app} ja tämä ilmoitus on käytössä.", footer_reason_invite: "Saat tämän sähköpostin, koska {inviter} kutsui sinut palveluun {app}. Jos tämä ei sano sinulle mitään, voit jättää viestin huomiotta.", footer_settings: "Sähköpostiasetukset", footer_unsub: "Peru tilaus", cal_hint: "Liitteenä on kalenterimerkintä päivämäärän tallentamista varten.", btn_fallback: "Jos painike ei toimi, kopioi tämä linkki selaimeesi:",
     lbl_event: 'Tapahtuma', lbl_date: 'Päivä', lbl_location: 'Paikka', lbl_position: 'Tehtävä', lbl_status: 'Tila', lbl_team: 'Tiimi',
     st_proposed: 'Ehdotettu – vahvistathan', st_confirmed: 'Vahvistettu', st_uncertain: 'Epävarma',
     as_subject: 'Sijoituksesi: {position} – {event}', as_intro: 'sinut on sijoitettu seuraavaan tapahtumaan:', as_cta: 'Katso ja vahvista', as_note: 'Vahvista sijoituksesi – tai peru, jos et pääse. Silloin joku jonotuslistalta nousee automaattisesti tilallesi.',

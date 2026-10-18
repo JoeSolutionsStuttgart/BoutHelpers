@@ -12,6 +12,7 @@ import { EventPage } from './pages/event.js';
 import { GroupPage } from './pages/group.js';
 import { ProfilePage } from './pages/profile.js';
 import { InvitePage, GuestPage } from './pages/join.js';
+import { UnsubscribePage } from './pages/unsubscribe.js';
 import { registerServiceWorker, syncPush } from './lib/push.js';
 
 function parseHash() {
@@ -30,7 +31,8 @@ function useRoute() {
   return parts;
 }
 
-const PUBLIC = ['login', 'signup', 'forgot', 'invite', 'g', 'guest'];
+const PUBLIC = ['login', 'signup', 'forgot', 'invite', 'g', 'guest', 'unsubscribe'];
+const ALWAYS = ['invite', 'g', 'guest', 'unsubscribe']; // auch angemeldet erreichbar
 
 function Page({ parts }) {
   const [a, b, c] = parts;
@@ -43,6 +45,7 @@ function Page({ parts }) {
     case 'profile': return html`<${ProfilePage} />`;
     case 'new-password': return html`<${NewPasswordPage} />`;
     case 'invite': return html`<${InvitePage} token=${b} />`;
+    case 'unsubscribe': return html`<${UnsubscribePage} u=${b} c=${c} s=${parts[3]} />`;
     case 'g': case 'guest': return html`<${GuestPage} token=${b} />`;
     default: return html`<div class="card"><h2>${t('err.not_found')}</h2><a href="#/">${t('nav.home')}</a></div>`;
   }
@@ -113,10 +116,11 @@ function App() {
     else if (parts[0] === 'forgot') page = html`<${ForgotPage} />`;
     else if (parts[0] === 'invite') page = html`<${InvitePage} token=${parts[1]} />`;
     else if (parts[0] === 'g' || parts[0] === 'guest') page = html`<${GuestPage} token=${parts[1]} />`;
+    else if (parts[0] === 'unsubscribe') page = html`<${UnsubscribePage} u=${parts[1]} c=${parts[2]} s=${parts[3]} />`;
     else page = html`<${LoginPage} />`;
     return html`<div key=${key}>${page}<${Toasts} /><${DialogHost} /></div>`;
   }
-  if (isPublic && parts[0] !== 'invite' && parts[0] !== 'g' && parts[0] !== 'guest') {
+  if (isPublic && !ALWAYS.includes(parts[0])) {
     location.hash = '#/';
     return null;
   }

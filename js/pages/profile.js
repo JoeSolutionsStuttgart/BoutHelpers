@@ -81,11 +81,36 @@ export function ProfilePage() {
       <div class="row"><button class="btn" disabled=${pw.length < 8}><${Icon} name="key" />${t('auth.change_password')}</button></div>
     </form>`}
 
+    ${!isGuest() && html`<${MailSettings} />`}
     <${PushSettings} />
 
     ${isGuest() && html`<div class="notice">${t('profile.guest_info')}</div>`}
 
     <div class="row"><button class="btn danger" onClick=${logout}><${Icon} name="logout" />${t('profile.logout')}</button></div>
+  </div>`;
+}
+
+const MAIL_KINDS = ['assignment', 'deadline'];
+
+function MailSettings() {
+  const { user, profile } = useStore();
+  const prefs = { assignment: true, deadline: true, ...(profile.mail_prefs || {}) };
+  const setPref = async (k, v) => {
+    const next = { ...prefs, [k]: v };
+    try {
+      await q(sb.from('profiles').update({ mail_prefs: next }).eq('id', user.id));
+      setState({ profile: { ...profile, mail_prefs: next } });
+    } catch (e) { toastError(e); }
+  };
+  return html`<div class="card stack">
+    <h3>${t('mailpref.title')}</h3>
+    <p class="small muted" style="margin:0">${t('mailpref.intro')}</p>
+    <div class="field">
+      ${MAIL_KINDS.map((k) => html`<label class="check" key=${k}>
+        <input type="checkbox" checked=${prefs[k] !== false} onChange=${(e) => setPref(k, e.target.checked)} />
+        <span><b>${t('mailpref.' + k)}</b><span class="small faint" style="display:block">${t('mailpref.' + k + '.desc')}</span></span>
+      </label>`)}
+    </div>
   </div>`;
 }
 
