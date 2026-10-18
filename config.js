@@ -16,7 +16,7 @@ window.TP_CONFIG = {
 
   /* Push-Benachrichtigungen: öffentlicher VAPID-Schlüssel.
      Erzeugen mit tools/vapid.html (siehe ANLEITUNG.md). Leer = Push aus. */
-  vapidPublicKey: "",
+  vapidPublicKey: "BAnEwx8ylLqH3lMf2ZJFWxuovSk8ptka5RlozNxTqkBaPd1S2p4iXI7BIA316kfSf4bBOq7jBVVO6mkfgIep2oI",
 
   /* Optional: feste Adresse der App, z. B. "https://deinname.github.io/chronik/planer/".
      Leer lassen = wird automatisch erkannt. */
