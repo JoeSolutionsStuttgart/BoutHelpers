@@ -3,7 +3,7 @@ import { html, useState, useEffect } from '../lib/h.js';
 import { sb, q, rpc, PERMISSIONS } from '../lib/sb.js';
 import { t, fmtDateTime } from '../lib/i18n.js';
 import { toast, toastError, promptDialog, confirmDialog, loadTeams, isGuest, useStore } from '../lib/store.js';
-import { Icon, Field, Swatches, Empty, Spinner, PALETTE, go, useAsync } from '../lib/ui.js';
+import { Icon, Field, Swatches, Empty, Spinner, PALETTE, go, useAsync, UnreadBadge } from '../lib/ui.js';
 
 export function NewTeamPage() {
   const [name, setName] = useState('');
@@ -120,7 +120,7 @@ export function FindTeamPage() {
 
 // Liste der eigenen Teams (vor allem für die Navigation am Handy)
 export function TeamsListPage() {
-  const { teams } = useStore();
+  const { teams, unread } = useStore();
   if (isGuest()) return html`<div class="card"><${Empty} icon="lock" title=${t('err.guest_not_allowed')} /></div>`;
   return html`<div>
     <div class="section-title" style="margin-top:0"><h2>${t('home.my_teams')}</h2></div>
@@ -131,9 +131,9 @@ export function TeamsListPage() {
     ${teams.length === 0
       ? html`<div class="card"><${Empty} icon="users" title=${t('home.no_teams')} text=${t('home.no_teams_text')} /></div>`
       : html`<div class="grid">${teams.map((m) => html`
-          <a class="card team-card" href=${'#/team/' + m.team_id} key=${m.team_id}>
+          <a class=${'card team-card' + (unread.byTeam[m.team_id] ? ' has-unread' : '')} href=${'#/team/' + m.team_id} key=${m.team_id}>
             <span class="stripe" style=${{ background: m.teams.color }}></span>
-            <div class="row"><h3 class="grow" style="margin:0">${m.teams.name}</h3>${m.is_owner && html`<span class="chip">${t('team.owner')}</span>`}</div>
+            <div class="row"><h3 class="grow" style="margin:0">${m.teams.name}</h3>${m.is_owner && html`<span class="chip">${t('team.owner')}</span>`}<${UnreadBadge} n=${unread.byTeam[m.team_id]} /></div>
             ${m.teams.description && html`<div class="small muted">${m.teams.description}</div>`}
           </a>`)}</div>`}
   </div>`;

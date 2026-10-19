@@ -47,7 +47,9 @@
             { src: abs('img/icon.svg'), sizes: 'any', type: 'image/svg+xml', purpose: 'any' }
           ]
         };
-        document.getElementById('tp-manifest').href =
+        // iPhone/iPad: echte Manifest-Datei behalten (nötig für Push); der Name kommt dort aus dem Meta-Tag oben
+        var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        if (!ios) document.getElementById('tp-manifest').href =
           'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
       } catch (e) { /* dann gilt manifest.webmanifest */ }
     })();

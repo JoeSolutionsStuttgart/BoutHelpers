@@ -522,3 +522,41 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
 .shift-title { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; padding: 8px 0 2px; border-bottom: 2px solid var(--surface-3); }
 .msg.pinged .bubble { box-shadow: 0 0 0 2px var(--st-uncertain); }
 .chat-hint { padding: 0 14px 10px; }
+
+/* Push-Prüfung im Profil */
+.push-checks { display: grid; gap: 4px; padding: 10px 12px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border); }
+.push-check.bad { color: var(--st-declined); font-weight: 600; }
+.push-check.open { color: var(--text-2); }
+
+/* E-Mail an alle Eingeteilten (im Fenster "Automatisch vorbelegen") */
+.mail-box { display: grid; gap: 12px; padding: 16px; border: 2px dashed var(--border); }
+
+/* Ungelesenes: rote Zahl und farbig markierte Karten */
+.unread-badge {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  min-width: 20px; height: 20px; padding: 0 6px; margin-left: 6px; border-radius: 999px;
+  background: var(--pink); color: #fff; font-size: 12px; font-weight: 800; line-height: 1;
+  box-shadow: 0 2px 6px rgba(255, 79, 139, .35);
+}
+.has-unread { border-color: var(--pink) !important; box-shadow: 0 0 0 2px rgba(255, 79, 139, .22), var(--shadow); background: linear-gradient(0deg, rgba(255, 79, 139, .06), rgba(255, 79, 139, .06)), var(--surface); }
+.event-card.has-unread { border-radius: 14px; }
+.nav-ico { position: relative; display: inline-flex; }
+.bottomnav .nav-ico .unread-badge { position: absolute; top: -6px; right: -14px; margin: 0; min-width: 18px; height: 18px; font-size: 11px; }
+.tab .unread-badge { margin-left: 6px; }
+
+/* Hilfe-Seite mit Beispiel-Fenstern */
+.help-toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+.help-toc .chip { text-decoration: none; cursor: pointer; white-space: normal; max-width: 100%; }
+.help-toc .chip:hover { background: var(--primary-soft); color: var(--primary); }
+.help-sec { scroll-margin-top: 80px; }
+.help-sec h2 { font-size: 1.2rem; }
+.help-ico { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 12px;
+  background: var(--primary-soft); color: var(--primary); flex: none; }
+.help-steps { margin: 0 0 14px; padding-left: 22px; display: grid; gap: 4px; }
+.demo { position: relative; margin-top: 8px; padding: 26px 16px 16px; border-radius: 18px; border: 2px dashed color-mix(in srgb, var(--violet) 45%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--violet) 6%, transparent), color-mix(in srgb, var(--pink) 6%, transparent)); }
+.demo-tag { position: absolute; top: -12px; left: 14px; display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px;
+  background: linear-gradient(90deg, var(--violet), var(--pink)); color: #fff; font-size: 12px; font-weight: 800; letter-spacing: .02em; }
+.demo .pos-grid { margin-top: 10px; }
+.grid-perms { display: grid; gap: 6px 16px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.chat-demo .msg { margin-bottom: 8px; }

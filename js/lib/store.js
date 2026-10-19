@@ -12,6 +12,7 @@ const state = {
   toasts: [],
   dialog: null,
   langVersion: 0,
+  unread: { total: 0, byTeam: {}, byEvent: {}, eventChat: {}, groupChat: {}, groupTasks: {}, byGroup: {}, groupsOfEvent: {} },
 };
 
 const subs = new Set();
@@ -50,6 +51,7 @@ export function toast(text, kind = 'ok') {
 
 export function errText(e) {
   const m = String((e && (e.message || e.error_description)) || e || '');
+  if (/mail not configured/i.test(m)) return t('err.mail_not_configured');
   if (/not allowed|row-level security|permission denied/i.test(m)) return t('err.not_allowed');
   if (/invite invalid/i.test(m)) return t('err.invite_invalid');
   if (/link invalid/i.test(m)) return t('err.link_invalid');

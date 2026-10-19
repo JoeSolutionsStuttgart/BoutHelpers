@@ -26,14 +26,10 @@ export function appBase() {
 export const appLink = (hashPath) => appBase() + '#' + hashPath;
 
 // E-Mails verschickt die Datenbank sofort selbst. Hier werden nur wartende
-// Push-Nachrichten angestoßen (Edge Function "push", nur wenn Push eingerichtet ist).
+// Push-Nachrichten angestoßen (Edge Function "push").
 export async function flushMail() {
-  if (!(window.TP_CONFIG && window.TP_CONFIG.vapidPublicKey)) return;
-  try {
-    await sb.functions.invoke('push', { body: {} });
-  } catch (e) {
-    console.warn('push', e);
-  }
+  const { flushPush } = await import('./push.js');
+  await flushPush();
 }
 
 export const PERMISSIONS = [

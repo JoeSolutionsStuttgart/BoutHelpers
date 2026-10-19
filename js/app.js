@@ -3,7 +3,7 @@ import { html, render, useEffect, useState } from './lib/h.js';
 import { sb, configured } from './lib/sb.js';
 import { setLanguage, t, pickLanguage } from './lib/i18n.js';
 import { useStore, setState, getState, loadProfile, loadTeams, applyTheme, isGuest } from './lib/store.js';
-import { Icon, BrandMark, Toasts, DialogHost, LangSelect, ThemeSwitch, Avatar, Spinner, appName } from './lib/ui.js';
+import { Icon, BrandMark, Toasts, DialogHost, LangSelect, ThemeSwitch, Avatar, Spinner, appName, UnreadBadge } from './lib/ui.js';
 import { LoginPage, SignupPage, ForgotPage, NewPasswordPage } from './pages/auth.js';
 import { HomePage } from './pages/home.js';
 import { NewTeamPage, FindTeamPage, TeamsListPage } from './pages/teams.js';
@@ -13,7 +13,9 @@ import { GroupPage } from './pages/group.js';
 import { ProfilePage } from './pages/profile.js';
 import { InvitePage, GuestPage } from './pages/join.js';
 import { UnsubscribePage } from './pages/unsubscribe.js';
+import { HelpPage } from './pages/help.js';
 import { registerServiceWorker, syncPush } from './lib/push.js';
+import { startUnread, stopUnread } from './lib/unread.js';
 
 function parseHash() {
   const raw = decodeURIComponent((location.hash || '#/').slice(1));
@@ -43,6 +45,7 @@ function Page({ parts }) {
     case 'event': return html`<${EventPage} id=${b} tab=${c || 'positions'} key=${b} />`;
     case 'group': return html`<${GroupPage} id=${b} tab=${c || 'tasks'} key=${b} />`;
     case 'profile': return html`<${ProfilePage} />`;
+    case 'help': return html`<${HelpPage} topic=${b} />`;
     case 'new-password': return html`<${NewPasswordPage} />`;
     case 'invite': return html`<${InvitePage} token=${b} />`;
     case 'unsubscribe': return html`<${UnsubscribePage} u=${b} c=${c} s=${parts[3]} />`;
@@ -52,19 +55,20 @@ function Page({ parts }) {
 }
 
 function Sidebar({ parts }) {
-  const { teams, profile } = useStore();
+  const { teams, profile, unread } = useStore();
   const at = (p) => (parts[0] === p || (!parts[0] && p === '') ? ' active' : '');
   return html`<aside class="sidebar">
     <a class="brand" href="#/"><${BrandMark} />${appName()}</a>
-    <a class=${'nav-item' + at('')} href="#/"><${Icon} name="home" />${t('nav.home')}</a>
+    <a class=${'nav-item' + at('')} href="#/"><${Icon} name="home" /><span class="grow">${t('nav.home')}</span>${isGuest() && html`<${UnreadBadge} n=${unread.total} />`}</a>
     ${!isGuest() && html`
       <div class="nav-label">${t('nav.teams')}</div>
       ${teams.map((m) => html`<a class=${'nav-item' + (parts[0] === 'team' && parts[1] === m.team_id ? ' active' : '')} href=${'#/team/' + m.team_id}>
-        <span class="dot" style=${{ background: m.teams.color }}></span><span class="grow" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.teams.name}</span></a>`)}
+        <span class="dot" style=${{ background: m.teams.color }}></span><span class="grow" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.teams.name}</span><${UnreadBadge} n=${unread.byTeam[m.team_id]} /></a>`)}
       <a class=${'nav-item' + (parts[0] === 'teams' && parts[1] === 'new' ? ' active' : '')} href="#/teams/new"><${Icon} name="plus" />${t('nav.new_team')}</a>
       <a class=${'nav-item' + (parts[0] === 'teams' && parts[1] !== 'new' ? ' active' : '')} href="#/teams/find"><${Icon} name="search" />${t('nav.find_team')}</a>`}
     <div class="nav-label">${t('nav.you')}</div>
     <a class=${'nav-item' + at('profile')} href="#/profile"><${Avatar} profile=${profile} size="sm" />${(profile && profile.display_name) || t('nav.profile')}</a>
+    <a class=${'nav-item' + at('help')} href="#/help"><${Icon} name="help" />${t('nav.help')}</a>
     <div class="sidebar-foot">
       <${LangSelect} />
       <${ThemeSwitch} iconsOnly />
@@ -83,14 +87,16 @@ function TopBar() {
 }
 
 function BottomNav({ parts }) {
+  const { unread } = useStore();
   const items = [
-    ['', 'home', t('nav.home')],
-    ...(isGuest() ? [] : [['teams', 'users', t('nav.teams')]]),
-    ['profile', 'user', t('nav.profile')],
+    ['', 'home', t('nav.home'), isGuest() ? unread.total : 0],
+    ...(isGuest() ? [] : [['teams', 'users', t('nav.teams'), unread.total]]),
+    ['help', 'help', t('nav.help'), 0],
+    ['profile', 'user', t('nav.profile'), 0],
   ];
   const active = (k) => (k === '' ? !parts[0] : k === 'teams' ? ['teams', 'team', 'event', 'group'].includes(parts[0]) : parts[0] === k);
-  return html`<nav class="bottomnav">${items.map(([k, ic, label]) => html`
-    <a href=${'#/' + k} class=${active(k) ? 'active' : ''}><${Icon} name=${ic} size=${22} />${label}</a>`)}</nav>`;
+  return html`<nav class="bottomnav">${items.map(([k, ic, label, n]) => html`
+    <a href=${'#/' + k} class=${active(k) ? 'active' : ''}><span class="nav-ico"><${Icon} name=${ic} size=${22} /><${UnreadBadge} n=${n} /></span>${label}</a>`)}</nav>`;
 }
 
 function Setup() {
@@ -140,7 +146,7 @@ function App() {
 // ---------- Start ----------
 async function onSession(session) {
   setState({ session, user: session ? session.user : null });
-  if (!session) return setState({ profile: null, teams: [] });
+  if (!session) { stopUnread(); return setState({ profile: null, teams: [] }); }
   try {
     const p = await loadProfile();
     if (p) {
@@ -152,6 +158,7 @@ async function onSession(session) {
       if (p.theme) applyTheme(p.theme);
     }
     await loadTeams();
+    startUnread();
     syncPush();
   } catch (e) {
     console.error(e);

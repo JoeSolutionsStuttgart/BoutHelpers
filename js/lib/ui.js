@@ -300,10 +300,16 @@ export function CopyField({ value }) {
     <button class="btn small" onClick=${copy}><${Icon} name="copy" size=${16} />${t('common.copy')}</button></div>`;
 }
 
+// Rote Zahl für Ungelesenes
+export function UnreadBadge({ n }) {
+  if (!n) return null;
+  return html`<span class="unread-badge" title=${t('unread.n', { n })} aria-label=${t('unread.n', { n })}>${n > 99 ? '99+' : n}</span>`;
+}
+
 export function Tabs({ base, active, items }) {
   return html`<nav class="tabs" role="tablist">${items.filter((x) => !x.hidden).map((x) => html`
     <a href=${'#' + base + '/' + x.key} role="tab" aria-selected=${x.key === active} class=${'tab' + (x.key === active ? ' active' : '')}>
-      ${x.icon && html`<${Icon} name=${x.icon} size=${18} />`}${x.label}${x.count ? html`<span class="count">${x.count}</span>` : ''}
+      ${x.icon && html`<${Icon} name=${x.icon} size=${18} />`}${x.label}${x.count ? html`<span class="count">${x.count}</span>` : ''}<${UnreadBadge} n=${x.unread} />
     </a>`)}</nav>`;
 }
 

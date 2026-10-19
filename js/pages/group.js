@@ -7,6 +7,7 @@ import {
   Icon, Spinner, Empty, ErrorBox, Field, Modal, Person, EditableText, StatusBadge, Progress, Tabs,
   useAsync, useRealtime,
 } from '../lib/ui.js';
+import { useSeen } from '../lib/unread.js';
 import { Chat } from './chat.js';
 import { shiftLabel } from './event.js';
 
@@ -24,7 +25,7 @@ function useMobile() {
 }
 
 export function GroupPage({ id, tab }) {
-  const { user } = useStore();
+  const { user, unread } = useStore();
   const mobile = useMobile();
   const [dlOpen, setDlOpen] = useState(false);
   const d = useAsync(async () => {
@@ -45,6 +46,10 @@ export function GroupPage({ id, tab }) {
   useRealtime(d.data && d.data.allowed ? 'group-' + id : null, ['tasks'], 'position_id=eq.' + id, () => d.reload(true));
   useRealtime(d.data && d.data.allowed ? 'grouppos-' + id : null, ['positions'], 'id=eq.' + id, () => d.reload(true));
   useRealtime(d.data && d.data.allowed ? 'groupass-' + id : null, ['assignments', 'shifts'], 'position_id=eq.' + id, () => d.reload(true));
+
+  // Aufgaben gelten als gesehen, sobald sie sichtbar sind (am Computer immer, am Handy im Reiter "Aufgaben")
+  const tasksVisible = !!(d.data && d.data.allowed) && (!mobile || !tab || tab === 'tasks');
+  useSeen('group_tasks', tasksVisible ? id : null, [d.data && d.data.tasks]);
 
   if (d.loading && !d.data) return html`<${Spinner} />`;
   if (d.error) return html`<${ErrorBox} error=${d.error} onRetry=${d.reload} />`;
@@ -80,8 +85,8 @@ export function GroupPage({ id, tab }) {
 
     ${mobile
       ? html`<${Tabs} base=${'/group/' + id} active=${tab} items=${[
-          { key: 'tasks', label: t('group.tab_tasks'), icon: 'tasks' },
-          { key: 'chat', label: t('group.tab_chat'), icon: 'chat' },
+          { key: 'tasks', label: t('group.tab_tasks'), icon: 'tasks', unread: unread.groupTasks[id] },
+          { key: 'chat', label: t('group.tab_chat'), icon: 'chat', unread: unread.groupChat[id] },
           { key: 'members', label: t('group.tab_members'), icon: 'users' },
         ]} />
         ${sections[tab] || sections.tasks}`

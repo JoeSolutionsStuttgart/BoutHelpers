@@ -1,7 +1,7 @@
 // Eigenes Profil: Name, Pronomen, Sprache, Darstellung, Passwort
 import { html, useState, useEffect } from '../lib/h.js';
-import { sb, q, rpc, flushMail } from '../lib/sb.js';
-import { pushSupported, pushConfigured, isIOS, isStandalone, currentSubscription, enablePush, disablePush, forgetDevice } from '../lib/push.js';
+import { sb, q, rpc } from '../lib/sb.js';
+import { pushSupported, isIOS, isStandalone, currentSubscription, enablePush, disablePush, forgetDevice, callPushFunction } from '../lib/push.js';
 import { t, PRONOUNS, pronounText } from '../lib/i18n.js';
 import { useStore, setState, toast, toastError, isGuest, confirmDialog } from '../lib/store.js';
 import { Icon, Field, Avatar, LangSelect, ThemeSwitch } from '../lib/ui.js';
@@ -120,7 +120,12 @@ function PushSettings() {
   const { user, profile } = useStore();
   const [on, setOn] = useState(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { currentSubscription().then((s) => setOn(!!s)).catch(() => setOn(false)); }, []);
+  const [status, setStatus] = useState(null);
+  const loadStatus = () => rpc('push_status').then(setStatus).catch(() => setStatus(null));
+  useEffect(() => {
+    currentSubscription().then((s) => setOn(!!s)).catch(() => setOn(false));
+    loadStatus();
+  }, []);
   const prefs = { assignment: true, shift: true, deadline: true, mention: true, ...(profile.push_prefs || {}) };
 
   const toggleDevice = async () => {
@@ -130,8 +135,9 @@ function PushSettings() {
       else { await enablePush(); setOn(true); toast(t('push.on_done')); }
     } catch (e) {
       const m = String(e && e.message);
-      toast(m === 'denied' ? t('push.denied') : m === 'unsupported' ? t('push.unsupported') : t('err.generic') + ' (' + m + ')', 'error');
-    } finally { setBusy(false); }
+      toast(m === 'denied' ? t('push.denied') : m === 'unsupported' ? t('push.unsupported')
+        : m === 'function missing' ? t('push.no_function') : t('err.generic') + ' (' + m + ')', 'error');
+    } finally { setBusy(false); loadStatus(); }
   };
   const setPref = async (k, v) => {
     const next = { ...prefs, [k]: v };
@@ -140,14 +146,32 @@ function PushSettings() {
       setState({ profile: { ...profile, push_prefs: next } });
     } catch (e) { toastError(e); }
   };
+  // Test: sofort senden und genau sagen, was passiert ist
   const test = async () => {
-    try { await rpc('queue_test_push'); await flushMail(); toast(t('push.test_sent')); } catch (e) { toastError(e); }
+    setBusy(true);
+    try {
+      if (!(await rpc('queue_test_push'))) { toast(t('push.device_missing'), 'error'); return; }
+      const res = await callPushFunction({});
+      if (res.missing) toast(t('push.no_function'), 'error');
+      else if (res.error) toast(t('push.send_failed', { error: res.error }), 'error');
+      else if (res.devices > 0) toast(t('push.sent_to', { n: res.devices }));
+      else toast(t('push.send_failed', { error: (res.errors && res.errors[0]) || '–' }), 'error');
+    } catch (e) { toastError(e); } finally { setBusy(false); loadStatus(); }
   };
 
   let hint = null;
-  if (!pushConfigured()) hint = t('push.not_configured');
-  else if (!pushSupported()) hint = isIOS() && !isStandalone() ? t('push.ios_hint') : t('push.unsupported');
+  if (!pushSupported()) hint = isIOS() && !isStandalone() ? t('push.ios_hint') : t('push.unsupported');
   else if (typeof Notification !== 'undefined' && Notification.permission === 'denied') hint = t('push.denied');
+
+  const perm = typeof Notification !== 'undefined' ? Notification.permission : 'default';
+  const cron = status && status.cron_status;
+  const checks = status ? [
+    ['server', status.key ? 'ok' : 'open'],
+    ['permission', perm === 'granted' ? 'ok' : perm === 'denied' ? 'bad' : 'open'],
+    ['device', on && status.devices > 0 ? 'ok' : 'open'],
+    ['cron', cron >= 200 && cron < 300 ? 'ok' : cron === 401 || cron === 403 ? 'bad' : 'open'],
+  ] : [];
+  const mark = { ok: '✅', open: '⚪', bad: '⚠️' };
 
   return html`<div class="card stack">
     <h3>${t('push.title')}</h3>
@@ -156,7 +180,12 @@ function PushSettings() {
     ${!hint && html`<div class="row">
       <button class=${'btn ' + (on ? 'ghost' : 'primary')} disabled=${busy || on === null} onClick=${toggleDevice}>
         <${Icon} name="bell" />${on ? t('push.disable') : t('push.enable')}</button>
-      ${on && html`<button class="btn small ghost" onClick=${test}>${t('push.test')}</button>`}
+      ${on && html`<button class="btn small ghost" disabled=${busy} onClick=${test}>${t('push.test')}</button>`}
+    </div>`}
+    ${checks.length > 0 && html`<div class="push-checks small">
+      <span class="label">${t('push.check_title')}</span>
+      ${checks.map(([k, v]) => html`<div key=${k} class=${'push-check ' + v}><span>${mark[v]}</span> ${t('push.check_' + k)}</div>`)}
+      ${(cron === 401 || cron === 403) && html`<div class="notice warn">${t('push.cron_jwt')}</div>`}
     </div>`}
     <div class="field"><span class="label">${t('push.what')}</span>
       ${PUSH_KINDS.map((k) => html`<label class="check" key=${k}>

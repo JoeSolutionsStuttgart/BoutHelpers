@@ -5,7 +5,7 @@ import { t, fmtDateTime, fmtRelative, fromLocalInput } from '../lib/i18n.js';
 import { useStore, toast, toastError, confirmDialog, loadTeams } from '../lib/store.js';
 import {
   Icon, Spinner, Empty, ErrorBox, Field, Modal, Swatches, Person, Avatar, EditableText, CopyField, Tabs,
-  useAsync, go, PALETTE,
+  useAsync, go, PALETTE, UnreadBadge,
 } from '../lib/ui.js';
 import { DateBox } from './shared.js';
 
@@ -77,9 +77,11 @@ function EventsTab({ ctx }) {
   const list = ev.data || [];
   const upcoming = list.filter((e) => new Date(e.ends_at || e.starts_at).getTime() >= now);
   const past = list.filter((e) => new Date(e.ends_at || e.starts_at).getTime() < now).reverse();
-  const row = (e) => html`<a class="event-card" href=${'#/event/' + e.id} key=${e.id}>
+  const { unread } = useStore();
+  const row = (e) => html`<a class=${'event-card' + (unread.byEvent[e.id] ? ' has-unread' : '')} href=${'#/event/' + e.id} key=${e.id}>
     <${DateBox} date=${e.starts_at} color=${ctx.team.color} />
     <div class="grow"><b>${e.title}</b><div class="small muted">${fmtDateTime(e.starts_at)}${e.location ? ' · ' + e.location : ''}</div></div>
+    <${UnreadBadge} n=${unread.byEvent[e.id]} />
     <${Icon} name="right" />
   </a>`;
   return html`<div>

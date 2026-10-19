@@ -5,7 +5,7 @@ import { t, fmtRange, fmtDateTime, fmtTime, toLocalInput, fromLocalInput } from 
 import { useStore, toast, toastError, confirmDialog, promptDialog, getState } from '../lib/store.js';
 import {
   Icon, Spinner, Empty, ErrorBox, Field, Modal, Person, EditableText, CopyField, Tabs, StatusBadge, Progress,
-  useAsync, useRealtime, go,
+  useAsync, useRealtime, go, UnreadBadge,
 } from '../lib/ui.js';
 import { autoAssign } from '../lib/assign.js';
 import { MyAnswerButtons } from './shared.js';
@@ -36,7 +36,7 @@ export function availabilityFits(av, s, ev) {
 }
 
 export function EventPage({ id, tab }) {
-  const { user } = useStore();
+  const { user, unread } = useStore();
   const [editing, setEditing] = useState(false);
   const d = useAsync(async () => {
     const evs = await q(sb.from('events').select('*, teams(id, name, color)').eq('id', id));
@@ -104,8 +104,8 @@ export function EventPage({ id, tab }) {
     <${Tabs} base=${'/event/' + id} active=${tab} items=${[
       { key: 'positions', label: t('event.tab_positions'), icon: 'briefcase' },
       { key: 'availability', label: t('event.tab_availability'), icon: 'clock' },
-      { key: 'chat', label: t('event.tab_chat'), icon: 'chat' },
-      { key: 'groups', label: t('event.tab_groups'), icon: 'layers' },
+      { key: 'chat', label: t('event.tab_chat'), icon: 'chat', unread: unread.eventChat[id] },
+      { key: 'groups', label: t('event.tab_groups'), icon: 'layers', unread: unread.groupsOfEvent[id] },
       { key: 'guests', label: t('event.tab_guests'), icon: 'link', hidden: !ctx.can('guests.manage') },
     ]} />
 
@@ -129,13 +129,11 @@ function PositionsBoard({ ctx }) {
     return m;
   }, [ctx.assignments, ctx.shifts]);
   const openSlots = ctx.shifts.reduce((s, x) => s + Math.max(0, x.slots - (byShift[x.id] || []).filter((a) => ACTIVE.includes(a.status)).length), 0);
-  const unnotified = ctx.assignments.filter((a) => ACTIVE.includes(a.status) && !a.notified_at).length;
 
   return html`<div>
     ${manage && html`<div class="toolbar">
       <button class="btn primary" onClick=${() => setModal({ kind: 'position' })}><${Icon} name="plus" />${t('pos.new')}</button>
-      <button class="btn" onClick=${() => setModal({ kind: 'auto' })} disabled=${openSlots === 0}><${Icon} name="wand" />${t('pos.auto')}</button>
-      <button class="btn" onClick=${() => setModal({ kind: 'mail' })}><${Icon} name="mail" />${t('pos.send_mails')}${unnotified ? html`<span class="chip" style="background:var(--pink);color:#fff">${unnotified}</span>` : ''}</button>
+      <button class="btn" onClick=${() => setModal({ kind: 'auto' })} disabled=${ctx.shifts.length === 0}><${Icon} name="wand" />${t('pos.auto')}${openSlots > 0 ? html`<span class="chip">${openSlots}</span>` : ''}</button>
     </div>`}
     <div class="legend">${['proposed', 'confirmed', 'uncertain', 'waitlist', 'declined'].map((s) => html`<span class=${'badge st-' + s} title=${t('status.' + s + '.desc')}>${t('status.' + s)}</span>`)}</div>
 
@@ -145,8 +143,7 @@ function PositionsBoard({ ctx }) {
     ${modal && modal.kind === 'position' && html`<${PositionModal} ctx=${ctx} pos=${modal.pos} onClose=${() => setModal(null)} />`}
     ${modal && modal.kind === 'shift' && html`<${ShiftModal} ctx=${ctx} pos=${modal.pos} shift=${modal.shift} onClose=${() => setModal(null)} />`}
     ${modal && modal.kind === 'assign' && html`<${AssignModal} ctx=${ctx} pos=${modal.pos} shift=${modal.shift} list=${byShift[modal.shift.id] || []} onClose=${() => setModal(null)} />`}
-    ${modal && modal.kind === 'auto' && html`<${AutoAssignModal} ctx=${ctx} byShift=${byShift} onClose=${() => setModal(null)} onMail=${() => setModal({ kind: 'mail' })} />`}
-    ${modal && modal.kind === 'mail' && html`<${MailModal} ctx=${ctx} unnotified=${unnotified} onClose=${() => setModal(null)} />`}
+    ${modal && modal.kind === 'auto' && html`<${AutoAssignModal} ctx=${ctx} byShift=${byShift} onClose=${() => setModal(null)} />`}
   </div>`;
 }
 
@@ -431,8 +428,9 @@ function AssignModal({ ctx, pos, shift, list, onClose }) {
   <//>`;
 }
 
-function AutoAssignModal({ ctx, byShift, onClose, onMail }) {
+function AutoAssignModal({ ctx, byShift, onClose }) {
   const [busy, setBusy] = useState(false);
+  const [applied, setApplied] = useState(null); // Anzahl übernommener Vorschläge
   const plan = useAsync(async () => {
     const since = new Date(Date.now() - 180 * 86400000).toISOString();
     const [prefs, history] = await Promise.all([
@@ -470,21 +468,29 @@ function AutoAssignModal({ ctx, byShift, onClose, onMail }) {
       });
       if (rows.length) await q(sb.from('assignments').insert(rows));
       toast(t('auto.done', { n: rows.length }));
+      setApplied(rows.length);
       ctx.reload();
-      onMail();
     } catch (e) { toastError(e); } finally { setBusy(false); }
   };
   const res = plan.data;
   const totalOpen = res ? res.units.reduce((s, p) => s + p.open, 0) : 0;
-  return html`<${Modal} wide title=${t('pos.auto')} onClose=${onClose} footer=${html`
-    <button class="btn ghost" onClick=${onClose}>${t('common.cancel')}</button>
-    <button class="btn primary" disabled=${busy || !res || res.result.length === 0} onClick=${apply}><${Icon} name="check" />${t('auto.apply')}</button>`}>
-    <p class="muted">${t('auto.intro')}</p>
-    <p class="small muted">${t('auto.availability_note')}</p>
-    ${plan.loading && html`<${Spinner} />`}
-    ${plan.error && html`<div class="notice error">${String(plan.error.message || plan.error)}</div>`}
-    ${res && html`<div class="stack">
-      <div class=${'notice ' + (res.result.length === totalOpen ? 'ok' : 'warn')}>${t('auto.summary', { n: res.result.length, total: totalOpen })}</div>
+  const done = applied !== null;
+  return html`<${Modal} wide title=${t('pos.auto')} onClose=${onClose} footer=${done
+    ? html`<button class="btn primary" onClick=${onClose}>${t('common.close')}</button>`
+    : html`<button class="btn ghost" onClick=${onClose}>${t('common.cancel')}</button>
+      <button class="btn primary" disabled=${busy || !res || res.result.length === 0} onClick=${apply}><${Icon} name="check" />${t('auto.apply')}</button>`}>
+    ${done && html`<div class="stack">
+      <div class="notice ok">${t('auto.done', { n: applied })}</div>
+      <${EventMailBox} ctx=${ctx} />
+    </div>`}
+    ${!done && html`<p class="muted">${t('auto.intro')}</p>
+    <p class="small muted">${t('auto.availability_note')}</p>`}
+    ${!done && plan.loading && html`<${Spinner} />`}
+    ${!done && plan.error && html`<div class="notice error">${String(plan.error.message || plan.error)}</div>`}
+    ${!done && res && html`<div class="stack">
+      ${totalOpen === 0
+        ? html`<div class="notice ok">${t('auto.nothing_open')}</div>`
+        : html`<div class=${'notice ' + (res.result.length === totalOpen ? 'ok' : 'warn')}>${t('auto.summary', { n: res.result.length, total: totalOpen })}</div>`}
       ${ctx.positions.map((p) => {
         const shifts = ctx.shiftsOf(p.id);
         const rows = shifts.map((s, i) => ({ s, i, open: res.units.find((x) => x.id === s.id).open })).filter((x) => x.open > 0);
@@ -503,8 +509,38 @@ function AutoAssignModal({ ctx, byShift, onClose, onMail }) {
           })}
         </div>`;
       })}
+      <${EventMailBox} ctx=${ctx} />
     </div>`}
   <//>`;
+}
+
+// E-Mail an alle eingeteilten Personen – wird sofort verschickt, nichts wird für später gespeichert
+function EventMailBox({ ctx }) {
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(null);
+  const people = new Set(ctx.assignments.filter((a) => ACTIVE.includes(a.status)).map((a) => a.user_id)).size;
+  const send = async () => {
+    setBusy(true);
+    try {
+      const n = await rpc('send_event_mails', { e: ctx.ev.id });
+      setSent(n);
+      flushMail();
+      ctx.reload();
+    } catch (e) { toastError(e); } finally { setBusy(false); }
+  };
+  return html`<div class="card flat mail-box">
+    <div class="row" style="align-items:flex-start">
+      <${Icon} name="mail" />
+      <div class="grow">
+        <b>${t('auto.mail_title')}</b>
+        <p class="small muted" style="margin:4px 0 0">${t('mail.intro')} ${t('mail.guest_note')}</p>
+      </div>
+    </div>
+    ${sent !== null
+      ? html`<div class="notice ok">${t('auto.mail_sent', { n: sent })}</div>`
+      : html`<div class="row"><button class="btn primary" disabled=${busy || people === 0} onClick=${send}>
+          <${Icon} name="send" />${people ? t('auto.mail_button', { n: people }) : t('auto.mail_none')}</button></div>`}
+  </div>`;
 }
 
 // ---------------- Verfügbarkeit ----------------
@@ -582,6 +618,7 @@ function AvailabilityTab({ ctx }) {
 
 // ---------------- Gruppen ----------------
 function GroupsList({ ctx }) {
+  const { unread } = useStore();
   const manage = ctx.can('events.manage');
   return html`<div>
     <p class="muted">${t('groups.intro')}</p>
@@ -591,12 +628,12 @@ function GroupsList({ ctx }) {
       const open = manage || mine;
       const n = ctx.shiftsOf(p.id).length;
       const body = html`
-        <div class="row"><h3 class="grow" style="margin:0">${p.name}</h3>${mine ? html`<span class="badge st-confirmed">${t('groups.yours')}</span>` : !open && html`<${Icon} name="lock" size=${18} />`}</div>
+        <div class="row"><h3 class="grow" style="margin:0">${p.name}</h3>${mine ? html`<span class="badge st-confirmed">${t('groups.yours')}</span>` : !open && html`<${Icon} name="lock" size=${18} />`}<${UnreadBadge} n=${unread.byGroup[p.id]} /></div>
         <div class="small muted">${t('groups.members_n', { n: members.size })}${n > 1 ? ' · ' + t('shift.count', { n }) : ''}</div>
         ${p.deadline && html`<div class="small row"><${Icon} name="flag" size=${15} />${t('group.deadline')}: ${fmtDateTime(p.deadline)}</div>`}
         ${!open && html`<div class="small faint">${t('groups.locked')}</div>`}`;
       return open
-        ? html`<a class="card team-card" href=${'#/group/' + p.id} key=${p.id}>${body}</a>`
+        ? html`<a class=${'card team-card' + (unread.byGroup[p.id] ? ' has-unread' : '')} href=${'#/group/' + p.id} key=${p.id}>${body}</a>`
         : html`<div class="card" key=${p.id} style="opacity:0.75">${body}</div>`;
     })}</div>
     ${ctx.positions.length === 0 && html`<div class="card"><${Empty} icon="layers" title=${t('pos.none')} /></div>`}
@@ -640,33 +677,6 @@ function EventEditModal({ ev, onClose, onSaved }) {
   <//>`;
 }
 
-
-function MailModal({ ctx, unnotified, onClose }) {
-  const [again, setAgain] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const total = ctx.assignments.filter((a) => ACTIVE.includes(a.status)).length;
-  const send = async () => {
-    setBusy(true);
-    try {
-      const n = await rpc('queue_event_mails', { e: ctx.ev.id, include_notified: again });
-      await flushMail();
-      toast(t('mail.queued', { n }));
-      ctx.reload();
-      onClose();
-    } catch (e) { toastError(e); } finally { setBusy(false); }
-  };
-  return html`<${Modal} title=${t('pos.send_mails')} onClose=${onClose} footer=${html`
-    <button class="btn ghost" onClick=${onClose}>${t('common.cancel')}</button>
-    <button class="btn primary" disabled=${busy || (!again && unnotified === 0)} onClick=${send}><${Icon} name="send" />${t('mail.send')}</button>`}>
-    <div class="stack">
-      <p>${t('mail.intro')}</p>
-      <div class="notice">${t('mail.count', { n: again ? total : unnotified })}</div>
-      <label class="check"><input type="checkbox" checked=${again} onChange=${(e) => setAgain(e.target.checked)} />
-        <span>${t('mail.again', { n: total - unnotified })}</span></label>
-      <p class="small faint">${t('mail.guest_note')}</p>
-    </div>
-  <//>`;
-}
 
 
 // ---------------- Gästelinks ----------------

@@ -4,6 +4,7 @@ import { sb, q, rpc, flushMail } from '../lib/sb.js';
 import { t, fmtTime, fmtLongDay } from '../lib/i18n.js';
 import { useStore, toastError, confirmDialog } from '../lib/store.js';
 import { Icon, Avatar, Spinner, Empty, PersonHover } from '../lib/ui.js';
+import { useSeen } from '../lib/unread.js';
 
 const PROFILE_COLS = 'id, display_name, pronouns, pronouns_custom, is_guest';
 const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -41,6 +42,8 @@ export function Chat({ eventId, positionId, title, canModerate }) {
   const stick = useRef(true);
   const profiles = useRef({});
   const room = positionId || null;
+  // Solange der Chat offen ist, gilt alles als gelesen
+  useSeen(room ? 'group_chat' : 'event_chat', room || eventId, [msgs && msgs.length]);
 
   const upsert = (row) => setMsgs((m) => {
     if (!m) return m;
