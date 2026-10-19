@@ -1,6 +1,6 @@
 // E-Mails abbestellen (Link aus der Fußzeile jeder Mail) – funktioniert auch ohne Anmeldung
 import { html, useState } from '../lib/h.js';
-import { sb } from '../lib/sb.js';
+import { rpc } from '../lib/sb.js';
 import { t } from '../lib/i18n.js';
 import { useStore, loadProfile, isGuest } from '../lib/store.js';
 import { Icon, Empty } from '../lib/ui.js';
@@ -16,9 +16,8 @@ export function UnsubscribePage({ u, c, s }) {
   const run = async () => {
     setSt('busy');
     try {
-      const qs = `unsub=1&u=${encodeURIComponent(u)}&c=${encodeURIComponent(c)}&s=${encodeURIComponent(s)}`;
-      const { data, error } = await sb.functions.invoke('mailer?' + qs, { body: { unsubscribe: true } });
-      if (error || !data || !data.ok) throw error || new Error('unsub');
+      const ok = await rpc('unsubscribe', { u, c, s });
+      if (!ok) throw new Error('invalid');
       setSt('done');
       if (session && !isGuest()) loadProfile().catch(() => {});
     } catch (e) {

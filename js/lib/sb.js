@@ -25,12 +25,14 @@ export function appBase() {
 }
 export const appLink = (hashPath) => appBase() + '#' + hashPath;
 
-// Warteschlange der E-Mails sofort abarbeiten lassen (Edge Function "mailer")
+// E-Mails verschickt die Datenbank sofort selbst. Hier werden nur wartende
+// Push-Nachrichten angestoßen (Edge Function "push", nur wenn Push eingerichtet ist).
 export async function flushMail() {
+  if (!(window.TP_CONFIG && window.TP_CONFIG.vapidPublicKey)) return;
   try {
-    await sb.functions.invoke('mailer', { body: { flush: true } });
+    await sb.functions.invoke('push', { body: {} });
   } catch (e) {
-    console.warn('mailer', e);
+    console.warn('push', e);
   }
 }
 
