@@ -22,5 +22,3 @@ window.TP_CONFIG = {
      Leer lassen = wird automatisch erkannt. */
   appUrl: ""
 };
-
-
