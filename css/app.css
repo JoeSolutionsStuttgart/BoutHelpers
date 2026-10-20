@@ -580,6 +580,14 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
   .fab-feedback .fab-label { display: none; }
 }
 
-/* Nicht-öffentlicher Bereich: erledigtes Feedback abgeblendet */
+/* Nicht-öffentlicher Bereich: Zahlen und Balken */
+.stat-row { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; }
+.stat-v { font-size: 1.6rem; font-weight: 800; color: var(--text); }
+.stat-l { font-size: 0.8rem; color: var(--text-3); margin-top: 2px; }
+.bars { display: flex; align-items: flex-end; gap: 6px; height: 140px; padding-top: 8px; overflow-x: auto; }
+.bar { flex: 1 0 24px; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; gap: 4px; }
+.bar-fill { width: 70%; min-height: 2px; border-radius: 6px 6px 0 0; background: linear-gradient(0deg, var(--violet), var(--pink)); }
+.bar-x { font-size: 10px; color: var(--text-3); white-space: nowrap; }
 .done-card { opacity: 0.6; }
 .done-card:hover { opacity: 1; }
