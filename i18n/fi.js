@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Määritä",
   "tasks.no_assignee": "— ei kukaan —",
   "tasks.unassigned": "Ei määritettyä",
+  "push.reset": "Nollaa",
+  "push.recheck": "Tarkista uudelleen",
+  "push.reset_done": "Nollattu. Ota push uudelleen käyttöön.",
+  "push.help_title": "Salli ilmoitukset",
+  "push.help_steps": "Napauta lukkoa tai ⓘ-kuvaketta osoitepalkin vasemmalla puolella → Oikeudet / Sivuston asetukset → Ilmoitukset → Salli. Lataa sitten sivu uudelleen ja paina ”Tarkista uudelleen”.",
+  "push.help_ios": "iPhonessa/iPadissa: asenna ensin Jaa → ”Lisää Koti-valikkoon” ja avaa sovellus sieltä; salli sitten ilmoitukset tälle sovellukselle iOS-asetuksissa.",
 };

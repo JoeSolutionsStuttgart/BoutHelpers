@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Przypisz",
   "tasks.no_assignee": "— nikt —",
   "tasks.unassigned": "Nikt nieprzypisany",
+  "push.reset": "Zresetuj",
+  "push.recheck": "Sprawdź ponownie",
+  "push.reset_done": "Zresetowano. Włącz powiadomienia ponownie.",
+  "push.help_title": "Zezwól na powiadomienia",
+  "push.help_steps": "Kliknij kłódkę lub ikonę ⓘ po lewej stronie paska adresu → Uprawnienia / Ustawienia witryny → Powiadomienia → Zezwól. Następnie odśwież stronę i naciśnij „Sprawdź ponownie”.",
+  "push.help_ios": "Na iPhonie/iPadzie: najpierw zainstaluj przez Udostępnij → „Do ekranu początkowego” i otwórz aplikację stamtąd; potem zezwól na powiadomienia tej aplikacji w ustawieniach iOS.",
 };

@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Assegna",
   "tasks.no_assignee": "— nessuno —",
   "tasks.unassigned": "Nessun assegnatario",
+  "push.reset": "Reimposta",
+  "push.recheck": "Controlla di nuovo",
+  "push.reset_done": "Reimpostato. Riattiva le notifiche.",
+  "push.help_title": "Consenti le notifiche",
+  "push.help_steps": "Tocca il lucchetto o l’icona ⓘ a sinistra nella barra degli indirizzi → Autorizzazioni / Impostazioni sito → Notifiche → Consenti. Poi ricarica la pagina e premi «Controlla di nuovo».",
+  "push.help_ios": "Su iPhone/iPad: installa prima tramite Condividi → «Aggiungi a Home» e apri l’app da lì; poi consenti le notifiche per questa app nelle impostazioni iOS.",
 };

@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Tilldela",
   "tasks.no_assignee": "— ingen —",
   "tasks.unassigned": "Ingen tilldelad",
+  "push.reset": "Återställ",
+  "push.recheck": "Kontrollera igen",
+  "push.reset_done": "Återställt. Slå på push igen.",
+  "push.help_title": "Tillåt aviseringar",
+  "push.help_steps": "Tryck på låset eller ⓘ-ikonen till vänster i adressfältet → Behörigheter / Webbplatsinställningar → Aviseringar → Tillåt. Ladda sedan om sidan och tryck på ”Kontrollera igen”.",
+  "push.help_ios": "På iPhone/iPad: installera först via Dela → ”Lägg till på hemskärmen” och öppna appen därifrån; tillåt sedan aviseringar för appen i iOS-inställningarna.",
 };

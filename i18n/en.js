@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Assign",
   "tasks.no_assignee": "— nobody —",
   "tasks.unassigned": "Nobody assigned",
+  "push.reset": "Reset",
+  "push.recheck": "Check again",
+  "push.reset_done": "Reset done. Please switch push on again.",
+  "push.help_title": "Allow notifications",
+  "push.help_steps": "Tap the lock or ⓘ icon on the left of the address bar → Permissions / Site settings → Notifications → Allow. Then reload the page and press “Check again” here.",
+  "push.help_ios": "On iPhone/iPad: first install via Share → “Add to Home Screen” and open the app from there; then allow notifications for this app in iOS settings.",
 };

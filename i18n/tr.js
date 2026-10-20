@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Ata",
   "tasks.no_assignee": "— kimse —",
   "tasks.unassigned": "Kimse atanmadı",
+  "push.reset": "Sıfırla",
+  "push.recheck": "Tekrar kontrol et",
+  "push.reset_done": "Sıfırlandı. Push’u yeniden aç.",
+  "push.help_title": "Bildirimlere izin ver",
+  "push.help_steps": "Adres çubuğunun solundaki kilit veya ⓘ simgesine dokun → İzinler / Site ayarları → Bildirimler → İzin ver. Sonra sayfayı yenile ve burada „Tekrar kontrol et“e bas.",
+  "push.help_ios": "iPhone/iPad’de: önce Paylaş → „Ana Ekrana Ekle“ ile yükle ve uygulamayı oradan aç; ardından iOS ayarlarında bu uygulama için bildirimlere izin ver.",
 };

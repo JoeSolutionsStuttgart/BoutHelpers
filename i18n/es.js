@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Asignar",
   "tasks.no_assignee": "— nadie —",
   "tasks.unassigned": "Sin asignar",
+  "push.reset": "Restablecer",
+  "push.recheck": "Comprobar de nuevo",
+  "push.reset_done": "Restablecido. Vuelve a activar las notificaciones.",
+  "push.help_title": "Permitir notificaciones",
+  "push.help_steps": "Toca el candado o el icono ⓘ a la izquierda de la barra de direcciones → Permisos / Ajustes del sitio → Notificaciones → Permitir. Luego recarga la página y pulsa «Comprobar de nuevo».",
+  "push.help_ios": "En iPhone/iPad: primero instala con Compartir → «Añadir a pantalla de inicio» y abre la app desde ahí; luego permite las notificaciones para esta app en los ajustes de iOS.",
 };

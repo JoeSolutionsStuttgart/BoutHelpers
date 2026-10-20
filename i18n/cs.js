@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Přiřadit",
   "tasks.no_assignee": "— nikdo —",
   "tasks.unassigned": "Nikdo nepřiřazen",
+  "push.reset": "Resetovat",
+  "push.recheck": "Zkontrolovat znovu",
+  "push.reset_done": "Resetováno. Zapni push znovu.",
+  "push.help_title": "Povolit oznámení",
+  "push.help_steps": "Klepni na zámek nebo ikonu ⓘ vlevo v adresním řádku → Oprávnění / Nastavení webu → Oznámení → Povolit. Potom stránku načti znovu a stiskni „Zkontrolovat znovu“.",
+  "push.help_ios": "Na iPhonu/iPadu: nejdřív nainstaluj přes Sdílet → „Přidat na plochu“ a otevři aplikaci odtamtud; potom v nastavení iOS povol oznámení pro tuto aplikaci.",
 };

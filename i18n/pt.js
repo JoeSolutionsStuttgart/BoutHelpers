@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Atribuir",
   "tasks.no_assignee": "— ninguém —",
   "tasks.unassigned": "Sem responsável",
+  "push.reset": "Repor",
+  "push.recheck": "Verificar de novo",
+  "push.reset_done": "Reposto. Volta a ligar as notificações.",
+  "push.help_title": "Permitir notificações",
+  "push.help_steps": "Toca no cadeado ou no ícone ⓘ à esquerda na barra de endereço → Permissões / Definições do site → Notificações → Permitir. Depois recarrega a página e carrega em «Verificar de novo».",
+  "push.help_ios": "No iPhone/iPad: instala primeiro via Partilhar → «Adicionar ao ecrã principal» e abre a app a partir daí; depois permite as notificações desta app nas definições do iOS.",
 };

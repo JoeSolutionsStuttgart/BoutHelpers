@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Toewijzen",
   "tasks.no_assignee": "— niemand —",
   "tasks.unassigned": "Niemand toegewezen",
+  "push.reset": "Opnieuw instellen",
+  "push.recheck": "Opnieuw controleren",
+  "push.reset_done": "Gereset. Zet push opnieuw aan.",
+  "push.help_title": "Meldingen toestaan",
+  "push.help_steps": "Tik op het slotje of het ⓘ-icoon links in de adresbalk → Rechten / Site-instellingen → Meldingen → Toestaan. Laad daarna de pagina opnieuw en druk op ‘Opnieuw controleren’.",
+  "push.help_ios": "Op iPhone/iPad: installeer eerst via Deel → ‘Zet op beginscherm’ en open de app van daaruit; sta daarna meldingen voor deze app toe in de iOS-instellingen.",
 };

@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Tildel",
   "tasks.no_assignee": "— ingen —",
   "tasks.unassigned": "Ingen tildelt",
+  "push.reset": "Nulstil",
+  "push.recheck": "Tjek igen",
+  "push.reset_done": "Nulstillet. Slå push til igen.",
+  "push.help_title": "Tillad notifikationer",
+  "push.help_steps": "Tryk på låsen eller ⓘ-ikonet til venstre i adresselinjen → Tilladelser / Webstedsindstillinger → Notifikationer → Tillad. Genindlæs derefter siden og tryk på ”Tjek igen”.",
+  "push.help_ios": "På iPhone/iPad: installér først via Del → ”Føj til hjemmeskærm” og åbn appen derfra; tillad derefter notifikationer for denne app i iOS-indstillingerne.",
 };

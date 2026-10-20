@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Zuweisen",
   "tasks.no_assignee": "— niemand —",
   "tasks.unassigned": "Niemand zugewiesen",
+  "push.reset": "Zurücksetzen",
+  "push.recheck": "Erneut prüfen",
+  "push.reset_done": "Zurückgesetzt. Bitte Push erneut einschalten.",
+  "push.help_title": "Benachrichtigungen erlauben",
+  "push.help_steps": "Tippe auf das Schloss- oder ⓘ-Symbol links in der Adressleiste → Berechtigungen bzw. Website-Einstellungen → Benachrichtigungen → Zulassen. Danach die Seite neu laden und hier „Erneut prüfen“ drücken.",
+  "push.help_ios": "Auf iPhone/iPad: zuerst über Teilen → „Zum Home-Bildschirm“ installieren und die App von dort öffnen; dann in den iOS-Einstellungen bei dieser App die Mitteilungen erlauben.",
 };

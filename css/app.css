@@ -525,8 +525,11 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
 
 /* Push-Prüfung im Profil */
 .push-checks { display: grid; gap: 4px; padding: 10px 12px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border); }
+.push-check { display: flex; align-items: center; gap: 6px; border: 0; background: transparent; font: inherit; text-align: left; padding: 2px 0; cursor: pointer; color: var(--text); width: 100%; }
 .push-check.bad { color: var(--st-declined); font-weight: 600; }
 .push-check.open { color: var(--text-2); }
+.push-check:hover { text-decoration: underline; }
+.push-help b { display: inline-flex; align-items: center; gap: 6px; }
 
 /* E-Mail an alle Eingeteilten (im Fenster "Automatisch vorbelegen") */
 .mail-box { display: grid; gap: 12px; padding: 16px; border: 2px dashed var(--border); }

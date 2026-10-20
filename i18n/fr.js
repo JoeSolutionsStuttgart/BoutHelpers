@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Attribuer",
   "tasks.no_assignee": "— personne —",
   "tasks.unassigned": "Personne d’attribué",
+  "push.reset": "Réinitialiser",
+  "push.recheck": "Vérifier à nouveau",
+  "push.reset_done": "Réinitialisé. Réactive les notifications.",
+  "push.help_title": "Autoriser les notifications",
+  "push.help_steps": "Appuie sur le cadenas ou l’icône ⓘ à gauche de la barre d’adresse → Autorisations / Paramètres du site → Notifications → Autoriser. Recharge ensuite la page et appuie sur « Vérifier à nouveau ».",
+  "push.help_ios": "Sur iPhone/iPad : installe d’abord via Partager → « Sur l’écran d’accueil » et ouvre l’app depuis là ; autorise ensuite les notifications pour cette app dans les réglages iOS.",
 };

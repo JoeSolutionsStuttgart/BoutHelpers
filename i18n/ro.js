@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Atribuie",
   "tasks.no_assignee": "— nimeni —",
   "tasks.unassigned": "Nimeni atribuit",
+  "push.reset": "Resetează",
+  "push.recheck": "Verifică din nou",
+  "push.reset_done": "Resetat. Reactivează notificările.",
+  "push.help_title": "Permite notificările",
+  "push.help_steps": "Apasă pe lacăt sau pe pictograma ⓘ din stânga barei de adrese → Permisiuni / Setări site → Notificări → Permite. Apoi reîncarcă pagina și apasă „Verifică din nou”.",
+  "push.help_ios": "Pe iPhone/iPad: instalează mai întâi prin Partajează → „Adaugă pe ecranul principal” și deschide aplicația de acolo; apoi permite notificările pentru această aplicație în setările iOS.",
 };

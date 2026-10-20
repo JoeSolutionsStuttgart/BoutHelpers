@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Dodeli",
   "tasks.no_assignee": "— niko —",
   "tasks.unassigned": "Niko nije dodeljen",
+  "push.reset": "Resetuj",
+  "push.recheck": "Proveri ponovo",
+  "push.reset_done": "Resetovano. Uključi push ponovo.",
+  "push.help_title": "Dozvoli obaveštenja",
+  "push.help_steps": "Dodirni katanac ili ikonicu ⓘ levo u adresnoj traci → Dozvole / Podešavanja sajta → Obaveštenja → Dozvoli. Zatim ponovo učitaj stranicu i pritisni „Proveri ponovo“.",
+  "push.help_ios": "Na iPhone/iPad: prvo instaliraj preko Podeli → „Na početni ekran“ i otvori aplikaciju odatle; zatim u iOS podešavanjima dozvoli obaveštenja za ovu aplikaciju.",
 };

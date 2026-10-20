@@ -598,4 +598,10 @@ export default {
   "tasks.assign": "Hozzárendelés",
   "tasks.no_assignee": "— senki —",
   "tasks.unassigned": "Nincs hozzárendelve",
+  "push.reset": "Visszaállítás",
+  "push.recheck": "Ellenőrzés újra",
+  "push.reset_done": "Visszaállítva. Kapcsold be újra a push-t.",
+  "push.help_title": "Értesítések engedélyezése",
+  "push.help_steps": "Koppints a lakat vagy ⓘ ikonra a címsor bal oldalán → Engedélyek / Webhelybeállítások → Értesítések → Engedélyezés. Utána töltsd újra az oldalt, és nyomd meg az „Ellenőrzés újra” gombot.",
+  "push.help_ios": "iPhone/iPad esetén: először telepítsd a Megosztás → „Főképernyőhöz adás” útján, és onnan nyisd meg az appot; majd az iOS beállításaiban engedélyezd az értesítéseket ehhez az apphoz.",
 };
