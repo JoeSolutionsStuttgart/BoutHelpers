@@ -189,6 +189,17 @@ export function ErrorBox({ error, onRetry }) {
   <//></div>`;
 }
 
+export function PasswordInput({ value, onInput, autocomplete = 'current-password', minlength, required, placeholder, name }) {
+  const [show, setShow] = useState(false);
+  return html`<span class="pw-wrap">
+    <input class="input" type=${show ? 'text' : 'password'} autocomplete=${autocomplete} minlength=${minlength}
+      required=${required} placeholder=${placeholder} name=${name} value=${value} onInput=${onInput} />
+    <button type="button" class="pw-eye" aria-pressed=${show} title=${t(show ? 'auth.pw_hide' : 'auth.pw_show')}
+      aria-label=${t(show ? 'auth.pw_hide' : 'auth.pw_show')} onClick=${() => setShow((v) => !v)}>
+      <${Icon} name=${show ? 'eyeOff' : 'eye'} size=${18} /></button>
+  </span>`;
+}
+
 export function Field({ label, hint, children, className = '' }) {
   return html`<label class=${'field ' + className}><span class="label">${label}</span>${children}${hint && html`<span class="hint">${hint}</span>`}</label>`;
 }

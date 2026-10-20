@@ -14,6 +14,8 @@ import { ProfilePage } from './pages/profile.js';
 import { InvitePage, GuestPage } from './pages/join.js';
 import { UnsubscribePage } from './pages/unsubscribe.js';
 import { HelpPage } from './pages/help.js';
+import { FeedbackButton } from './pages/feedback.js';
+import { AdminPage } from './pages/admin.js';
 import { registerServiceWorker, syncPush } from './lib/push.js';
 import { startUnread, stopUnread } from './lib/unread.js';
 
@@ -46,6 +48,7 @@ function Page({ parts }) {
     case 'group': return html`<${GroupPage} id=${b} tab=${c || 'tasks'} key=${b} />`;
     case 'profile': return html`<${ProfilePage} />`;
     case 'help': return html`<${HelpPage} topic=${b} />`;
+    case 'admin': return html`<${AdminPage} tab=${b} />`;
     case 'new-password': return html`<${NewPasswordPage} />`;
     case 'invite': return html`<${InvitePage} token=${b} />`;
     case 'unsubscribe': return html`<${UnsubscribePage} u=${b} c=${c} s=${parts[3]} />`;
@@ -138,6 +141,7 @@ function App() {
       <main class="main"><div class="container"><${Page} parts=${parts} /></div></main>
     </div>
     <${BottomNav} parts=${parts} />
+    <${FeedbackButton} />
     <${Toasts} />
     <${DialogHost} />
   </div>`;

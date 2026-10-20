@@ -3,7 +3,7 @@ import { html, useState } from '../lib/h.js';
 import { sb, appBase } from '../lib/sb.js';
 import { t, lang } from '../lib/i18n.js';
 import { toast, errText } from '../lib/store.js';
-import { Icon, BrandMark, Field, LangSelect, ThemeSwitch, appName, go } from '../lib/ui.js';
+import { Icon, BrandMark, Field, PasswordInput, LangSelect, ThemeSwitch, appName, go } from '../lib/ui.js';
 
 export function AuthShell({ children, title, sub }) {
   return html`<div class="auth-wrap">
@@ -38,7 +38,7 @@ export function LoginPage() {
   return html`<${AuthShell} title=${t('auth.login')} sub=${t('auth.tagline')}>
     <form class="stack" onSubmit=${submit}>
       <${Field} label=${t('auth.email')}><input class="input" type="email" autocomplete="email" required value=${email} onInput=${(e) => setEmail(e.target.value)} /><//>
-      <${Field} label=${t('auth.password')}><input class="input" type="password" autocomplete="current-password" required value=${pw} onInput=${(e) => setPw(e.target.value)} /><//>
+      <${Field} label=${t('auth.password')}><${PasswordInput} autocomplete="current-password" required=${true} value=${pw} onInput=${(e) => setPw(e.target.value)} /><//>
       ${err && html`<div class="notice error">${err}</div>`}
       <button class="btn primary block" disabled=${busy}><${Icon} name="login" />${t('auth.login')}</button>
     </form>
@@ -80,7 +80,7 @@ export function SignupPage() {
     <form class="stack" onSubmit=${submit}>
       <${Field} label=${t('profile.name')} hint=${t('profile.name_hint')}><input class="input" required maxlength="60" autocomplete="nickname" value=${name} onInput=${(e) => setName(e.target.value)} /><//>
       <${Field} label=${t('auth.email')}><input class="input" type="email" autocomplete="email" required value=${email} onInput=${(e) => setEmail(e.target.value)} /><//>
-      <${Field} label=${t('auth.password')} hint=${t('auth.password_hint')}><input class="input" type="password" autocomplete="new-password" minlength="8" required value=${pw} onInput=${(e) => setPw(e.target.value)} /><//>
+      <${Field} label=${t('auth.password')} hint=${t('auth.password_hint')}><${PasswordInput} autocomplete="new-password" minlength=${8} required=${true} value=${pw} onInput=${(e) => setPw(e.target.value)} /><//>
       ${err && html`<div class="notice error">${err}</div>`}
       <button class="btn primary block" disabled=${busy}><${Icon} name="userPlus" />${t('auth.signup')}</button>
     </form>
@@ -130,7 +130,7 @@ export function NewPasswordPage() {
   return html`<div class="card" style="max-width:480px;margin:0 auto">
     <h2>${t('auth.new_password')}</h2>
     <form class="stack" onSubmit=${submit}>
-      <${Field} label=${t('auth.password')} hint=${t('auth.password_hint')}><input class="input" type="password" autocomplete="new-password" minlength="8" required value=${pw} onInput=${(e) => setPw(e.target.value)} /><//>
+      <${Field} label=${t('auth.password')} hint=${t('auth.password_hint')}><${PasswordInput} autocomplete="new-password" minlength=${8} required=${true} value=${pw} onInput=${(e) => setPw(e.target.value)} /><//>
       ${err && html`<div class="notice error">${err}</div>`}
       <button class="btn primary" disabled=${busy}><${Icon} name="key" />${t('common.save')}</button>
     </form>

@@ -4,7 +4,7 @@ import { sb, q, rpc } from '../lib/sb.js';
 import { pushSupported, isIOS, isStandalone, currentSubscription, enablePush, disablePush, forgetDevice, callPushFunction } from '../lib/push.js';
 import { t, PRONOUNS, pronounText } from '../lib/i18n.js';
 import { useStore, setState, toast, toastError, isGuest, confirmDialog } from '../lib/store.js';
-import { Icon, Field, Avatar, LangSelect, ThemeSwitch } from '../lib/ui.js';
+import { Icon, Field, PasswordInput, Avatar, LangSelect, ThemeSwitch } from '../lib/ui.js';
 
 export function ProfilePage() {
   const { user, profile } = useStore();
@@ -77,7 +77,7 @@ export function ProfilePage() {
     ${!isGuest() && html`<form class="card stack" onSubmit=${changePw}>
       <h3>${t('profile.account')}</h3>
       <div class="muted"><${Icon} name="mail" size=${16} /> ${user.email}</div>
-      <${Field} label=${t('auth.new_password')} hint=${t('auth.password_hint')}><input class="input" type="password" autocomplete="new-password" minlength="8" value=${pw} onInput=${(e) => setPw(e.target.value)} /><//>
+      <${Field} label=${t('auth.new_password')} hint=${t('auth.password_hint')}><${PasswordInput} autocomplete="new-password" minlength=${8} value=${pw} onInput=${(e) => setPw(e.target.value)} /><//>
       <div class="row"><button class="btn" disabled=${pw.length < 8}><${Icon} name="key" />${t('auth.change_password')}</button></div>
     </form>`}
 
@@ -86,8 +86,17 @@ export function ProfilePage() {
 
     ${isGuest() && html`<div class="notice">${t('profile.guest_info')}</div>`}
 
+    ${!isGuest() && html`<${AdminLink} />`}
     <div class="row"><button class="btn danger" onClick=${logout}><${Icon} name="logout" />${t('profile.logout')}</button></div>
   </div>`;
+}
+
+// Zugang zum nicht-öffentlichen Bereich – erscheint nur bei der hinterlegten Inhaber*in.
+function AdminLink() {
+  const [isAdmin, setAdmin] = useState(false);
+  useEffect(() => { rpc('is_app_admin').then((v) => setAdmin(!!v)).catch(() => {}); }, []);
+  if (!isAdmin) return null;
+  return html`<div class="row"><a class="btn ghost" href="#/admin"><${Icon} name="shield" size=${16} />${t('admin.title')}</a></div>`;
 }
 
 const MAIL_KINDS = ['assignment', 'deadline'];
@@ -181,6 +190,7 @@ function PushSettings() {
       <button class=${'btn ' + (on ? 'ghost' : 'primary')} disabled=${busy || on === null} onClick=${toggleDevice}>
         <${Icon} name="bell" />${on ? t('push.disable') : t('push.enable')}</button>
       ${on && html`<button class="btn small ghost" disabled=${busy} onClick=${test}>${t('push.test')}</button>`}
+      ${on && html`<span class="small faint" style="width:100%">${t('push.test_hint')}</span>`}
     </div>`}
     ${checks.length > 0 && html`<div class="push-checks small">
       <span class="label">${t('push.check_title')}</span>
