@@ -4,12 +4,12 @@ import { sb, q, rpc, ACTIVE } from '../lib/sb.js';
 import { t, fmtDateTime, fmtRange, fmtRelative, toLocalInput, fromLocalInput } from '../lib/i18n.js';
 import { useStore, toast, toastError, confirmDialog } from '../lib/store.js';
 import {
-  Icon, Spinner, Empty, ErrorBox, Field, Modal, Person, EditableText, StatusBadge, Progress, Tabs,
+  Icon, Spinner, Empty, ErrorBox, Field, Modal, Person, Avatar, PersonHover, EditableText, StatusBadge, Progress, Tabs,
   useAsync, useRealtime,
 } from '../lib/ui.js';
 import { useSeen } from '../lib/unread.js';
 import { Chat } from './chat.js';
-import { shiftLabel } from './event.js';
+import { shiftLabel, shiftTimesSummary } from './event.js';
 
 const PROFILE = 'profiles(id, display_name, pronouns, pronouns_custom, is_guest)';
 
@@ -35,7 +35,7 @@ export function GroupPage({ id, tab }) {
     const [allowed, perms, tasks, members, guests, shifts] = await Promise.all([
       rpc('can_see_group', { pos: id }),
       rpc('my_permissions', { t: p.team_id }),
-      q(sb.from('tasks').select('*, done_by_profile:profiles!tasks_done_by_fkey(display_name)').eq('position_id', id).order('sort').order('created_at')),
+      q(sb.from('tasks').select('*, done_by_profile:profiles!tasks_done_by_fkey(display_name), assignee_profile:profiles!tasks_assignee_fkey(id, display_name, pronouns, pronouns_custom, is_guest)').eq('position_id', id).order('sort').order('created_at')),
       q(sb.from('assignments').select('id, status, note, user_id, shift_id, ' + PROFILE).eq('position_id', id).in('status', ACTIVE)),
       q(sb.from('event_guests').select('id, user_id, ' + PROFILE).eq('position_id', id)),
       q(sb.from('shifts').select('*').eq('position_id', id).order('sort').order('starts_at', { nullsFirst: true }).order('created_at')),
@@ -76,7 +76,7 @@ export function GroupPage({ id, tab }) {
       <a href=${'#/event/' + ev.id} class="chip" style="text-decoration:none;margin-bottom:10px"><${Icon} name="left" size=${14} />${ev.title}</a>
       <h1>${pos.name}</h1>
       <div class="hero-meta">
-        <span><${Icon} name="calendar" size=${18} />${fmtRange(ev.starts_at, ev.ends_at)}</span>
+        ${(() => { const tm = shiftTimesSummary(ctx.shifts, ev); return html`<span><${Icon} name="calendar" size=${18} />${tm || fmtRange(ev.starts_at, ev.ends_at)}</span>`; })()}
         <span><${Icon} name="users" size=${18} />${t('groups.members_n', { n: new Set(ctx.members.map((a) => a.user_id)).size + ctx.guests.length })}</span>
         ${ctx.shifts.length > 1 && html`<span><${Icon} name="clock" size=${18} />${t('shift.count', { n: ctx.shifts.length })}</span>`}
       </div>
@@ -169,6 +169,12 @@ function TaskList({ ctx }) {
     if (!(await confirmDialog({ title: t('tasks.delete'), text: t('tasks.delete_text', { name: x.title }), danger: true, ok: t('common.delete') }))) return;
     try { await q(sb.from('tasks').delete().eq('id', x.id)); ctx.reload(); } catch (e) { toastError(e); }
   };
+  // Personen für die Zuweisung (Mitglieder und Gäste der Gruppe, ohne Doppelte)
+  const people = [];
+  const seen = new Set();
+  (ctx.members || []).forEach((a) => { if (a.profiles && !seen.has(a.user_id)) { seen.add(a.user_id); people.push(a.profiles); } });
+  (ctx.guests || []).forEach((g) => { if (g.profiles && !seen.has(g.user_id)) { seen.add(g.user_id); people.push(g.profiles); } });
+
   return html`<div class="card">
     <div class="card-head"><${Icon} name="tasks" /><h3 class="grow">${t('tasks.title')}</h3><span class="small muted">${t('tasks.progress', { n: done, total: ctx.tasks.length })}</span></div>
     ${ctx.tasks.length > 0 && html`<div style="margin-bottom:8px"><${Progress} value=${done} max=${ctx.tasks.length} /></div>`}
@@ -177,7 +183,18 @@ function TaskList({ ctx }) {
       <input type="checkbox" checked=${x.done} aria-label=${x.title} onChange=${(e) => upd(x, { done: e.target.checked }).catch(() => {})} />
       <div class="grow">
         <div class="task-title"><${EditableText} value=${x.title} canEdit=${true} maxLength=${200} onSave=${(v) => upd(x, { title: v })} /></div>
-        <div class="small muted"><${EditableText} value=${x.details} canEdit=${true} multiline required=${false} maxLength=${2000} placeholder=${t('tasks.add_details')} onSave=${(v) => upd(x, { details: v })} /></div>
+        <div class="small muted line"><${Icon} name="edit" size=${13} /><${EditableText} value=${x.details} canEdit=${true} multiline required=${false} maxLength=${2000} placeholder=${t('tasks.add_details')} onSave=${(v) => upd(x, { details: v })} /></div>
+        <div class="task-foot">
+          ${x.assignee_profile
+            ? html`<span class="chip"><${PersonHover} profile=${x.assignee_profile}><${Avatar} profile=${x.assignee_profile} size="sm" /><//>${x.assignee_profile.display_name}</span>`
+            : html`<span class="small faint">${t('tasks.unassigned')}</span>`}
+          <label class="assign-pick"><${Icon} name="users" size=${14} />
+            <select class="input small" aria-label=${t('tasks.assign')} value=${x.assignee || ''} onChange=${(e) => upd(x, { assignee: e.target.value || null })}>
+              <option value="">${t('tasks.no_assignee')}</option>
+              ${people.map((p) => html`<option value=${p.id} key=${p.id}>${p.display_name}</option>`)}
+            </select>
+          </label>
+        </div>
         ${x.done && x.done_by_profile && html`<div class="small faint">${t('tasks.done_by', { name: x.done_by_profile.display_name, when: fmtDateTime(x.done_at) })}</div>`}
       </div>
       <button class="btn icon" aria-label=${t('common.delete')} onClick=${() => del(x)}><${Icon} name="trash" size=${18} /></button>

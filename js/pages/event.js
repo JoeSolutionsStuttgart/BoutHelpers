@@ -25,6 +25,17 @@ function shiftRange(s, ev) {
   return s.starts_at ? [s.starts_at, s.ends_at || s.starts_at] : [ev.starts_at, ev.ends_at || ev.starts_at];
 }
 
+// Zeiten einer Gruppe (= Position): die eingetragenen Schichtzeiten, sonst leer.
+// Eine Schicht ohne Zeit → nichts; mehrere → Gesamtspanne (früheste Start, späteste Ende).
+export function shiftTimesSummary(shifts, ev) {
+  const timed = (shifts || []).filter((s) => s.starts_at);
+  if (!timed.length) return '';
+  if (timed.length === 1) return fmtRange(timed[0].starts_at, timed[0].ends_at);
+  const starts = timed.map((s) => new Date(s.starts_at).getTime());
+  const ends = timed.map((s) => new Date(s.ends_at || s.starts_at).getTime());
+  return fmtRange(new Date(Math.min(...starts)).toISOString(), new Date(Math.max(...ends)).toISOString());
+}
+
 // Passt die Verfügbarkeit einer Person zur Schicht?
 export function availabilityFits(av, s, ev) {
   if (!av) return null; // keine Angabe
@@ -130,15 +141,31 @@ function PositionsBoard({ ctx }) {
   }, [ctx.assignments, ctx.shifts]);
   const openSlots = ctx.shifts.reduce((s, x) => s + Math.max(0, x.slots - (byShift[x.id] || []).filter((a) => ACTIVE.includes(a.status)).length), 0);
 
+  // Nach Status filtern: Legende anklicken (mehrere möglich); leer = alle zeigen
+  const [filter, setFilter] = useState(() => new Set());
+  const toggle = (s) => setFilter((prev) => { const n = new Set(prev); n.has(s) ? n.delete(s) : n.add(s); return n; });
+  const active = filter.size ? filter : null;
+  const countBy = (s) => ctx.assignments.filter((a) => a.status === s).length;
+
+  const matches = (p) => !active || ctx.assignments.some((a) => a.position_id === p.id && active.has(a.status));
+  const shown = ctx.positions.filter(matches);
+
   return html`<div>
     ${manage && html`<div class="toolbar">
       <button class="btn primary" onClick=${() => setModal({ kind: 'position' })}><${Icon} name="plus" />${t('pos.new')}</button>
       <button class="btn" onClick=${() => setModal({ kind: 'auto' })} disabled=${ctx.shifts.length === 0}><${Icon} name="wand" />${t('pos.auto')}${openSlots > 0 ? html`<span class="chip">${openSlots}</span>` : ''}</button>
     </div>`}
-    <div class="legend">${['proposed', 'confirmed', 'uncertain', 'waitlist', 'declined'].map((s) => html`<span class=${'badge st-' + s} title=${t('status.' + s + '.desc')}>${t('status.' + s)}</span>`)}</div>
+    <div class="legend">
+      ${['proposed', 'confirmed', 'uncertain', 'waitlist', 'declined'].map((s) => html`
+        <button type="button" key=${s} class=${'badge st-' + s + ' filter' + (active && !active.has(s) ? ' off' : '')}
+          aria-pressed=${!!(active && active.has(s))} title=${t('status.' + s + '.desc')} onClick=${() => toggle(s)}>
+          ${t('status.' + s)}<span class="n">${countBy(s)}</span></button>`)}
+      ${active && html`<button type="button" class="badge filter clear" onClick=${() => setFilter(new Set())}><${Icon} name="x" size=${13} />${t('pos.filter_clear')}</button>`}
+    </div>
 
     ${ctx.positions.length === 0 && html`<div class="card"><${Empty} icon="briefcase" title=${t('pos.none')} text=${manage ? t('pos.none_admin') : ''} /></div>`}
-    <div class="pos-grid">${ctx.positions.map((p) => html`<${PositionCard} key=${p.id} ctx=${ctx} pos=${p} byShift=${byShift} onModal=${setModal} />`)}</div>
+    ${ctx.positions.length > 0 && shown.length === 0 && html`<div class="card"><${Empty} icon="search" title=${t('pos.filter_none')} /></div>`}
+    <div class="pos-grid">${shown.map((p) => html`<${PositionCard} key=${p.id} ctx=${ctx} pos=${p} byShift=${byShift} onModal=${setModal} filter=${active} />`)}</div>
 
     ${modal && modal.kind === 'position' && html`<${PositionModal} ctx=${ctx} pos=${modal.pos} onClose=${() => setModal(null)} />`}
     ${modal && modal.kind === 'shift' && html`<${ShiftModal} ctx=${ctx} pos=${modal.pos} shift=${modal.shift} onClose=${() => setModal(null)} />`}
@@ -147,7 +174,7 @@ function PositionsBoard({ ctx }) {
   </div>`;
 }
 
-function PositionCard({ ctx, pos, byShift, onModal }) {
+function PositionCard({ ctx, pos, byShift, onModal, filter }) {
   const manage = ctx.can('events.manage');
   const type = ctx.types.find((x) => x.id === pos.position_type_id);
   const shifts = ctx.shiftsOf(pos.id);
@@ -178,19 +205,23 @@ function PositionCard({ ctx, pos, byShift, onModal }) {
 
     ${shifts.length === 0 && html`<p class="small faint">${t('shift.none')}</p>`}
     ${shifts.map((s, i) => html`<${ShiftBlock} key=${s.id} ctx=${ctx} pos=${pos} shift=${s} label=${shiftLabel(s, i, shifts.length)}
-      list=${byShift[s.id] || []} onModal=${onModal} showDelete=${shifts.length > 1} />`)}
+      list=${byShift[s.id] || []} onModal=${onModal} showDelete=${shifts.length > 1} filter=${filter} />`)}
 
-    ${manage && html`<button class="btn small ghost" style="margin-top:10px" onClick=${() => onModal({ kind: 'shift', pos })}><${Icon} name="plus" size=${16} />${t('shift.add')}</button>`}
+    ${!filter && manage && html`<button class="btn small ghost" style="margin-top:10px" onClick=${() => onModal({ kind: 'shift', pos })}><${Icon} name="plus" size=${16} />${t('shift.add')}</button>`}
   </div>`;
 }
 
-function ShiftBlock({ ctx, pos, shift, label, list, onModal, showDelete }) {
+function ShiftBlock({ ctx, pos, shift, label, list, onModal, showDelete, filter }) {
   const manage = ctx.can('events.manage');
-  const active = list.filter((a) => ACTIVE.includes(a.status)).sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
-  const waitlist = list.filter((a) => a.status === 'waitlist');
-  const declined = list.filter((a) => a.status === 'declined');
+  const pass = (a) => !filter || filter.has(a.status);
+  const active = list.filter((a) => ACTIVE.includes(a.status) && pass(a)).sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
+  const waitlist = list.filter((a) => a.status === 'waitlist' && pass(a));
+  const declined = list.filter((a) => a.status === 'declined' && pass(a));
+  // Beim Filtern Schichten ohne passende Person ausblenden
+  if (filter && active.length === 0 && waitlist.length === 0 && declined.length === 0) return null;
   const mine = list.find((a) => a.user_id === ctx.me);
-  const free = Math.max(0, shift.slots - active.length);
+  const activeCount = list.filter((a) => ACTIVE.includes(a.status)).length;
+  const free = filter ? 0 : Math.max(0, shift.slots - activeCount);
   const myAv = ctx.avOf(ctx.me);
   const fits = availabilityFits(myAv, shift, ctx.ev);
 
@@ -244,7 +275,7 @@ function ShiftBlock({ ctx, pos, shift, label, list, onModal, showDelete }) {
       </div>
       ${tools}
     </div>`}
-    <div class="slot-line"><${Progress} value=${active.length} max=${shift.slots} /><b class="small">${active.length}/${shift.slots}</b>${!hasHead && tools}</div>
+    <div class="slot-line"><${Progress} value=${activeCount} max=${shift.slots} /><b class="small">${activeCount}/${shift.slots}</b>${!hasHead && tools}</div>
 
     ${active.map((a) => personRow(a))}
     ${Array.from({ length: free }).map((_, i) => html`<div class="slot-empty" key=${'f' + i}><span class="avatar sm">?</span>${t('pos.free_slot')}</div>`)}
@@ -572,7 +603,21 @@ function AvailabilityTab({ ctx }) {
 
   const groups = { yes: [], partly: [], no: [] };
   ctx.availability.forEach((a) => groups[a.status] && groups[a.status].push(a));
-  const answered = new Set(ctx.availability.map((a) => a.user_id));
+  // Wer eingeteilt ist oder sich eingetragen hat, zählt auch ohne eigene Angabe als verfügbar
+  // (bestätigt/vorgemerkt → verfügbar, ungewiss → teilweise). Nur wenn keine eigene Angabe da ist.
+  const explicit = new Set(ctx.availability.map((a) => a.user_id));
+  const rank = { confirmed: 3, proposed: 2, uncertain: 1 };
+  const implied = new Map();
+  ctx.assignments.forEach((a) => {
+    if (!ACTIVE.includes(a.status) || explicit.has(a.user_id)) return;
+    const cur = implied.get(a.user_id);
+    if (!cur || rank[a.status] > rank[cur.status]) implied.set(a.user_id, { status: a.status, profiles: a.profiles });
+  });
+  implied.forEach((v, uid) => {
+    const k = v.status === 'uncertain' ? 'partly' : 'yes';
+    groups[k].push({ user_id: uid, profiles: v.profiles, implied: v.status });
+  });
+  const answered = new Set([...explicit, ...implied.keys()]);
   const missing = ctx.members.filter((m) => !answered.has(m.user_id));
 
   return html`<div class="stack">
@@ -605,7 +650,8 @@ function AvailabilityTab({ ctx }) {
       ${['yes', 'partly', 'no'].map((k) => groups[k].length > 0 && html`<div style="margin-bottom:10px">
         <b class="small"><span class=${'dot av-' + k}></span> ${t('avail.' + k)}</b>
         ${groups[k].map((a) => html`<div class="pos-person" key=${a.user_id}>
-          <div class="grow"><${Person} profile=${a.profiles} sub=${k === 'partly' ? (a.windows || []).map((w) => fmtRange(w.from, w.to)).join(' · ') : ''} /></div>
+          <div class="grow"><${Person} profile=${a.profiles} sub=${a.implied ? t('avail.from_assignment') : (k === 'partly' ? (a.windows || []).map((w) => fmtRange(w.from, w.to)).join(' · ') : '')} /></div>
+          ${a.implied && html`<span class="chip small" title=${t('avail.from_assignment')}><${Icon} name="briefcase" size=${12} />${t('status.' + a.implied)}</span>`}
           ${a.note && html`<div class="note">„${a.note}“</div>`}
         </div>`)}
       </div>`)}
@@ -630,6 +676,7 @@ function GroupsList({ ctx }) {
       const body = html`
         <div class="row"><h3 class="grow" style="margin:0">${p.name}</h3>${mine ? html`<span class="badge st-confirmed">${t('groups.yours')}</span>` : !open && html`<${Icon} name="lock" size=${18} />`}<${UnreadBadge} n=${unread.byGroup[p.id]} /></div>
         <div class="small muted">${t('groups.members_n', { n: members.size })}${n > 1 ? ' · ' + t('shift.count', { n }) : ''}</div>
+        ${(() => { const tm = shiftTimesSummary(ctx.shiftsOf(p.id), ctx.ev); return tm && html`<div class="small row"><${Icon} name="clock" size=${15} />${tm}</div>`; })()}
         ${p.deadline && html`<div class="small row"><${Icon} name="flag" size=${15} />${t('group.deadline')}: ${fmtDateTime(p.deadline)}</div>`}
         ${!open && html`<div class="small faint">${t('groups.locked')}</div>`}`;
       return open

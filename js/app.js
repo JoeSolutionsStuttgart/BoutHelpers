@@ -18,7 +18,6 @@ import { FeedbackButton } from './pages/feedback.js';
 import { AdminPage } from './pages/admin.js';
 import { registerServiceWorker, syncPush } from './lib/push.js';
 import { startUnread, stopUnread } from './lib/unread.js';
-import { startTracking, stopTracking } from './lib/track.js';
 
 function parseHash() {
   const raw = decodeURIComponent((location.hash || '#/').slice(1));
@@ -151,7 +150,7 @@ function App() {
 // ---------- Start ----------
 async function onSession(session) {
   setState({ session, user: session ? session.user : null });
-  if (!session) { stopUnread(); stopTracking(); return setState({ profile: null, teams: [] }); }
+  if (!session) { stopUnread(); return setState({ profile: null, teams: [] }); }
   try {
     const p = await loadProfile();
     if (p) {
@@ -164,7 +163,6 @@ async function onSession(session) {
     }
     await loadTeams();
     startUnread();
-    startTracking();
     syncPush();
   } catch (e) {
     console.error(e);
