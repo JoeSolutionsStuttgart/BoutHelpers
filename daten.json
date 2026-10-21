@@ -1,0 +1,5 @@
+{
+ "version": 1,
+ "stand": null,
+ "hinweis": "Wird jede Nacht um 1 Uhr vom Workflow Daten aktualisieren gefüllt (.github/workflows/daten-aktualisieren.yml)."
+}
