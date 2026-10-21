@@ -63,9 +63,8 @@ export function EventPage({ id, tab }) {
       q(sb.from('availability').select('*, ' + PROFILE).eq('event_id', id)),
     ]);
     const permSet = new Set(perms || []);
-    const members = permSet.has('events.manage')
-      ? await q(sb.from('team_members').select('user_id, ' + PROFILE).eq('team_id', ev.team_id))
-      : [];
+    // Mitgliederliste für alle Team-Mitglieder laden (für Wunschpartner & Übersicht); Gäste sehen per RLS nichts.
+    const members = await q(sb.from('team_members').select('user_id, ' + PROFILE).eq('team_id', ev.team_id));
     return { ev, perms: permSet, positions, shifts, assignments, guests, members, types, availability };
   }, [id]);
 
@@ -102,6 +101,8 @@ export function EventPage({ id, tab }) {
         <span><${Icon} name="calendar" size=${18} />${fmtRange(ev.starts_at, ev.ends_at)}</span>
         ${(ev.location || manage) && html`<span><${Icon} name="pin" size=${18} /><${EditableText} value=${ev.location} canEdit=${manage} required=${false} maxLength=${300} placeholder=${t('event.add_location')} onSave=${(v) => saveEvent({ location: v })} /></span>`}
         <span><${Icon} name="users" size=${18} />${t('event.filled', { n: filled, total: totalSlots })} · ${t('event.confirmed_n', { n: confirmed })}</span>
+        ${ev.respond_by && html`<span><${Icon} name="flag" size=${18} />${t('event.respond_by_on', { when: fmtDateTime(ev.respond_by) })}</span>`}
+        ${ev.binding && html`<span class="chip"><${Icon} name="lock" size=${14} />${t('event.binding_badge')}</span>`}
       </div>
       <div style="margin-top:10px">
         <${EditableText} as="p" className="muted" value=${ev.description} canEdit=${manage} multiline required=${false} maxLength=${5000} placeholder=${t('event.add_description')} onSave=${(v) => saveEvent({ description: v })} />
@@ -288,7 +289,7 @@ function ShiftBlock({ ctx, pos, shift, label, list, onModal, showDelete, filter 
         ${fits === false && html`<span class="small" style="color:var(--st-declined)">${t('avail.you_not_available')}</span>`}`}
       ${mine && mine.status === 'declined' && html`<span class="small muted grow">${t('pos.you_declined')}</span><button class="btn small" onClick=${signup}>${t('pos.signup_again')}</button>`}
       ${mine && mine.status === 'waitlist' && html`<span class="small muted grow">${t('pos.your_waitlist_place', { n: waitlist.findIndex((a) => a.id === mine.id) + 1 })}</span>`}
-      ${mine && mine.status !== 'declined' && html`<${MyAnswerButtons} a=${mine} onDone=${ctx.reload} />`}
+      ${mine && mine.status !== 'declined' && html`<${MyAnswerButtons} a=${mine} locked=${ctx.ev.binding} onDone=${ctx.reload} />`}
       ${manage && html`<button class="btn small ghost" onClick=${() => onModal({ kind: 'assign', pos, shift })}><${Icon} name="plus" size=${16} />${t('pos.assign_person')}</button>`}
     </div>
   </div>`;
@@ -431,9 +432,9 @@ function AssignModal({ ctx, pos, shift, list, onClose }) {
     if (!userId) return;
     setBusy(true);
     try {
-      const existing = list.find((a) => a.user_id === userId);
-      if (existing) await q(sb.from('assignments').update({ status, note: '' }).eq('id', existing.id));
-      else await q(sb.from('assignments').insert({ shift_id: shift.id, position_id: pos.id, event_id: ctx.ev.id, team_id: ctx.ev.team_id, user_id: userId, status, source: 'manual' }));
+      // Serverseitig einteilen: Person wird benachrichtigt; bei verbindlichem Event direkt bestätigt
+      await rpc('assign_person', { sh: shift.id, uid: userId, want_confirmed: status === 'confirmed' });
+      flushMail();
       ctx.reload();
       onClose();
     } catch (e) { toastError(e); } finally { setBusy(false); }
@@ -449,8 +450,10 @@ function AssignModal({ ctx, pos, shift, list, onClose }) {
     <button class="btn primary" disabled=${busy || !userId} onClick=${save}>${t('pos.assign')}</button>`}>
     <div class="stack">
       ${shift.starts_at && html`<div class="small muted line"><${Icon} name="clock" size=${14} /><span>${fmtRange(shift.starts_at, shift.ends_at)}</span></div>`}
-      <div class="seg">${['proposed', 'confirmed'].map((s) => html`<button type="button" class=${status === s ? 'on' : ''} onClick=${() => setStatus(s)}>${t('status.' + s)}</button>`)}</div>
-      <p class="small muted" style="margin:0">${status === 'proposed' ? t('pos.assign_proposed_hint') : t('pos.assign_confirmed_hint')}</p>
+      ${ctx.ev.binding
+        ? html`<p class="small muted" style="margin:0"><${Icon} name="lock" size=${14} /> ${t('pos.assign_binding_hint')}</p>`
+        : html`<div class="seg">${['proposed', 'confirmed'].map((s) => html`<button type="button" class=${status === s ? 'on' : ''} onClick=${() => setStatus(s)}>${t('status.' + s)}</button>`)}</div>
+          <p class="small muted" style="margin:0">${status === 'proposed' ? t('pos.assign_proposed_hint') : t('pos.assign_confirmed_hint')}</p>`}
       ${prefs.loading && html`<${Spinner} small />`}
       <div class="list" style="max-height:50vh;overflow:auto">${options.map(([uid, p]) => {
         const r = rankOf(uid);
@@ -486,14 +489,39 @@ function AutoAssignModal({ ctx, byShift, onClose }) {
       return { id: s.id, typeId: p.position_type_id, open: Math.max(0, s.slots - (byShift[s.id] || []).filter((a) => ACTIVE.includes(a.status)).length) };
     });
     const shiftById = Object.fromEntries(ctx.shifts.map((s) => [s.id, s]));
-    const result = autoAssign({
+    const base = {
       positions: units,
       preferences: prefs.map((p) => ({ userId: p.user_id, typeId: p.position_type_id, rank: p.rank })),
       busy: busySet, taken, load,
       // Wer für die Schicht "nicht" verfügbar ist, wird nicht eingeteilt; ohne Angabe nur bei Gleichstand nachrangig
       allowed: (uid, sid) => availabilityFits(ctx.avOf(uid), shiftById[sid], ctx.ev) !== false,
       extraCost: (uid, sid) => (availabilityFits(ctx.avOf(uid), shiftById[sid], ctx.ev) === true ? 0 : 5),
-    });
+    };
+    // Wunschpartner (Feature): wer sich jemanden wünscht, soll möglichst auf dieselbe Position.
+    const wishes = new Map(); const wishedBy = new Map();
+    ctx.availability.forEach((a) => (a.partners || []).forEach((p) => {
+      if (!wishes.has(a.user_id)) wishes.set(a.user_id, new Set());
+      wishes.get(a.user_id).add(p);
+      if (!wishedBy.has(p)) wishedBy.set(p, new Set());
+      wishedBy.get(p).add(a.user_id);
+    }));
+    // Erster Durchlauf ohne Partner-Bonus; daraus ergibt sich, wer vorläufig wo steht.
+    const first = autoAssign(base);
+    let result = first;
+    if (wishes.size > 0) {
+      const placed = {};
+      const addP = (posId, uid) => { (placed[posId] = placed[posId] || new Set()).add(uid); };
+      ctx.assignments.filter((a) => ACTIVE.includes(a.status)).forEach((a) => addP(a.position_id, a.user_id));
+      first.forEach((r) => { const s = shiftById[r.positionId]; if (s) addP(s.position_id, r.userId); });
+      const bonus = (uid, sid) => {
+        const s = shiftById[sid]; if (!s) return 0;
+        const set = placed[s.position_id]; if (!set) return 0;
+        const want = wishes.get(uid); const by = wishedBy.get(uid);
+        for (const w of set) { if (w !== uid && ((want && want.has(w)) || (by && by.has(w)))) return 300; }
+        return 0;
+      };
+      result = autoAssign({ ...base, bonus });
+    }
     return { result, units };
   }, []);
 
@@ -591,13 +619,18 @@ function AvailabilityTab({ ctx }) {
   const [windows, setWindows] = useState(mine && mine.windows && mine.windows.length
     ? mine.windows.map((w) => ({ from: toLocalInput(w.from), to: toLocalInput(w.to) })) : [defWindow()]);
   const [note, setNote] = useState(mine ? mine.note : '');
+  const [partners, setPartners] = useState(() => new Set((mine && mine.partners) || []));
   const [busy, setBusy] = useState(false);
+  // Mögliche Wunschpartner: andere Team-Mitglieder (keine Gäste, nicht man selbst)
+  const partnerPeople = ctx.members.filter((m) => m.user_id !== ctx.me && !(m.profiles && m.profiles.is_guest));
+  const togglePartner = (uid) => setPartners((prev) => { const n = new Set(prev); n.has(uid) ? n.delete(uid) : n.add(uid); return n; });
 
   const save = async () => {
     if (!status) return;
     setBusy(true);
     const row = {
       status, note: note.trim(), updated_at: new Date().toISOString(),
+      partners: [...partners].filter((uid) => partnerPeople.some((m) => m.user_id === uid)),
       windows: status === 'partly' ? windows.filter((w) => w.from && w.to && w.to > w.from).map((w) => ({ from: fromLocalInput(w.from), to: fromLocalInput(w.to) })) : [],
     };
     try {
@@ -627,13 +660,14 @@ function AvailabilityTab({ ctx }) {
   });
   const answered = new Set([...explicit, ...implied.keys()]);
   const missing = ctx.members.filter((m) => !answered.has(m.user_id));
+  const nameOf = (uid) => { const m = ctx.members.find((x) => x.user_id === uid); return m ? m.profiles.display_name : null; };
 
   return html`<div class="stack">
     <div class="card stack">
       <div class="card-head"><${Icon} name="clock" /><h3 class="grow">${t('avail.mine')}</h3></div>
       <p class="small muted" style="margin:0">${t('avail.intro')}</p>
-      <div class="seg" role="group">${['yes', 'partly', 'no'].map((k) => html`
-        <button type="button" class=${status === k ? 'on' : ''} aria-pressed=${status === k} onClick=${() => setStatus(k)}>
+      <div class="choice3" role="group">${['yes', 'partly', 'no'].map((k) => html`
+        <button type="button" class=${'choice av-' + k + (status === k ? ' on' : '')} aria-pressed=${status === k} onClick=${() => setStatus(k)}>
           <span class=${'dot av-' + k}></span>${t('avail.' + k)}</button>`)}</div>
       ${status === 'partly' && html`<div class="stack-sm">
         <span class="small" style="font-weight:750">${t('avail.windows')}</span>
@@ -646,6 +680,12 @@ function AvailabilityTab({ ctx }) {
         <div><button class="btn small ghost" onClick=${() => setWindows([...windows, defWindow()])}><${Icon} name="plus" size=${16} />${t('avail.add_window')}</button></div>
       </div>`}
       <${Field} label=${t('avail.note')}><input class="input" maxlength="500" value=${note} onInput=${(e) => setNote(e.target.value)} placeholder=${t('avail.note_placeholder')} /><//>
+      ${partnerPeople.length > 0 && html`<div class="field">
+        <span class="label">${t('avail.partners')}</span>
+        <p class="small muted" style="margin:0 0 6px">${t('avail.partners_hint')}</p>
+        <div class="partner-pick">${partnerPeople.map((m) => html`<label class=${'chip toggle' + (partners.has(m.user_id) ? ' on' : '')} key=${m.user_id}>
+          <input type="checkbox" checked=${partners.has(m.user_id)} onChange=${() => togglePartner(m.user_id)} />${m.profiles.display_name}</label>`)}</div>
+      </div>`}
       <div class="row"><button class="btn primary" disabled=${busy || !status} onClick=${save}><${Icon} name="check" />${t('common.save')}</button></div>
     </div>
 
@@ -661,6 +701,10 @@ function AvailabilityTab({ ctx }) {
           <div class="grow"><${Person} profile=${a.profiles} sub=${a.implied ? t('avail.from_assignment') : (k === 'partly' ? (a.windows || []).map((w) => fmtRange(w.from, w.to)).join(' · ') : '')} /></div>
           ${a.implied && html`<span class="chip small" title=${t('avail.from_assignment')}><${Icon} name="briefcase" size=${12} />${t('status.' + a.implied)}</span>`}
           ${a.note && html`<div class="note">„${a.note}“</div>`}
+          ${ctx.can('events.manage') && a.partners && a.partners.length > 0 && (() => {
+            const names = a.partners.map(nameOf).filter(Boolean);
+            return names.length > 0 && html`<div class="note" style="color:var(--text-2)"><${Icon} name="star" size=${12} /> ${t('avail.wants_with', { names: names.join(', ') })}</div>`;
+          })()}
         </div>`)}
       </div>`)}
       ${ctx.availability.length === 0 && html`<p class="muted" style="margin:0">${t('avail.none_yet')}</p>`}
@@ -698,6 +742,7 @@ function GroupsList({ ctx }) {
 function EventEditModal({ ev, onClose, onSaved }) {
   const [f, setF] = useState({
     title: ev.title, starts: toLocalInput(ev.starts_at), ends: toLocalInput(ev.ends_at), location: ev.location, description: ev.description,
+    binding: !!ev.binding, respondBy: toLocalInput(ev.respond_by),
   });
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -708,6 +753,7 @@ function EventEditModal({ ev, onClose, onSaved }) {
     try {
       await q(sb.from('events').update({
         title: f.title.trim(), starts_at: fromLocalInput(f.starts), ends_at: fromLocalInput(f.ends), location: f.location.trim(), description: f.description.trim(),
+        binding: f.binding, respond_by: fromLocalInput(f.respondBy),
       }).eq('id', ev.id));
       toast(t('common.saved'));
       onSaved();
@@ -728,6 +774,10 @@ function EventEditModal({ ev, onClose, onSaved }) {
       <${Field} label=${t('event.ends')}><input class="input" type="datetime-local" value=${f.ends} onInput=${set('ends')} /><//>
       <${Field} className="full" label=${t('event.location')}><input class="input" maxlength="300" value=${f.location} onInput=${set('location')} /><//>
       <${Field} className="full" label=${t('event.description')}><textarea class="input" maxlength="5000" value=${f.description} onInput=${set('description')}></textarea><//>
+      <${Field} className="full" label=${t('event.respond_by')} hint=${t('event.respond_by_hint')}>
+        <input class="input" type="datetime-local" value=${f.respondBy} onInput=${set('respondBy')} /><//>
+      <label class="check full"><input type="checkbox" checked=${f.binding} onChange=${(e) => setF({ ...f, binding: e.target.checked })} />
+        <span><b>${t('event.binding')}</b><span class="small faint" style="display:block">${t('event.binding_hint')}</span></span></label>
     </form>
   <//>`;
 }

@@ -45,9 +45,12 @@ export async function leaveWaitlist(a) {
   }
 }
 
-// Knöpfe für die eigene Antwort
-export function MyAnswerButtons({ a, onDone }) {
+// Knöpfe für die eigene Antwort. locked = verbindliche Zuteilung: kein Annehmen/Ablehnen.
+export function MyAnswerButtons({ a, onDone, locked }) {
   const act = async (st) => { if (await respond(a, st)) onDone && onDone(); };
+  if (locked && a.status !== 'waitlist') {
+    return html`<span class="chip"><${Icon} name="lock" size=${14} />${t('assign.binding')}</span>`;
+  }
   if (a.status === 'waitlist') {
     return html`<button class="btn small ghost" onClick=${async () => { if (await leaveWaitlist(a)) onDone && onDone(); }}><${Icon} name="x" size=${16} />${t('assign.leave_waitlist')}</button>`;
   }

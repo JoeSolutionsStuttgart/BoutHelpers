@@ -57,6 +57,22 @@ function Page({ parts }) {
   }
 }
 
+// Welche Ebene ist offen? (für die klare grafische Trennung)
+function levelOf(parts) {
+  const a = parts[0];
+  if (!a) return 'home';
+  if (a === 'team' || a === 'teams') return 'team';
+  if (a === 'event') return 'event';
+  if (a === 'group') return 'group';
+  return null;
+}
+function LevelBar({ level }) {
+  if (!level) return null;
+  const map = { home: ['home', t('level.home')], team: ['users', t('level.team')], event: ['calendar', t('level.event')], group: ['layers', t('level.group')] };
+  const [ic, label] = map[level];
+  return html`<div class="levelbar"><span class="level-pill"><${Icon} name=${ic} size=${15} />${label}</span></div>`;
+}
+
 function Sidebar({ parts }) {
   const { teams, profile, unread } = useStore();
   const at = (p) => (parts[0] === p || (!parts[0] && p === '') ? ' active' : '');
@@ -134,11 +150,12 @@ function App() {
     return null;
   }
 
+  const level = levelOf(parts);
   return html`<div class="shell" key=${key}>
     <${Sidebar} parts=${parts} />
     <div class="grow" style="min-width:0">
       <${TopBar} />
-      <main class="main"><div class="container"><${Page} parts=${parts} /></div></main>
+      <main class=${'main' + (level ? ' lvl-' + level : '')}><div class="container"><${LevelBar} level=${level} /><${Page} parts=${parts} /></div></main>
     </div>
     <${BottomNav} parts=${parts} />
     <${FeedbackButton} />

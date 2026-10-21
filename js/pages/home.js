@@ -13,7 +13,7 @@ export function HomePage() {
   const data = useAsync(async () => {
     const [mine, events] = await Promise.all([
       q(sb.from('assignments')
-        .select('id, status, note, position_id, event_id, shifts(name, starts_at, ends_at), positions(name), events(title, starts_at, ends_at, location)')
+        .select('id, status, note, position_id, event_id, shifts(name, starts_at, ends_at), positions(name), events(title, starts_at, ends_at, location, binding)')
         .eq('user_id', user.id).neq('status', 'declined')),
       q(sb.from('events').select('id, title, starts_at, ends_at, location, team_id, teams(name, color)')
         .gte('starts_at', since).order('starts_at').limit(30)),
@@ -47,7 +47,7 @@ export function HomePage() {
               ${a.events.location && html`<div class="line small muted"><${Icon} name="pin" size=${16} /><span>${a.events.location}</span></div>`}
               ${a.note && html`<div class="small faint pre">„${a.note}“</div>`}
               <div class="row" style="margin-top:6px">
-                <${MyAnswerButtons} a=${a} onDone=${() => data.reload(true)} />
+                <${MyAnswerButtons} a=${a} locked=${a.events && a.events.binding} onDone=${() => data.reload(true)} />
                 ${a.status !== 'waitlist' && html`<a class="btn small ghost" href=${'#/group/' + a.position_id}><${Icon} name="layers" size=${16} />${t('group.open')}<${UnreadBadge} n=${unread.byGroup[a.position_id]} /></a>`}
               </div>
             </div>`)}</div>`}

@@ -68,9 +68,10 @@ class MinCostFlow {
  * @param {Object<string, number>} [input.load]  bisherige Einsätze je Person (für faire Verteilung)
  * @param {(userId, positionId) => boolean} [input.allowed]  z. B. Verfügbarkeit: darf die Person hier eingeteilt werden?
  * @param {(userId, positionId) => number} [input.extraCost]  kleine Zusatzkosten bei Gleichstand (0–99)
+ * @param {(userId, positionId) => number} [input.bonus]  Rabatt bei Gleichstand, z. B. Wunschpartner (0–400)
  * @returns {Array<{positionId, userId, rank}>}
  */
-export function autoAssign({ positions, preferences, busy, taken, load = {}, allowed = () => true, extraCost = () => 0 }) {
+export function autoAssign({ positions, preferences, busy, taken, load = {}, allowed = () => true, extraCost = () => 0, bonus = () => 0 }) {
   const open = positions.filter((p) => p.open > 0 && p.typeId);
   const byType = new Map();
   preferences.forEach((p) => {
@@ -92,8 +93,10 @@ export function autoAssign({ positions, preferences, busy, taken, load = {}, all
     (byType.get(pos.typeId) || []).forEach((pref) => {
       if (taken.has(pos.id + ':' + pref.userId)) return;
       if (!allowed(pref.userId, pos.id)) return;
-      // Rang zählt viel, frühere Einsätze und unklare Verfügbarkeit nur bei Gleichstand
-      const cost = pref.rank * 1000 + Math.min(899, (load[pref.userId] || 0) * 10) + Math.min(99, extraCost(pref.userId, pos.id));
+      // Rang zählt viel, frühere Einsätze und unklare Verfügbarkeit nur bei Gleichstand.
+      // Wunschpartner (bonus) senken die Kosten, bleiben aber unter einer Rangstufe.
+      const cost = pref.rank * 1000 + Math.min(899, (load[pref.userId] || 0) * 10)
+        + Math.min(99, extraCost(pref.userId, pos.id)) - Math.min(400, Math.max(0, bonus(pref.userId, pos.id)));
       const u = pIndex.get(pref.userId);
       edges.push({ u, at: net.g[u].length, positionId: pos.id, userId: pref.userId, rank: pref.rank });
       net.add(u, posBase + j, 1, cost);

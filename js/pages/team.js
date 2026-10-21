@@ -12,7 +12,7 @@ import { DateBox } from './shared.js';
 export function TeamPage({ id, tab }) {
   const { user } = useStore();
   const d = useAsync(async () => {
-    const [teams, perms, members, roles, memberRoles, types, prefs, requests] = await Promise.all([
+    const [teams, perms, members, roles, memberRoles, types, prefs, requests, guests] = await Promise.all([
       q(sb.from('teams').select('*').eq('id', id)),
       rpc('my_permissions', { t: id }),
       q(sb.from('team_members').select('user_id, is_owner, joined_at, profiles(id, display_name, pronouns, pronouns_custom, is_guest)').eq('team_id', id)),
@@ -21,10 +21,11 @@ export function TeamPage({ id, tab }) {
       q(sb.from('position_types').select('*').eq('team_id', id).order('sort').order('name')),
       q(sb.from('preferences').select('user_id, position_type_id, rank').eq('team_id', id)),
       q(sb.from('join_requests').select('id, message, created_at, user_id, profiles(id, display_name, pronouns, pronouns_custom)').eq('team_id', id).order('created_at')),
+      q(sb.from('event_guests').select('user_id, event_id, profiles(id, display_name, pronouns, pronouns_custom, is_guest), events!inner(id, title, team_id)').eq('events.team_id', id)),
     ]);
     if (!teams[0]) return null;
     members.sort((a, b) => String(a.profiles && a.profiles.display_name).localeCompare(String(b.profiles && b.profiles.display_name)));
-    return { team: teams[0], perms: new Set(perms || []), members, roles, memberRoles, types, prefs, requests };
+    return { team: teams[0], perms: new Set(perms || []), members, roles, memberRoles, types, prefs, requests, guests };
   }, [id]);
 
   if (d.loading && !d.data) return html`<${Spinner} />`;
@@ -170,8 +171,29 @@ function MembersTab({ ctx }) {
     try { await q(sb.from('team_members').delete().eq('team_id', ctx.team.id).eq('user_id', m.user_id)); toast(t('common.saved')); ctx.reload(); } catch (e) { toastError(e); }
   };
   const rolesOf = (uid) => ctx.roles.filter((r) => ctx.memberRoles.some((m) => m.user_id === uid && m.role_id === r.id));
+  const countForRole = (rid) => ctx.memberRoles.filter((m) => m.role_id === rid).length;
+  const noRoleCount = ctx.members.filter((m) => !m.is_owner && rolesOf(m.user_id).length === 0).length;
+  // Gäste des Teams (über alle Events), nach Person zusammengefasst
+  const guestMap = new Map();
+  (ctx.guests || []).forEach((g) => {
+    if (!g.profiles) return;
+    const cur = guestMap.get(g.user_id) || { profiles: g.profiles, events: new Set() };
+    if (g.events && g.events.title) cur.events.add(g.events.title);
+    guestMap.set(g.user_id, cur);
+  });
+  const guestList = [...guestMap.values()].sort((a, b) => String(a.profiles.display_name).localeCompare(String(b.profiles.display_name)));
 
   return html`<div class="stack">
+    <div class="card">
+      <div class="card-head"><${Icon} name="users" /><h3 class="grow">${t('members.overview')}</h3></div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <span class="chip colored" style="background:var(--violet)">${t('team.owner')}: ${ctx.members.filter((m) => m.is_owner).length}</span>
+        ${ctx.roles.map((r) => html`<span class="chip colored" key=${r.id} style=${{ background: r.color }}>${r.name}: ${countForRole(r.id)}</span>`)}
+        <span class="chip">${t('members.no_role')}: ${noRoleCount}</span>
+        ${guestList.length > 0 && html`<span class="chip"><${Icon} name="user" size=${13} />${t('members.guests')}: ${guestList.length}</span>`}
+      </div>
+    </div>
+
     ${ctx.can('members.manage') && html`<div class="card">
       <div class="card-head"><${Icon} name="bell" /><h3 class="grow">${t('members.requests')}</h3><span class="chip">${ctx.requests.length}</span></div>
       ${ctx.requests.length === 0
@@ -193,6 +215,7 @@ function MembersTab({ ctx }) {
         <div class="row" style="gap:6px">
           ${m.is_owner && html`<span class="chip colored" style="background:var(--violet)">${t('team.owner')}</span>`}
           ${rolesOf(m.user_id).map((r) => html`<span class="chip colored" style=${{ background: r.color }}>${r.name}</span>`)}
+          ${!m.is_owner && rolesOf(m.user_id).length === 0 && html`<span class="chip faint">${t('members.no_role')}</span>`}
         </div>
         <div class="row" style="gap:4px">
           ${ctx.can('roles.manage') && html`<button class="btn small ghost" onClick=${() => setEditRoles(m)}><${Icon} name="shield" size=${16} />${t('members.roles')}</button>`}
@@ -200,6 +223,15 @@ function MembersTab({ ctx }) {
         </div>
       </div>`)}</div>
     </div>
+
+    ${guestList.length > 0 && html`<div class="card">
+      <div class="card-head"><${Icon} name="user" /><h3 class="grow">${t('members.guests')}</h3><span class="chip">${guestList.length}</span></div>
+      <p class="muted small" style="margin:0 0 6px">${t('members.guests_hint')}</p>
+      <div class="list">${guestList.map((g) => html`<div class="list-item" key=${g.profiles.id}>
+        <div class="grow" style="min-width:160px"><${Person} profile=${g.profiles} guest /></div>
+        <div class="row" style="gap:6px;flex-wrap:wrap">${[...g.events].slice(0, 6).map((title) => html`<span class="chip">${title}</span>`)}</div>
+      </div>`)}</div>
+    </div>`}
     ${editRoles && html`<${MemberRolesModal} ctx=${ctx} member=${editRoles} onClose=${() => setEditRoles(null)} />`}
   </div>`;
 }

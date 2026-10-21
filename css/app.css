@@ -178,6 +178,19 @@ small, .small { font-size: 0.85rem; }
 
 .main { flex: 1; min-width: 0; padding: 28px clamp(16px, 3vw, 40px) 60px; }
 .container { max-width: 1120px; margin: 0 auto; }
+
+/* Ebenen klar trennen: eigene Akzentfarbe + Hinweis-Pille je Ebene */
+.main.lvl-home { --lv: var(--violet); }
+.main.lvl-team { --lv: var(--teal); }
+.main.lvl-event { --lv: var(--orange); }
+.main.lvl-group { --lv: var(--pink); }
+.main[class*="lvl-"] { border-top: 4px solid var(--lv); }
+.levelbar { margin-bottom: 14px; }
+.level-pill {
+  display: inline-flex; align-items: center; gap: 7px; font-weight: 800; font-size: 0.82rem;
+  letter-spacing: 0.02em; padding: 5px 13px; border-radius: 999px; color: #fff;
+  background: var(--lv, var(--violet)); box-shadow: var(--shadow);
+}
 .topbar { display: none; }
 .bottomnav { display: none; }
 
@@ -512,6 +525,30 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
 .dot.av-yes { background: var(--st-confirmed); }
 .dot.av-partly { background: var(--st-uncertain); }
 .dot.av-no { background: var(--st-declined); }
+
+/* Verfügbarkeit: drei klar getrennte, deutlich erkennbare Buttons */
+.choice3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.choice {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 10px; border-radius: 14px; border: 2px solid var(--border);
+  background: var(--surface); color: var(--text-2); font: inherit; font-weight: 800;
+  cursor: pointer; transition: border-color .12s, background .12s, box-shadow .12s, transform .06s;
+}
+.choice:hover { border-color: var(--text-3); }
+.choice:active { transform: translateY(1px); }
+.choice .dot { width: 14px; height: 14px; }
+.choice.on { color: #fff; box-shadow: var(--shadow); }
+.choice.av-yes.on { background: var(--st-confirmed); border-color: var(--st-confirmed); }
+.choice.av-partly.on { background: var(--st-uncertain); border-color: var(--st-uncertain); }
+.choice.av-no.on { background: var(--st-declined); border-color: var(--st-declined); }
+.choice.on .dot { background: rgba(255, 255, 255, 0.9); }
+@media (max-width: 520px) { .choice { flex-direction: column; gap: 6px; padding: 12px 6px; font-size: 0.86rem; } }
+
+/* Wunschpartner: antippbare Chips */
+.partner-pick { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip.toggle { cursor: pointer; border: 1.5px solid var(--border); user-select: none; }
+.chip.toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.chip.toggle.on { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
 .mention { font-weight: 800; color: var(--primary); }
 .msg.mine .bubble .mention { color: #fff; text-decoration: underline; }
 .mention.me { background: var(--st-uncertain-bg); color: var(--st-uncertain); border-radius: 6px; padding: 0 3px; }
