@@ -112,3 +112,29 @@ export function toLocalInput(iso) {
 export function fromLocalInput(v) {
   return v ? new Date(v).toISOString() : null;
 }
+
+// Nur Uhrzeit (für Schichten): "14:00 – 16:00"
+export function fmtTimeRange(a, b) {
+  if (!a) return '';
+  if (!b) return fmtTime(a);
+  return `${fmtTime(a)} – ${fmtTime(b)}`;
+}
+// Lokales Datum "YYYY-MM-DD" (für Schicht = Datum des Events)
+export function localDatePart(iso) {
+  const d = iso ? new Date(iso) : new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+// Lokale Uhrzeit "HH:MM"
+export function localTimePart(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+// Datum (Event) + Uhrzeit → ISO; nur Zeit nötig. end=true: wenn Zeit <= Start, einen Tag weiter.
+export function combineDateTime(dateStr, timeStr) {
+  if (!timeStr) return null;
+  const d = new Date(`${dateStr}T${timeStr}`);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}

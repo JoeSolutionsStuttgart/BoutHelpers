@@ -1,7 +1,7 @@
 // Event-Seite: Positionen mit Schichten, Verfügbarkeit, Chat, Gruppen, Gästelinks
 import { html, useState, useMemo } from '../lib/h.js';
 import { sb, q, rpc, appLink, flushMail, ACTIVE } from '../lib/sb.js';
-import { t, fmtRange, fmtDateTime, fmtTime, toLocalInput, fromLocalInput } from '../lib/i18n.js';
+import { t, fmtRange, fmtDateTime, fmtTime, fmtTimeRange, toLocalInput, fromLocalInput, localDatePart, localTimePart, combineDateTime } from '../lib/i18n.js';
 import { useStore, toast, toastError, confirmDialog, promptDialog, getState } from '../lib/store.js';
 import {
   Icon, Spinner, Empty, ErrorBox, Field, Modal, Person, EditableText, CopyField, Tabs, StatusBadge, Progress,
@@ -30,10 +30,10 @@ function shiftRange(s, ev) {
 export function shiftTimesSummary(shifts, ev) {
   const timed = (shifts || []).filter((s) => s.starts_at);
   if (!timed.length) return '';
-  if (timed.length === 1) return fmtRange(timed[0].starts_at, timed[0].ends_at);
+  if (timed.length === 1) return fmtTimeRange(timed[0].starts_at, timed[0].ends_at);
   const starts = timed.map((s) => new Date(s.starts_at).getTime());
   const ends = timed.map((s) => new Date(s.ends_at || s.starts_at).getTime());
-  return fmtRange(new Date(Math.min(...starts)).toISOString(), new Date(Math.max(...ends)).toISOString());
+  return fmtTimeRange(new Date(Math.min(...starts)).toISOString(), new Date(Math.max(...ends)).toISOString());
 }
 
 // Passt die Verfügbarkeit einer Person zur Schicht?
@@ -271,7 +271,7 @@ function ShiftBlock({ ctx, pos, shift, label, list, onModal, showDelete, filter 
     ${hasHead && html`<div class="shift-head">
       <div class="grow" style="min-width:0">
         ${label && html`<b>${label}</b>`}
-        ${shift.starts_at && html`<div class="small muted line"><${Icon} name="clock" size=${14} /><span>${fmtRange(shift.starts_at, shift.ends_at)}</span></div>`}
+        ${shift.starts_at && html`<div class="small muted line"><${Icon} name="clock" size=${14} /><span>${fmtTimeRange(shift.starts_at, shift.ends_at)}</span></div>`}
       </div>
       ${tools}
     </div>`}
@@ -297,7 +297,7 @@ function ShiftBlock({ ctx, pos, shift, label, list, onModal, showDelete, filter 
 function PositionModal({ ctx, pos, onClose }) {
   const [f, setF] = useState({
     name: pos ? pos.name : '', type: pos ? pos.position_type_id || '' : '', description: pos ? pos.description : '',
-    slots: 1, starts: '', ends: '', shifts: 1,
+    slots: 1, from: '', to: '', shifts: 1,
   });
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -317,10 +317,14 @@ function PositionModal({ ctx, pos, onClose }) {
       } else {
         const created = await q(sb.from('positions').insert({ ...row, event_id: ctx.ev.id, team_id: ctx.ev.team_id, sort: ctx.positions.length }).select('id'));
         const pid = created[0].id;
-        // Schichten anlegen: bei mehreren Schichten wird der Zeitraum gleichmäßig aufgeteilt
+        // Schichten anlegen: bei mehreren Schichten wird der Zeitraum gleichmäßig aufgeteilt (nur Uhrzeiten)
         const n = Math.max(1, Math.min(20, Number(f.shifts) || 1));
-        const a = f.starts ? new Date(fromLocalInput(f.starts)).getTime() : null;
-        const b = f.ends ? new Date(fromLocalInput(f.ends)).getTime() : null;
+        const evDate = localDatePart(ctx.ev.starts_at);
+        const sIso = combineDateTime(evDate, f.from);
+        let eIso = combineDateTime(evDate, f.to);
+        if (sIso && eIso && new Date(eIso) <= new Date(sIso)) eIso = new Date(new Date(eIso).getTime() + 86400000).toISOString();
+        const a = sIso ? new Date(sIso).getTime() : null;
+        const b = eIso ? new Date(eIso).getTime() : null;
         const rows = Array.from({ length: n }).map((_, i) => {
           const step = a != null && b != null && b > a ? (b - a) / n : null;
           return {
@@ -353,8 +357,8 @@ function PositionModal({ ctx, pos, onClose }) {
         <div class="full"><h3 style="margin:6px 0 0">${t('shift.title')}</h3><p class="small muted" style="margin:4px 0 0">${t('shift.create_hint')}</p></div>
         <${Field} label=${t('shift.how_many')}><input class="input" type="number" min="1" max="20" value=${f.shifts} onInput=${set('shifts')} /><//>
         <${Field} label=${t('shift.slots_each')}><input class="input" type="number" min="1" max="500" value=${f.slots} onInput=${set('slots')} /><//>
-        <${Field} label=${t('pos.starts')}><input class="input" type="datetime-local" value=${f.starts} onInput=${set('starts')} /><//>
-        <${Field} label=${t('pos.ends')}><input class="input" type="datetime-local" value=${f.ends} onInput=${set('ends')} /><//>`}
+        <${Field} label=${t('avail.from')}><input class="input" type="time" value=${f.from} onInput=${set('from')} /><//>
+        <${Field} label=${t('avail.to')}><input class="input" type="time" value=${f.to} onInput=${set('to')} /><//>`}
     </form>
   <//>`;
 }
@@ -362,14 +366,15 @@ function PositionModal({ ctx, pos, onClose }) {
 function ShiftModal({ ctx, pos, shift, onClose }) {
   const siblings = ctx.shiftsOf(pos.id);
   const last = siblings[siblings.length - 1];
-  // Neue Schicht: schließt an die letzte an, gleiche Dauer und Plätze
+  const evDate = localDatePart(ctx.ev.starts_at); // Datum der Schicht = Datum des Events
+  // Neue Schicht: schließt an die letzte an, gleiche Dauer und Plätze. Nur Uhrzeiten.
   const init = () => {
-    if (shift) return { name: shift.name, starts: toLocalInput(shift.starts_at), ends: toLocalInput(shift.ends_at), slots: shift.slots };
+    if (shift) return { name: shift.name, from: localTimePart(shift.starts_at), to: localTimePart(shift.ends_at), slots: shift.slots };
     if (last && last.starts_at && last.ends_at) {
       const dur = new Date(last.ends_at) - new Date(last.starts_at);
-      return { name: '', starts: toLocalInput(last.ends_at), ends: toLocalInput(new Date(new Date(last.ends_at).getTime() + dur).toISOString()), slots: last.slots };
+      return { name: '', from: localTimePart(last.ends_at), to: localTimePart(new Date(new Date(last.ends_at).getTime() + dur).toISOString()), slots: last.slots };
     }
-    return { name: '', starts: '', ends: '', slots: last ? last.slots : 1 };
+    return { name: '', from: '', to: '', slots: last ? last.slots : 1 };
   };
   const [f, setF] = useState(init);
   const [busy, setBusy] = useState(false);
@@ -377,7 +382,10 @@ function ShiftModal({ ctx, pos, shift, onClose }) {
   const save = async (e) => {
     e && e.preventDefault();
     setBusy(true);
-    const row = { name: f.name.trim(), starts_at: fromLocalInput(f.starts), ends_at: fromLocalInput(f.ends), slots: Math.max(1, Math.min(500, Number(f.slots) || 1)) };
+    let starts = combineDateTime(evDate, f.from);
+    let ends = combineDateTime(evDate, f.to);
+    if (starts && ends && new Date(ends) <= new Date(starts)) ends = new Date(new Date(ends).getTime() + 86400000).toISOString(); // über Mitternacht
+    const row = { name: f.name.trim(), starts_at: starts, ends_at: ends, slots: Math.max(1, Math.min(500, Number(f.slots) || 1)) };
     try {
       if (shift) await q(sb.from('shifts').update(row).eq('id', shift.id));
       else await q(sb.from('shifts').insert({ ...row, position_id: pos.id, event_id: ctx.ev.id, team_id: ctx.ev.team_id, sort: siblings.length }));
@@ -390,8 +398,8 @@ function ShiftModal({ ctx, pos, shift, onClose }) {
     <button class="btn primary" disabled=${busy} onClick=${save}>${t('common.save')}</button>`}>
     <form class="form-grid" onSubmit=${save}>
       <${Field} className="full" label=${t('shift.name')} hint=${t('shift.name_hint', { n: siblings.length + (shift ? 0 : 1) })}><input class="input" maxlength="80" value=${f.name} onInput=${set('name')} /><//>
-      <${Field} label=${t('pos.starts')}><input class="input" type="datetime-local" value=${f.starts} onInput=${set('starts')} /><//>
-      <${Field} label=${t('pos.ends')}><input class="input" type="datetime-local" value=${f.ends} onInput=${set('ends')} /><//>
+      <${Field} label=${t('avail.from')}><input class="input" type="time" value=${f.from} onInput=${set('from')} /><//>
+      <${Field} label=${t('avail.to')}><input class="input" type="time" value=${f.to} onInput=${set('to')} /><//>
       <${Field} label=${t('event.slots')}><input class="input" type="number" min="1" max="500" value=${f.slots} onInput=${set('slots')} /><//>
     </form>
   <//>`;

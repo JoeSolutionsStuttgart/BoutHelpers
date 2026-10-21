@@ -1,7 +1,7 @@
 // Gruppe (= Position eines Events): Deadline, offene Punkte, Mitglieder, Chat
 import { html, useState, useEffect } from '../lib/h.js';
 import { sb, q, rpc, ACTIVE } from '../lib/sb.js';
-import { t, fmtDateTime, fmtRange, fmtRelative, toLocalInput, fromLocalInput } from '../lib/i18n.js';
+import { t, fmtDateTime, fmtRange, fmtTimeRange, fmtRelative, toLocalInput, fromLocalInput } from '../lib/i18n.js';
 import { useStore, toast, toastError, confirmDialog } from '../lib/store.js';
 import {
   Icon, Spinner, Empty, ErrorBox, Field, Modal, Person, Avatar, PersonHover, EditableText, StatusBadge, Progress, Tabs,
@@ -112,7 +112,10 @@ function DeadlineCard({ ctx, onEdit }) {
             <div class="muted">${fmtDateTime(pos.deadline)}</div>
           </div>
           <div class="small muted stack-sm" style="gap:4px">
-            <span class="row nowrap"><${Icon} name="bell" size=${15} />${t('group.reminder_before', { n: pos.reminder_hours })}</span>
+            ${(() => {
+              const r = pos.remind_at || (pos.deadline ? new Date(new Date(pos.deadline).getTime() - (pos.reminder_hours || 48) * 3600000).toISOString() : null);
+              return r && html`<span class="row nowrap"><${Icon} name="bell" size=${15} />${t('group.remind_on', { when: fmtDateTime(r) })}</span>`;
+            })()}
             ${pos.reminder_sent_at && html`<span class="row nowrap"><${Icon} name="check" size=${15} />${t('group.reminder_sent', { when: fmtDateTime(pos.reminder_sent_at) })}</span>`}
             ${over && open > 0 && html`<span class="badge st-declined">${t('group.overdue', { n: open })}</span>`}
           </div>
@@ -122,29 +125,76 @@ function DeadlineCard({ ctx, onEdit }) {
 }
 
 function DeadlineModal({ ctx, onClose }) {
-  const [dl, setDl] = useState(toLocalInput(ctx.pos.deadline));
-  const [hours, setHours] = useState(ctx.pos.reminder_hours || 48);
+  const pos = ctx.pos;
+  const eventStart = pos.events ? pos.events.starts_at : null;
+  const [dl, setDl] = useState(toLocalInput(pos.deadline));
+  // Erinnerung: entweder Vorlaufzeit (Tage + Stunden vorher) oder fester Zeitpunkt
+  const initLead = pos.reminder_hours || 48;
+  const [mode, setMode] = useState(pos.remind_at ? 'at' : 'lead');
+  const [days, setDays] = useState(pos.remind_at ? 0 : Math.floor(initLead / 24));
+  const [hrs, setHrs] = useState(pos.remind_at ? 0 : initLead % 24);
+  const [at, setAt] = useState(toLocalInput(pos.remind_at));
   const [busy, setBusy] = useState(false);
-  const save = async (clear) => {
-    setBusy(true);
-    try {
-      await rpc('set_group_deadline', { pos: ctx.pos.id, dl: clear ? null : fromLocalInput(dl), hours: Number(hours) });
-      toast(t('common.saved'));
-      ctx.reload();
-      onClose();
-    } catch (e) { toastError(e); } finally { setBusy(false); }
+  const [err, setErr] = useState('');
+
+  const remindIso = () => {
+    const dlMs = dl ? new Date(fromLocalInput(dl)).getTime() : null;
+    if (mode === 'at') return fromLocalInput(at);
+    if (dlMs == null) return null;
+    const lead = (Math.max(0, Number(days) || 0) * 24 + Math.max(0, Number(hrs) || 0)) * 3600000;
+    return new Date(dlMs - lead).toISOString();
   };
+
+  const save = async (clear) => {
+    setErr('');
+    if (!clear) {
+      const r = remindIso();
+      const now = Date.now();
+      const rMs = r ? new Date(r).getTime() : null;
+      const dlMs = dl ? new Date(fromLocalInput(dl)).getTime() : null;
+      if (rMs != null) {
+        // Zeitpunkt muss zwischen jetzt und Event (und vor der Deadline) liegen
+        if (rMs < now - 60000 || (dlMs != null && rMs >= dlMs) || (eventStart && rMs > new Date(eventStart).getTime() + 60000)) {
+          return setErr(t('group.remind_invalid'));
+        }
+      }
+      setBusy(true);
+      try {
+        await rpc('set_group_deadline', { pos: pos.id, dl: fromLocalInput(dl), remind: r });
+        toast(t('common.saved')); ctx.reload(); onClose();
+      } catch (e) { toastError(e); } finally { setBusy(false); }
+    } else {
+      setBusy(true);
+      try { await rpc('set_group_deadline', { pos: pos.id, dl: null, remind: null }); toast(t('common.saved')); ctx.reload(); onClose(); }
+      catch (e) { toastError(e); } finally { setBusy(false); }
+    }
+  };
+
+  const preview = (() => { const r = remindIso(); return r ? fmtDateTime(r) : ''; })();
+
   return html`<${Modal} title=${t('group.deadline')} onClose=${onClose} footer=${html`
-    ${ctx.pos.deadline && html`<button class="btn danger" style="margin-right:auto" onClick=${() => save(true)}>${t('group.remove_deadline')}</button>`}
+    ${pos.deadline && html`<button class="btn danger" style="margin-right:auto" onClick=${() => save(true)}>${t('group.remove_deadline')}</button>`}
     <button class="btn ghost" onClick=${onClose}>${t('common.cancel')}</button>
     <button class="btn primary" disabled=${busy || !dl} onClick=${() => save(false)}>${t('common.save')}</button>`}>
     <div class="stack">
       <${Field} label=${t('group.deadline')}><input class="input" type="datetime-local" value=${dl} onInput=${(e) => setDl(e.target.value)} /><//>
-      <${Field} label=${t('group.reminder')} hint=${t('group.reminder_hint')}>
-        <select class="input" value=${hours} onChange=${(e) => setHours(e.target.value)}>
-          ${[6, 12, 24, 48, 72, 168].map((h) => html`<option value=${h}>${t('group.reminder_before', { n: h })}</option>`)}
-        </select>
-      <//>
+      <div class="field"><span class="label">${t('group.reminder')}</span>
+        <div class="seg" role="group">
+          <button type="button" class=${mode === 'lead' ? 'on' : ''} onClick=${() => setMode('lead')}>${t('group.remind_mode_lead')}</button>
+          <button type="button" class=${mode === 'at' ? 'on' : ''} onClick=${() => setMode('at')}>${t('group.remind_mode_at')}</button>
+        </div>
+        ${mode === 'lead'
+          ? html`<div class="row" style="margin-top:8px;align-items:flex-end">
+              <label class="field" style="flex:1"><span class="small muted">${t('group.remind_days')}</span><input class="input" type="number" min="0" max="60" value=${days} onInput=${(e) => setDays(e.target.value)} /></label>
+              <label class="field" style="flex:1"><span class="small muted">${t('group.remind_hours')}</span><input class="input" type="number" min="0" max="23" value=${hrs} onInput=${(e) => setHrs(e.target.value)} /></label>
+              <span class="small muted" style="padding-bottom:12px">${t('group.remind_vorher')}</span>
+            </div>`
+          : html`<div style="margin-top:8px"><input class="input" type="datetime-local" value=${at}
+              min=${toLocalInput(new Date().toISOString())} max=${eventStart ? toLocalInput(eventStart) : undefined}
+              onInput=${(e) => setAt(e.target.value)} /></div>`}
+        <span class="hint">${t('group.reminder_hint')}${preview ? ' · ' + t('group.remind_on', { when: preview }) : ''}</span>
+      </div>
+      ${err && html`<div class="notice error">${err}</div>`}
     </div>
   <//>`;
 }
@@ -220,7 +270,7 @@ function MemberList({ ctx }) {
       return html`<div key=${s.id} style=${{ marginBottom: many ? '12px' : 0 }}>
         ${(many || s.starts_at) && html`<div class="shift-title">
           ${label && html`<b>${label}</b>`}
-          ${s.starts_at && html`<span class="small muted">${fmtRange(s.starts_at, s.ends_at)}</span>`}
+          ${s.starts_at && html`<span class="small muted">${fmtTimeRange(s.starts_at, s.ends_at)}</span>`}
           <span class="small faint">${list.length}/${s.slots}</span>
         </div>`}
         <div class="list">${list.map(row)}</div>
