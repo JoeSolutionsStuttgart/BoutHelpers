@@ -71,7 +71,7 @@ export function GuestPage({ token }) {
       toast(t('guest.welcome'));
       go(res.pos ? '/group/' + res.pos : '/event/' + res.ev);
     } catch (e2) {
-      setErr(errText(e2));
+      setErr(/removed/.test(String(e2 && e2.message)) ? t('guest.removed') : errText(e2));
     } finally {
       setBusy(false);
     }

@@ -628,4 +628,9 @@ export default {
   "members.overview": "Overblik",
   "members.guests": "Gæster",
   "members.guests_hint": "Personer inviteret til dette teams begivenheder via gæstelinks.",
+  "members.make_owner": "Gør til ejer",
+  "members.make_owner_text": "{name} bliver ejer af dette team og får alle rettigheder. Du afgiver dit ejerskab. Fortsæt?",
+  "members.remove_guest": "Fjern gæst",
+  "members.remove_guest_text": "{name} fjernes fra teamet og kan ikke længere logge ind med linket og adgangskoden.",
+  "guest.removed": "Du er blevet fjernet fra dette team og kan ikke længere bruge linket.",
 };

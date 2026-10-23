@@ -628,4 +628,9 @@ export default {
   "members.overview": "Genel bakış",
   "members.guests": "Misafirler",
   "members.guests_hint": "Bu takımın etkinliklerine misafir bağlantılarıyla davet edilen kişiler.",
+  "members.make_owner": "Sahip yap",
+  "members.make_owner_text": "{name} bu takımın sahibi olur ve tüm yetkileri alır. Sahipliğini devredersin. Devam edilsin mi?",
+  "members.remove_guest": "Misafiri çıkar",
+  "members.remove_guest_text": "{name} takımdan çıkarılır ve artık bağlantı ve parolayla giriş yapamaz.",
+  "guest.removed": "Bu takımdan çıkarıldın ve bağlantıyı artık kullanamazsın.",
 };

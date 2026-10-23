@@ -628,4 +628,9 @@ export default {
   "members.overview": "Přehled",
   "members.guests": "Hosté",
   "members.guests_hint": "Lidé pozvaní na akce tohoto týmu přes hostovské odkazy.",
+  "members.make_owner": "Nastavit vlastníkem",
+  "members.make_owner_text": "{name} se stane vlastníkem tohoto týmu a získá všechna práva. Vzdáváš se svého vlastnictví. Pokračovat?",
+  "members.remove_guest": "Odebrat hosta",
+  "members.remove_guest_text": "{name} bude odebrán z týmu a už se nebude moci přihlásit odkazem a heslem.",
+  "guest.removed": "Byl jsi odebrán z tohoto týmu a odkaz už nelze použít.",
 };

@@ -628,4 +628,9 @@ export default {
   "members.overview": "Áttekintés",
   "members.guests": "Vendégek",
   "members.guests_hint": "A csapat eseményeire vendéglinkekkel meghívott személyek.",
+  "members.make_owner": "Tulajdonossá tesz",
+  "members.make_owner_text": "{name} lesz a csapat tulajdonosa, és minden jogot megkap. Lemondasz a tulajdonosi szerepről. Folytatod?",
+  "members.remove_guest": "Vendég eltávolítása",
+  "members.remove_guest_text": "{name} kikerül a csapatból, és többé nem tud belépni a linkkel és jelszóval.",
+  "guest.removed": "Eltávolítottak ebből a csapatból, és a link már nem használható.",
 };

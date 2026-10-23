@@ -628,4 +628,9 @@ export default {
   "members.overview": "Overzicht",
   "members.guests": "Gasten",
   "members.guests_hint": "Mensen die via gastlinks voor evenementen van dit team zijn uitgenodigd.",
+  "members.make_owner": "Eigenaar maken",
+  "members.make_owner_text": "{name} wordt eigenaar van dit team en krijgt alle rechten. Je geeft je eigenaarschap op. Doorgaan?",
+  "members.remove_guest": "Gast verwijderen",
+  "members.remove_guest_text": "{name} wordt uit het team verwijderd en kan niet meer inloggen met de link en het wachtwoord.",
+  "guest.removed": "Je bent uit dit team verwijderd en kunt de link niet meer gebruiken.",
 };

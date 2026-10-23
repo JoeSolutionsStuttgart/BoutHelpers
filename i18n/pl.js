@@ -628,4 +628,9 @@ export default {
   "members.overview": "Przegląd",
   "members.guests": "Goście",
   "members.guests_hint": "Osoby zaproszone do wydarzeń tego zespołu przez linki dla gości.",
+  "members.make_owner": "Uczyń właścicielem",
+  "members.make_owner_text": "{name} zostaje właścicielem tego zespołu i otrzymuje wszystkie uprawnienia. Oddajesz swoją własność. Kontynuować?",
+  "members.remove_guest": "Usuń gościa",
+  "members.remove_guest_text": "{name} zostaje usunięty z zespołu i nie będzie mógł zalogować się linkiem i hasłem.",
+  "guest.removed": "Zostałeś usunięty z tego zespołu i nie możesz już używać linku.",
 };

@@ -628,4 +628,9 @@ export default {
   "members.overview": "Yleiskatsaus",
   "members.guests": "Vieraat",
   "members.guests_hint": "Henkilöt, jotka on kutsuttu tämän tiimin tapahtumiin vieraslinkeillä.",
+  "members.make_owner": "Tee omistajaksi",
+  "members.make_owner_text": "{name} tulee tämän tiimin omistajaksi ja saa kaikki oikeudet. Luovut omistajuudestasi. Jatketaanko?",
+  "members.remove_guest": "Poista vieras",
+  "members.remove_guest_text": "{name} poistetaan tiimistä eikä voi enää kirjautua linkillä ja salasanalla.",
+  "guest.removed": "Sinut on poistettu tästä tiimistä, etkä voi enää käyttää linkkiä.",
 };

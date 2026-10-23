@@ -628,4 +628,9 @@ export default {
   "members.overview": "Pregled",
   "members.guests": "Gosti",
   "members.guests_hint": "Osobe pozvane na događaje ovog tima preko gostujućih linkova.",
+  "members.make_owner": "Postavi za vlasnika",
+  "members.make_owner_text": "{name} postaje vlasnik ovog tima i dobija sva prava. Predaješ svoje vlasništvo. Nastaviti?",
+  "members.remove_guest": "Ukloni gosta",
+  "members.remove_guest_text": "{name} se uklanja iz tima i više ne može da se prijavi linkom i lozinkom.",
+  "guest.removed": "Uklonjen si iz ovog tima i više ne možeš da koristiš link.",
 };

@@ -628,4 +628,9 @@ export default {
   "members.overview": "Prezentare generală",
   "members.guests": "Invitați",
   "members.guests_hint": "Persoane invitate la evenimentele acestei echipe prin linkuri de invitat.",
+  "members.make_owner": "Fă proprietar",
+  "members.make_owner_text": "{name} devine proprietarul acestei echipe și primește toate drepturile. Renunți la calitatea de proprietar. Continui?",
+  "members.remove_guest": "Elimină invitatul",
+  "members.remove_guest_text": "{name} este eliminat din echipă și nu se mai poate conecta cu linkul și parola.",
+  "guest.removed": "Ai fost eliminat din această echipă și nu mai poți folosi linkul.",
 };

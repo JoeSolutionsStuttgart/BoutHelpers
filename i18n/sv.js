@@ -628,4 +628,9 @@ export default {
   "members.overview": "Översikt",
   "members.guests": "Gäster",
   "members.guests_hint": "Personer som bjudits in till det här teamets evenemang via gästlänkar.",
+  "members.make_owner": "Gör till ägare",
+  "members.make_owner_text": "{name} blir ägare av det här teamet och får alla rättigheter. Du lämnar över ditt ägarskap. Fortsätta?",
+  "members.remove_guest": "Ta bort gäst",
+  "members.remove_guest_text": "{name} tas bort från teamet och kan inte längre logga in med länken och lösenordet.",
+  "guest.removed": "Du har tagits bort från det här teamet och kan inte längre använda länken.",
 };

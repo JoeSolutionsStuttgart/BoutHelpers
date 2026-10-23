@@ -628,4 +628,9 @@ export default {
   "members.overview": "Überblick",
   "members.guests": "Gäste",
   "members.guests_hint": "Über Gästelinks zu Events dieses Teams eingeladene Personen.",
+  "members.make_owner": "Zum Inhaber machen",
+  "members.make_owner_text": "{name} wird Inhaber*in dieses Teams und bekommt alle Rechte. Du gibst deine Inhaberschaft ab. Fortfahren?",
+  "members.remove_guest": "Gast entfernen",
+  "members.remove_guest_text": "{name} wird aus dem Team entfernt und kann sich nicht mehr mit Link und Passwort anmelden.",
+  "guest.removed": "Du wurdest aus diesem Team entfernt und kannst den Link nicht mehr nutzen.",
 };

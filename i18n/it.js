@@ -628,4 +628,9 @@ export default {
   "members.overview": "Panoramica",
   "members.guests": "Ospiti",
   "members.guests_hint": "Persone invitate agli eventi di questo team tramite link ospite.",
+  "members.make_owner": "Rendi proprietario",
+  "members.make_owner_text": "{name} diventa proprietario/a di questo team e ottiene tutti i diritti. Cedi la tua proprietà. Continuare?",
+  "members.remove_guest": "Rimuovi ospite",
+  "members.remove_guest_text": "{name} viene rimosso/a dal team e non potrà più accedere con link e password.",
+  "guest.removed": "Sei stato/a rimosso/a da questo team e non puoi più usare il link.",
 };

@@ -95,10 +95,11 @@ function Sidebar({ parts }) {
   </aside>`;
 }
 
-function TopBar() {
+function TopBar({ level }) {
   const { profile } = useStore();
   return html`<header class="topbar">
     <a class="brand" href="#/"><${BrandMark} size=${18} />${appName()}</a>
+    ${level && html`<span class="level-tag">${t('level.' + level)}</span>`}
     <span class="spacer"></span>
     <${ThemeSwitch} compact />
     <a href="#/profile" aria-label=${t('nav.profile')}><${Avatar} profile=${profile} size="sm" /></a>
@@ -151,11 +152,11 @@ function App() {
   }
 
   const level = levelOf(parts);
-  return html`<div class="shell" key=${key}>
+  return html`<div class=${'shell' + (level ? ' lvl-' + level : '')} key=${key}>
     <${Sidebar} parts=${parts} />
     <div class="grow" style="min-width:0">
-      <${TopBar} />
-      <main class=${'main' + (level ? ' lvl-' + level : '')}><div class="container"><${LevelBar} level=${level} /><${Page} parts=${parts} /></div></main>
+      <${TopBar} level=${level} />
+      <main class="main"><div class="container"><${LevelBar} level=${level} /><${Page} parts=${parts} /></div></main>
     </div>
     <${BottomNav} parts=${parts} />
     <${FeedbackButton} />

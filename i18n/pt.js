@@ -628,4 +628,9 @@ export default {
   "members.overview": "Visão geral",
   "members.guests": "Convidados",
   "members.guests_hint": "Pessoas convidadas para os eventos desta equipa através de links de convidado.",
+  "members.make_owner": "Tornar proprietário",
+  "members.make_owner_text": "{name} passa a ser proprietário/a desta equipa e recebe todos os direitos. Cedes a tua propriedade. Continuar?",
+  "members.remove_guest": "Remover convidado",
+  "members.remove_guest_text": "{name} é removido/a da equipa e deixa de poder entrar com o link e a palavra-passe.",
+  "guest.removed": "Foste removido/a desta equipa e já não podes usar o link.",
 };

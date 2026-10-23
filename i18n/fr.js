@@ -628,4 +628,9 @@ export default {
   "members.overview": "Vue d'ensemble",
   "members.guests": "Invités",
   "members.guests_hint": "Personnes invitées aux événements de cette équipe via des liens invité.",
+  "members.make_owner": "Nommer propriétaire",
+  "members.make_owner_text": "{name} devient propriétaire de cette équipe et obtient tous les droits. Tu cèdes ta propriété. Continuer ?",
+  "members.remove_guest": "Retirer l'invité",
+  "members.remove_guest_text": "{name} est retiré·e de l'équipe et ne pourra plus se connecter avec le lien et le mot de passe.",
+  "guest.removed": "Tu as été retiré·e de cette équipe et ne peux plus utiliser le lien.",
 };

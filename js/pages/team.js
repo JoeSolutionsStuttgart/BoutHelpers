@@ -170,6 +170,15 @@ function MembersTab({ ctx }) {
     if (!(await confirmDialog({ title: t('members.remove'), text: t('members.remove_text', { name: m.profiles.display_name }), danger: true, ok: t('members.remove') }))) return;
     try { await q(sb.from('team_members').delete().eq('team_id', ctx.team.id).eq('user_id', m.user_id)); toast(t('common.saved')); ctx.reload(); } catch (e) { toastError(e); }
   };
+  const makeOwner = async (m) => {
+    if (!(await confirmDialog({ title: t('members.make_owner'), text: t('members.make_owner_text', { name: m.profiles.display_name }), ok: t('members.make_owner') }))) return;
+    try { await rpc('transfer_ownership', { t: ctx.team.id, new_owner: m.user_id }); toast(t('common.saved')); ctx.reload(); loadTeams(); } catch (e) { toastError(e); }
+  };
+  const removeGuest = async (g) => {
+    if (!(await confirmDialog({ title: t('members.remove_guest'), text: t('members.remove_guest_text', { name: g.profiles.display_name }), danger: true, ok: t('common.remove') }))) return;
+    try { await rpc('remove_guest', { t: ctx.team.id, uid: g.profiles.id }); toast(t('common.saved')); ctx.reload(); } catch (e) { toastError(e); }
+  };
+  const isOwner = ctx.members.some((m) => m.user_id === ctx.me && m.is_owner);
   const rolesOf = (uid) => ctx.roles.filter((r) => ctx.memberRoles.some((m) => m.user_id === uid && m.role_id === r.id));
   const countForRole = (rid) => ctx.memberRoles.filter((m) => m.role_id === rid).length;
   const noRoleCount = ctx.members.filter((m) => !m.is_owner && rolesOf(m.user_id).length === 0).length;
@@ -219,6 +228,7 @@ function MembersTab({ ctx }) {
         </div>
         <div class="row" style="gap:4px">
           ${ctx.can('roles.manage') && html`<button class="btn small ghost" onClick=${() => setEditRoles(m)}><${Icon} name="shield" size=${16} />${t('members.roles')}</button>`}
+          ${isOwner && !m.is_owner && m.user_id !== ctx.me && html`<button class="btn icon" title=${t('members.make_owner')} aria-label=${t('members.make_owner')} onClick=${() => makeOwner(m)}><${Icon} name="star" size=${18} /></button>`}
           ${ctx.can('members.manage') && !m.is_owner && m.user_id !== ctx.me && html`<button class="btn icon" title=${t('members.remove')} aria-label=${t('members.remove')} onClick=${() => remove(m)}><${Icon} name="trash" size=${18} /></button>`}
         </div>
       </div>`)}</div>
@@ -230,6 +240,7 @@ function MembersTab({ ctx }) {
       <div class="list">${guestList.map((g) => html`<div class="list-item" key=${g.profiles.id}>
         <div class="grow" style="min-width:160px"><${Person} profile=${g.profiles} guest /></div>
         <div class="row" style="gap:6px;flex-wrap:wrap">${[...g.events].slice(0, 6).map((title) => html`<span class="chip">${title}</span>`)}</div>
+        ${ctx.can('guests.manage') && html`<button class="btn icon" title=${t('members.remove_guest')} aria-label=${t('members.remove_guest')} onClick=${() => removeGuest(g)}><${Icon} name="trash" size=${18} /></button>`}
       </div>`)}</div>
     </div>`}
     ${editRoles && html`<${MemberRolesModal} ctx=${ctx} member=${editRoles} onClose=${() => setEditRoles(null)} />`}

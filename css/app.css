@@ -180,17 +180,26 @@ small, .small { font-size: 0.85rem; }
 .container { max-width: 1120px; margin: 0 auto; }
 
 /* Ebenen klar trennen: eigene Akzentfarbe + Hinweis-Pille je Ebene */
-.main.lvl-home { --lv: var(--violet); }
-.main.lvl-team { --lv: var(--teal); }
-.main.lvl-event { --lv: var(--orange); }
-.main.lvl-group { --lv: var(--pink); }
-.main[class*="lvl-"] { border-top: 4px solid var(--lv); }
+.shell.lvl-home { --lv: var(--violet); }
+.shell.lvl-team { --lv: var(--teal); }
+.shell.lvl-event { --lv: var(--orange); }
+.shell.lvl-group { --lv: var(--pink); }
+/* Hintergrund nimmt die Ebenenfarbe leicht an */
+.shell[class*="lvl-"] { background: color-mix(in srgb, var(--lv) 8%, var(--bg)); }
+.shell[class*="lvl-"] .main { border-top: 4px solid var(--lv); }
 .levelbar { margin-bottom: 14px; }
 .level-pill {
   display: inline-flex; align-items: center; gap: 7px; font-weight: 800; font-size: 0.82rem;
   letter-spacing: 0.02em; padding: 5px 13px; border-radius: 999px; color: #fff;
   background: var(--lv, var(--violet)); box-shadow: var(--shadow);
 }
+/* Obere Leiste (Handy) färbt sich in der Ebenenfarbe */
+.shell[class*="lvl-"] .topbar { background: var(--lv); border-bottom-color: transparent; }
+.shell[class*="lvl-"] .topbar,
+.shell[class*="lvl-"] .topbar .brand,
+.shell[class*="lvl-"] .topbar a,
+.shell[class*="lvl-"] .topbar button { color: #fff; }
+.level-tag { font-weight: 800; font-size: 0.8rem; padding: 3px 11px; border-radius: 999px; background: rgba(255, 255, 255, 0.25); color: #fff; }
 .topbar { display: none; }
 .bottomnav { display: none; }
 
