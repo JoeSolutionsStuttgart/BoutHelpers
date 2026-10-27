@@ -578,6 +578,21 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
 .notif-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); }
 .notif-col { width: 58px; flex: none; display: flex; justify-content: center; align-items: center; text-align: center; }
 .notif-col input { width: 22px; height: 22px; accent-color: var(--primary); }
+
+/* Eigene Einteilung hervorheben (Gruppen/Positionen) */
+.mine-group { box-shadow: inset 0 0 0 2px var(--st-confirmed), var(--shadow); }
+.chip.mine-chip { background: var(--st-confirmed); color: #fff; }
+
+/* Verweis auf eine Abstimmung im Chat */
+.poll-ref {
+  display: inline-flex; align-items: center; gap: 5px; font-weight: 700; text-decoration: none;
+  background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary);
+  border-radius: 8px; padding: 1px 7px; margin: 0 1px;
+}
+.msg.mine .bubble .poll-ref { background: rgba(255, 255, 255, 0.25); color: #fff; }
+.poll-picker { position: absolute; left: 12px; right: 12px; bottom: 100%; margin-bottom: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-lg); padding: 6px; z-index: 5; max-height: 220px; overflow: auto; }
+.poll-picker button { display: flex; width: 100%; gap: 8px; align-items: center; border: 0; background: none; font: inherit; color: var(--text); padding: 8px; border-radius: 10px; cursor: pointer; text-align: left; }
+.poll-picker button:hover { background: var(--surface-3); }
 .mention { font-weight: 800; color: var(--primary); }
 .msg.mine .bubble .mention { color: #fff; text-decoration: underline; }
 .mention.me { background: var(--st-uncertain-bg); color: var(--st-uncertain); border-radius: 6px; padding: 0 3px; }

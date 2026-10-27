@@ -11,6 +11,7 @@ import { autoAssign } from '../lib/assign.js';
 import { MyAnswerButtons } from './shared.js';
 import { Chat } from './chat.js';
 import { Polls } from './polls.js';
+import { NoticeBoard } from './notices.js';
 
 const PROFILE = 'profiles(id, display_name, pronouns, pronouns_custom, is_guest, bio)';
 const STATUS_ORDER = { confirmed: 0, uncertain: 1, proposed: 2, waitlist: 3, declined: 4 };
@@ -52,6 +53,7 @@ export function availabilityFits(av, s, ev) {
 export function EventPage({ id, tab }) {
   const { user, unread } = useStore();
   const [editing, setEditing] = useState(false);
+  const [cloning, setCloning] = useState(false);
   const d = useAsync(async () => {
     const evs = await q(sb.from('events').select('*, teams(id, name, color)').eq('id', id));
     if (!evs[0]) return null;
@@ -114,6 +116,7 @@ export function EventPage({ id, tab }) {
         <a class="btn small" href=${'#/event/' + id + '/availability'}><${Icon} name="clock" size=${16} />${myAv ? t('avail.mine_' + myAv.status) : t('avail.enter')}</a>
         ${(ev.address || ev.location) && html`<a class="btn small" target="_blank" rel="noopener" href=${mapUrl(ev.address || ev.location)}><${Icon} name="pin" size=${16} />${t('event.route')}</a>`}
         ${manage && html`<button class="btn small" onClick=${() => setEditing(true)}><${Icon} name="edit" size=${16} />${t('event.edit')}</button>`}
+        ${manage && html`<button class="btn small" onClick=${() => setCloning(true)}><${Icon} name="copy" size=${16} />${t('event.clone')}</button>`}
       </div>
     </div>
 
@@ -122,6 +125,7 @@ export function EventPage({ id, tab }) {
       { key: 'availability', label: t('event.tab_availability'), icon: 'clock' },
       { key: 'chat', label: t('event.tab_chat'), icon: 'chat', unread: unread.eventChat[id] },
       { key: 'polls', label: t('event.tab_polls'), icon: 'chart' },
+      { key: 'board', label: t('event.tab_board'), icon: 'flag' },
       { key: 'groups', label: t('event.tab_groups'), icon: 'layers', unread: unread.groupsOfEvent[id] },
       { key: 'guests', label: t('event.tab_guests'), icon: 'link', hidden: !ctx.can('guests.manage') },
     ]} />
@@ -130,10 +134,41 @@ export function EventPage({ id, tab }) {
     ${tab === 'availability' && html`<${AvailabilityTab} ctx=${ctx} />`}
     ${tab === 'chat' && html`<${Chat} eventId=${id} positionId=${null} title=${t('chat.event_title', { name: ev.title })} canModerate=${ctx.can('chat.moderate')} />`}
     ${tab === 'polls' && html`<${Polls} eventId=${id} positionId=${null} teamId=${ev.team_id} me=${ctx.me} canModerate=${ctx.can('events.manage') || ctx.can('chat.moderate')} />`}
+    ${tab === 'board' && html`<${NoticeBoard} teamId=${ev.team_id} eventId=${id} me=${ctx.me} canPost=${ctx.can('events.manage')} canModerate=${ctx.can('events.manage') || ctx.can('chat.moderate')} />`}
     ${tab === 'groups' && html`<${GroupsList} ctx=${ctx} />`}
     ${tab === 'guests' && ctx.can('guests.manage') && html`<${GuestLinks} ctx=${ctx} />`}
     ${editing && html`<${EventEditModal} ev=${ev} onClose=${() => setEditing(false)} onSaved=${ctx.reload} />`}
+    ${cloning && html`<${CloneEventModal} ev=${ev} onClose=${() => setCloning(false)} />`}
   </div>`;
+}
+
+// Event als Vorlage: Gruppen (Positionen + Schichten) werden kopiert, nichts anderes.
+function CloneEventModal({ ev, onClose }) {
+  const [f, setF] = useState({ title: ev.title + ' (Kopie)', starts: '', ends: '' });
+  const [busy, setBusy] = useState(false);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const save = async (e) => {
+    e && e.preventDefault();
+    if (!f.title.trim() || !f.starts) return toast(t('event.need_title_date'), 'error');
+    setBusy(true);
+    try {
+      const newid = await rpc('clone_event', { src: ev.id, new_title: f.title.trim(), new_start: fromLocalInput(f.starts), new_end: fromLocalInput(f.ends) });
+      toast(t('event.created'));
+      go('/event/' + newid);
+    } catch (err) { toastError(err); } finally { setBusy(false); }
+  };
+  return html`<${Modal} title=${t('event.clone')} onClose=${onClose} footer=${html`
+    <button class="btn ghost" onClick=${onClose}>${t('common.cancel')}</button>
+    <button class="btn primary" disabled=${busy} onClick=${save}><${Icon} name="copy" />${t('event.clone_do')}</button>`}>
+    <form class="stack" onSubmit=${save}>
+      <p class="muted small" style="margin:0">${t('event.clone_hint')}</p>
+      <${Field} label=${t('event.title')}><input class="input" required maxlength="120" value=${f.title} onInput=${set('title')} /><//>
+      <div class="form-grid">
+        <${Field} label=${t('event.starts')}><input class="input" type="datetime-local" required value=${f.starts} onInput=${set('starts')} /><//>
+        <${Field} label=${t('event.ends')}><input class="input" type="datetime-local" value=${f.ends} onInput=${set('ends')} /><//>
+      </div>
+    </form>
+  <//>`;
 }
 
 // ---------------- Positionen & Schichten ----------------
@@ -196,7 +231,7 @@ function PositionCard({ ctx, pos, byShift, onModal, filter }) {
     try { await q(sb.from('positions').delete().eq('id', pos.id)); ctx.reload(); } catch (e) { toastError(e); }
   };
 
-  return html`<div class="card pos-card" style=${{ '--c': type ? type.color : 'var(--orange)' }}>
+  return html`<div class=${'card pos-card' + (mineHere ? ' mine-group' : '')} style=${{ '--c': type ? type.color : 'var(--orange)' }}>
     <div class="card-head" style="margin-bottom:4px">
       <h3 class="grow">${pos.name}</h3>
       ${canGroup && html`<a class="btn icon" href=${'#/group/' + pos.id} title=${t('group.open')} aria-label=${t('group.open')}><${Icon} name="layers" /></a>`}
@@ -204,6 +239,7 @@ function PositionCard({ ctx, pos, byShift, onModal, filter }) {
         <button class="btn icon" title=${t('common.delete')} aria-label=${t('common.delete')} onClick=${delPos}><${Icon} name="trash" /></button>`}
     </div>
     <div class="row" style="gap:6px">
+      ${mineHere && html`<span class="chip mine-chip"><${Icon} name="check" size=${13} />${t('groups.yours')}</span>`}
       ${type && type.name !== pos.name && html`<span class="chip">${type.name}</span>`}
       ${shifts.length > 1 && html`<span class="chip">${t('shift.count', { n: shifts.length })}</span>`}
       <span class="small faint">${all.length}/${slots}</span>
@@ -738,7 +774,7 @@ function GroupsList({ ctx }) {
         ${p.deadline && html`<div class="small row"><${Icon} name="flag" size=${15} />${t('group.deadline')}: ${fmtDateTime(p.deadline)}</div>`}
         ${!open && html`<div class="small faint">${t('groups.locked')}</div>`}`;
       return open
-        ? html`<a class=${'card team-card' + (unread.byGroup[p.id] ? ' has-unread' : '')} href=${'#/group/' + p.id} key=${p.id}>${body}</a>`
+        ? html`<a class=${'card team-card' + (unread.byGroup[p.id] ? ' has-unread' : '') + (mine ? ' mine-group' : '')} href=${'#/group/' + p.id} key=${p.id}>${body}</a>`
         : html`<div class="card" key=${p.id} style="opacity:0.75">${body}</div>`;
     })}</div>
     ${ctx.positions.length === 0 && html`<div class="card"><${Empty} icon="layers" title=${t('pos.none')} /></div>`}

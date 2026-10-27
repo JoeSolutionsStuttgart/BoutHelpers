@@ -10,6 +10,7 @@ import {
 import { useSeen } from '../lib/unread.js';
 import { Chat } from './chat.js';
 import { Polls } from './polls.js';
+import { NoticeBoard } from './notices.js';
 import { shiftLabel, shiftTimesSummary } from './event.js';
 
 const PROFILE = 'profiles(id, display_name, pronouns, pronouns_custom, is_guest, bio)';
@@ -33,15 +34,16 @@ export function GroupPage({ id, tab }) {
     const pos = await q(sb.from('positions').select('*, events(id, title, starts_at, ends_at, team_id, teams(color))').eq('id', id));
     if (!pos[0]) return null;
     const p = pos[0];
-    const [allowed, perms, tasks, members, guests, shifts] = await Promise.all([
+    const [allowed, perms, tasks, members, guests, shifts, pollCount] = await Promise.all([
       rpc('can_see_group', { pos: id }),
       rpc('my_permissions', { t: p.team_id }),
       q(sb.from('tasks').select('*, done_by_profile:profiles!tasks_done_by_fkey(display_name), assignee_profile:profiles!tasks_assignee_fkey(id, display_name, pronouns, pronouns_custom, is_guest)').eq('position_id', id).order('sort').order('created_at')),
       q(sb.from('assignments').select('id, status, note, user_id, shift_id, ' + PROFILE).eq('position_id', id).in('status', ACTIVE)),
       q(sb.from('event_guests').select('id, user_id, ' + PROFILE).eq('position_id', id)),
       q(sb.from('shifts').select('*').eq('position_id', id).order('sort').order('starts_at', { nullsFirst: true }).order('created_at')),
+      q(sb.from('polls').select('id').eq('position_id', id)),
     ]);
-    return { pos: p, allowed, perms: new Set(perms || []), tasks, members, guests, shifts };
+    return { pos: p, allowed, perms: new Set(perms || []), tasks, members, guests, shifts, pollCount: (pollCount || []).length };
   }, [id]);
 
   useRealtime(d.data && d.data.allowed ? 'group-' + id : null, ['tasks'], 'position_id=eq.' + id, () => d.reload(true));
@@ -70,6 +72,7 @@ export function GroupPage({ id, tab }) {
     </div>`,
     members: html`<${MemberList} ctx=${ctx} />`,
     polls: html`<${Polls} eventId=${ev.id} positionId=${id} teamId=${pos.team_id} me=${ctx.me} canModerate=${ctx.perms.has('events.manage') || ctx.perms.has('chat.moderate')} />`,
+    board: html`<${NoticeBoard} teamId=${pos.team_id} eventId=${ev.id} positionId=${id} me=${ctx.me} canPost=${true} canModerate=${ctx.perms.has('events.manage') || ctx.perms.has('chat.moderate')} />`,
     chat: html`<${Chat} eventId=${ev.id} positionId=${id} title=${t('chat.group_title', { name: pos.name })} canModerate=${ctx.perms.has('chat.moderate')} />`,
   };
 
@@ -89,12 +92,13 @@ export function GroupPage({ id, tab }) {
       ? html`<${Tabs} base=${'/group/' + id} active=${tab} items=${[
           { key: 'tasks', label: t('group.tab_tasks'), icon: 'tasks', unread: unread.groupTasks[id] },
           { key: 'chat', label: t('group.tab_chat'), icon: 'chat', unread: unread.groupChat[id] },
-          { key: 'polls', label: t('group.tab_polls'), icon: 'chart' },
+          { key: 'polls', label: t('group.tab_polls'), icon: 'chart', count: ctx.pollCount },
+          { key: 'board', label: t('group.tab_board'), icon: 'flag' },
           { key: 'members', label: t('group.tab_members'), icon: 'users' },
         ]} />
         ${sections[tab] || sections.tasks}`
       : html`<div class="grid-2">
-          <div class="stack">${sections.tasks}${sections.polls}${sections.members}</div>
+          <div class="stack">${sections.tasks}${sections.polls}${sections.board}${sections.members}</div>
           <div>${sections.chat}</div>
         </div>`}
     ${dlOpen && html`<${DeadlineModal} ctx=${ctx} onClose=${() => setDlOpen(false)} />`}

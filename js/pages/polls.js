@@ -21,9 +21,10 @@ export function Polls({ eventId, positionId, teamId, me, canModerate }) {
   const polls = d.data || [];
   return html`<div class="stack">
     <div class="toolbar">
-      <p class="grow muted" style="margin:0">${t('polls.intro')}</p>
+      <h2 class="grow row" style="margin:0;gap:8px"><${Icon} name="chart" />${t('polls.heading')}${polls.length ? html`<span class="chip">${polls.length}</span>` : ''}</h2>
       <button class="btn primary" onClick=${() => setCreating(true)}><${Icon} name="plus" />${t('polls.new')}</button>
     </div>
+    <p class="muted small" style="margin:-6px 0 0">${t('polls.intro')}</p>
     ${d.loading && !d.data && html`<${Spinner} />`}
     ${d.error && html`<${ErrorBox} error=${d.error} onRetry=${() => d.reload(true)} />`}
     ${d.data && polls.length === 0 && html`<div class="card"><${Empty} icon="chart" title=${t('polls.none')} text=${t('polls.none_text')} /></div>`}
