@@ -1,0 +1,21 @@
+{
+ "hinweis": "Seiten, die Claude an jedem Werktag nach Veranstaltungen durchsucht. Neue Seite: einen Eintrag mit name, url und was ergänzen (bei Städten zusätzlich stadt: Esslingen oder Göppingen). Nur https-Adressen. Die Domain wird im Workflow automatisch freigeschaltet. Termine mit Links auf andere Domains lehnt die Prüfung ab. Unter freie_tage stehen zusätzliche Tage ohne Aktualisierung (JJJJ-MM-TT); Wochenenden und Feiertage in Baden-Württemberg sind schon ausgenommen.",
+ "hochschule": [
+  {"name": "Termine der Hochschule Esslingen", "url": "https://www.hs-esslingen.de/hochschule/aktuelles/termine", "was": "Hauptquelle: Infoveranstaltungen, Workshops, Messen, Kolloquien, Studium Generale"},
+  {"name": "Veranstaltungskalender der Hochschule", "url": "https://www.hs-esslingen.de/news/termine/kalender", "was": "Ergänzung, wenn die Termine-Seite wenig liefert"},
+  {"name": "Hochschulsport", "url": "https://www.hs-esslingen.de/studium/freizeit/hochschulsport", "was": "Sportkurse, Turniere"},
+  {"name": "AStA", "url": "https://www.hs-esslingen.de/studium/freizeit/asta", "was": "Partys, Feste, Aktionen der Studierendenvertretung"},
+  {"name": "Studierendenwerk Stuttgart", "url": "https://www.studierendenwerk-stuttgart.de/", "was": "nur Veranstaltungen in Esslingen oder Göppingen"}
+ ],
+ "stadt": [
+  {"stadt": "Esslingen", "name": "Esslinger Stadtmarketing & Tourismus", "url": "https://www.esslingen-info.com/veranstaltungen/veranstaltungskalender", "was": "Märkte, Stadtfeste, Führungen, Weihnachtsmarkt"},
+  {"stadt": "Esslingen", "name": "Kulturzentrum Dieselstraße", "url": "https://www.dieselstrasse.de/programm/", "was": "Konzerte, Poetry Slam, Kabarett, Partys"},
+  {"stadt": "Esslingen", "name": "Württembergische Landesbühne", "url": "https://wlb-esslingen.de/spielplan/wlb", "was": "Theater und Konzerte im Schauspielhaus"},
+  {"stadt": "Esslingen", "name": "Kommunales Kino Esslingen", "url": "https://www.koki-es.de/programm/", "was": "nur besondere Vorstellungen wie Filmreihen, Premieren, Gäste, nicht jede Vorführung"},
+  {"stadt": "Esslingen", "name": "Stadtbücherei Esslingen", "url": "https://stadtbuecherei.esslingen.de/veranstaltungen", "was": "Lesungen und Vorträge, keine Kinderveranstaltungen"},
+  {"stadt": "Göppingen", "name": "Eventkalender der Stadt Göppingen", "url": "https://eventkalender.erlebe-dein-goeppingen.de/eventkalender", "was": "Hauptquelle für Göppingen: Märkte, Konzerte, Sport, Feste"},
+  {"stadt": "Göppingen", "name": "Stadthalle Göppingen", "url": "https://stadthalle-goeppingen.de/veranstaltungen/", "was": "Konzerte, Comedy, Messen"},
+  {"stadt": "Göppingen", "name": "Odeon im Alten E-Werk", "url": "https://www.odeon-goeppingen.de/programm/", "was": "Konzerte, Theater, Lesungen"}
+ ],
+ "freie_tage": []
+}
