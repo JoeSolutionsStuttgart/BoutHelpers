@@ -9,6 +9,7 @@ import {
 } from '../lib/ui.js';
 import { useSeen } from '../lib/unread.js';
 import { Chat } from './chat.js';
+import { Polls } from './polls.js';
 import { shiftLabel, shiftTimesSummary } from './event.js';
 
 const PROFILE = 'profiles(id, display_name, pronouns, pronouns_custom, is_guest)';
@@ -68,6 +69,7 @@ export function GroupPage({ id, tab }) {
       <${TaskList} ctx=${ctx} />
     </div>`,
     members: html`<${MemberList} ctx=${ctx} />`,
+    polls: html`<${Polls} eventId=${ev.id} positionId=${id} teamId=${pos.team_id} me=${ctx.me} canModerate=${ctx.perms.has('events.manage') || ctx.perms.has('chat.moderate')} />`,
     chat: html`<${Chat} eventId=${ev.id} positionId=${id} title=${t('chat.group_title', { name: pos.name })} canModerate=${ctx.perms.has('chat.moderate')} />`,
   };
 
@@ -87,11 +89,12 @@ export function GroupPage({ id, tab }) {
       ? html`<${Tabs} base=${'/group/' + id} active=${tab} items=${[
           { key: 'tasks', label: t('group.tab_tasks'), icon: 'tasks', unread: unread.groupTasks[id] },
           { key: 'chat', label: t('group.tab_chat'), icon: 'chat', unread: unread.groupChat[id] },
+          { key: 'polls', label: t('group.tab_polls'), icon: 'chart' },
           { key: 'members', label: t('group.tab_members'), icon: 'users' },
         ]} />
         ${sections[tab] || sections.tasks}`
       : html`<div class="grid-2">
-          <div class="stack">${sections.tasks}${sections.members}</div>
+          <div class="stack">${sections.tasks}${sections.polls}${sections.members}</div>
           <div>${sections.chat}</div>
         </div>`}
     ${dlOpen && html`<${DeadlineModal} ctx=${ctx} onClose=${() => setDlOpen(false)} />`}

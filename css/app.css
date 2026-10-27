@@ -558,6 +558,20 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
 .chip.toggle { cursor: pointer; border: 1.5px solid var(--border); user-select: none; }
 .chip.toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
 .chip.toggle.on { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
+
+/* Abstimmungen */
+.poll-opts { display: flex; flex-direction: column; gap: 8px; }
+.poll-opt {
+  position: relative; display: flex; flex-direction: column; gap: 2px; width: 100%; overflow: hidden;
+  border: 1.5px solid var(--border); background: var(--surface); border-radius: 12px;
+  padding: 10px 12px; font: inherit; color: var(--text); cursor: pointer; text-align: left;
+}
+.poll-opt:hover:not(:disabled) { border-color: var(--text-3); }
+.poll-opt:disabled { cursor: default; }
+.poll-opt.mine { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, var(--surface)); }
+.poll-bar { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--primary) 15%, transparent); z-index: 0; transition: width 0.3s; }
+.poll-opt-main { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.poll-voters { position: relative; z-index: 1; font-size: 0.78rem; color: var(--text-2); margin-left: 24px; }
 .mention { font-weight: 800; color: var(--primary); }
 .msg.mine .bubble .mention { color: #fff; text-decoration: underline; }
 .mention.me { background: var(--st-uncertain-bg); color: var(--st-uncertain); border-radius: 6px; padding: 0 3px; }

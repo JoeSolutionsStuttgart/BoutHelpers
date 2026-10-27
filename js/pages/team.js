@@ -101,7 +101,7 @@ function EventsTab({ ctx }) {
 }
 
 function EventCreateModal({ ctx, onClose }) {
-  const [f, setF] = useState({ title: '', starts: '', ends: '', location: '', description: '' });
+  const [f, setF] = useState({ title: '', starts: '', ends: '', location: '', address: '', description: '' });
   const [slots, setSlots] = useState(() => Object.fromEntries(ctx.types.map((x) => [x.id, 0])));
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -112,7 +112,7 @@ function EventCreateModal({ ctx, onClose }) {
     try {
       const rows = await q(sb.from('events').insert({
         team_id: ctx.team.id, title: f.title.trim(), starts_at: fromLocalInput(f.starts), ends_at: fromLocalInput(f.ends),
-        location: f.location.trim(), description: f.description.trim(), created_by: ctx.me,
+        location: f.location.trim(), address: f.address.trim(), description: f.description.trim(), created_by: ctx.me,
       }).select('id'));
       const evId = rows[0].id;
       const chosen = ctx.types.filter((x) => Number(slots[x.id]) > 0);
@@ -139,6 +139,7 @@ function EventCreateModal({ ctx, onClose }) {
         <${Field} label=${t('event.starts')}><input class="input" type="datetime-local" required value=${f.starts} onInput=${set('starts')} /><//>
         <${Field} label=${t('event.ends')}><input class="input" type="datetime-local" value=${f.ends} onInput=${set('ends')} /><//>
         <${Field} className="full" label=${t('event.location')}><input class="input" maxlength="300" value=${f.location} onInput=${set('location')} /><//>
+        <${Field} className="full" label=${t('event.address')} hint=${t('event.address_hint')}><input class="input" maxlength="300" value=${f.address} onInput=${set('address')} placeholder=${t('event.address_ph')} /><//>
         <${Field} className="full" label=${t('event.description')}><textarea class="input" maxlength="5000" value=${f.description} onInput=${set('description')}></textarea><//>
       </div>
       <div>

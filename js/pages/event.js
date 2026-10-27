@@ -10,9 +10,12 @@ import {
 import { autoAssign } from '../lib/assign.js';
 import { MyAnswerButtons } from './shared.js';
 import { Chat } from './chat.js';
+import { Polls } from './polls.js';
 
 const PROFILE = 'profiles(id, display_name, pronouns, pronouns_custom, is_guest)';
 const STATUS_ORDER = { confirmed: 0, uncertain: 1, proposed: 2, waitlist: 3, declined: 4 };
+// Kartenlink für eine Adresse/Location (öffnet die Karten-App)
+export const mapUrl = (addr) => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(addr);
 
 // Bezeichnung einer Schicht: eigener Name, sonst "Schicht 2", bei nur einer Schicht leer
 export function shiftLabel(s, idx, count) {
@@ -109,6 +112,7 @@ export function EventPage({ id, tab }) {
       </div>
       <div class="row" style="margin-top:8px">
         <a class="btn small" href=${'#/event/' + id + '/availability'}><${Icon} name="clock" size=${16} />${myAv ? t('avail.mine_' + myAv.status) : t('avail.enter')}</a>
+        ${(ev.address || ev.location) && html`<a class="btn small" target="_blank" rel="noopener" href=${mapUrl(ev.address || ev.location)}><${Icon} name="pin" size=${16} />${t('event.route')}</a>`}
         ${manage && html`<button class="btn small" onClick=${() => setEditing(true)}><${Icon} name="edit" size=${16} />${t('event.edit')}</button>`}
       </div>
     </div>
@@ -117,6 +121,7 @@ export function EventPage({ id, tab }) {
       { key: 'positions', label: t('event.tab_positions'), icon: 'briefcase' },
       { key: 'availability', label: t('event.tab_availability'), icon: 'clock' },
       { key: 'chat', label: t('event.tab_chat'), icon: 'chat', unread: unread.eventChat[id] },
+      { key: 'polls', label: t('event.tab_polls'), icon: 'chart' },
       { key: 'groups', label: t('event.tab_groups'), icon: 'layers', unread: unread.groupsOfEvent[id] },
       { key: 'guests', label: t('event.tab_guests'), icon: 'link', hidden: !ctx.can('guests.manage') },
     ]} />
@@ -124,6 +129,7 @@ export function EventPage({ id, tab }) {
     ${tab === 'positions' && html`<${PositionsBoard} ctx=${ctx} />`}
     ${tab === 'availability' && html`<${AvailabilityTab} ctx=${ctx} />`}
     ${tab === 'chat' && html`<${Chat} eventId=${id} positionId=${null} title=${t('chat.event_title', { name: ev.title })} canModerate=${ctx.can('chat.moderate')} />`}
+    ${tab === 'polls' && html`<${Polls} eventId=${id} positionId=${null} teamId=${ev.team_id} me=${ctx.me} canModerate=${ctx.can('events.manage') || ctx.can('chat.moderate')} />`}
     ${tab === 'groups' && html`<${GroupsList} ctx=${ctx} />`}
     ${tab === 'guests' && ctx.can('guests.manage') && html`<${GuestLinks} ctx=${ctx} />`}
     ${editing && html`<${EventEditModal} ev=${ev} onClose=${() => setEditing(false)} onSaved=${ctx.reload} />`}
@@ -742,7 +748,7 @@ function GroupsList({ ctx }) {
 function EventEditModal({ ev, onClose, onSaved }) {
   const [f, setF] = useState({
     title: ev.title, starts: toLocalInput(ev.starts_at), ends: toLocalInput(ev.ends_at), location: ev.location, description: ev.description,
-    binding: !!ev.binding, respondBy: toLocalInput(ev.respond_by),
+    address: ev.address || '', binding: !!ev.binding, respondBy: toLocalInput(ev.respond_by),
   });
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -753,7 +759,7 @@ function EventEditModal({ ev, onClose, onSaved }) {
     try {
       await q(sb.from('events').update({
         title: f.title.trim(), starts_at: fromLocalInput(f.starts), ends_at: fromLocalInput(f.ends), location: f.location.trim(), description: f.description.trim(),
-        binding: f.binding, respond_by: fromLocalInput(f.respondBy),
+        address: f.address.trim(), binding: f.binding, respond_by: fromLocalInput(f.respondBy),
       }).eq('id', ev.id));
       toast(t('common.saved'));
       onSaved();
@@ -773,6 +779,7 @@ function EventEditModal({ ev, onClose, onSaved }) {
       <${Field} label=${t('event.starts')}><input class="input" type="datetime-local" required value=${f.starts} onInput=${set('starts')} /><//>
       <${Field} label=${t('event.ends')}><input class="input" type="datetime-local" value=${f.ends} onInput=${set('ends')} /><//>
       <${Field} className="full" label=${t('event.location')}><input class="input" maxlength="300" value=${f.location} onInput=${set('location')} /><//>
+      <${Field} className="full" label=${t('event.address')} hint=${t('event.address_hint')}><input class="input" maxlength="300" value=${f.address} onInput=${set('address')} placeholder=${t('event.address_ph')} /><//>
       <${Field} className="full" label=${t('event.description')}><textarea class="input" maxlength="5000" value=${f.description} onInput=${set('description')}></textarea><//>
       <${Field} className="full" label=${t('event.respond_by')} hint=${t('event.respond_by_hint')}>
         <input class="input" type="datetime-local" value=${f.respondBy} onInput=${set('respondBy')} /><//>
