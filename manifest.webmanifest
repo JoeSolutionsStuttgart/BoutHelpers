@@ -1,17 +1,14 @@
 {
-  "name": "Campi · Campus-App (Prototyp)",
-  "short_name": "Campi",
-  "description": "Inoffizieller Prototyp einer Campus-App für die Hochschule Esslingen: Räume, Mensa, Studileben und KI-Assistent.",
-  "lang": "de",
-  "start_url": "./?pilot=1&quelle=homescreen",
+  "name": "Teamplaner",
+  "short_name": "Teamplaner",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#F7F5F0",
-  "theme_color": "#253E72",
+  "background_color": "#fff7f0",
+  "theme_color": "#7c5cff",
   "icons": [
-    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
-    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
-    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+    { "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "img/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }
