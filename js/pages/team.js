@@ -15,7 +15,7 @@ export function TeamPage({ id, tab }) {
     const [teams, perms, members, roles, memberRoles, types, prefs, requests, guests] = await Promise.all([
       q(sb.from('teams').select('*').eq('id', id)),
       rpc('my_permissions', { t: id }),
-      q(sb.from('team_members').select('user_id, is_owner, joined_at, profiles(id, display_name, pronouns, pronouns_custom, is_guest)').eq('team_id', id)),
+      q(sb.from('team_members').select('user_id, is_owner, joined_at, profiles(id, display_name, pronouns, pronouns_custom, is_guest, bio)').eq('team_id', id)),
       q(sb.from('roles').select('*').eq('team_id', id).order('sort').order('created_at')),
       q(sb.from('member_roles').select('user_id, role_id').eq('team_id', id)),
       q(sb.from('position_types').select('*').eq('team_id', id).order('sort').order('name')),

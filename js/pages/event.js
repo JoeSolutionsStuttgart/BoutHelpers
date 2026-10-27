@@ -12,7 +12,7 @@ import { MyAnswerButtons } from './shared.js';
 import { Chat } from './chat.js';
 import { Polls } from './polls.js';
 
-const PROFILE = 'profiles(id, display_name, pronouns, pronouns_custom, is_guest)';
+const PROFILE = 'profiles(id, display_name, pronouns, pronouns_custom, is_guest, bio)';
 const STATUS_ORDER = { confirmed: 0, uncertain: 1, proposed: 2, waitlist: 3, declined: 4 };
 // Kartenlink für eine Adresse/Location (öffnet die Karten-App)
 export const mapUrl = (addr) => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(addr);
@@ -804,6 +804,11 @@ function GuestLinks({ ctx }) {
   const [creating, setCreating] = useState(false);
   const links = useAsync(() => q(sb.from('guest_links').select('*').eq('event_id', ctx.ev.id).order('created_at')), [ctx.ev.id]);
   const posName = (pid) => (pid ? (ctx.positions.find((p) => p.id === pid) || {}).name : null);
+  // Gruppen, für die ein Link gilt (neue position_ids oder altes einzelnes position_id)
+  const linkGroupNames = (l) => {
+    const ids = (l.position_ids && l.position_ids.length) ? l.position_ids : (l.position_id ? [l.position_id] : []);
+    return ids.map(posName).filter(Boolean);
+  };
 
   const upd = async (l, patch) => {
     try { await q(sb.from('guest_links').update(patch).eq('id', l.id)); links.reload(true); toast(t('common.saved')); } catch (e) { toastError(e); throw e; }
@@ -840,7 +845,7 @@ function GuestLinks({ ctx }) {
       return html`<div class="card stack-sm" key=${l.id} style=${{ opacity: l.active ? 1 : 0.7 }}>
         <div class="row">
           <h3 class="grow" style="margin:0"><${EditableText} value=${l.label} canEdit=${true} required=${false} maxLength=${100} placeholder=${t('guest.add_label')} onSave=${(v) => upd(l, { label: v })} /></h3>
-          <span class="chip">${l.position_id ? t('guest.for_group', { name: posName(l.position_id) }) : t('guest.for_event')}</span>
+          ${(() => { const g = linkGroupNames(l); return html`<span class="chip">${g.length ? t('guest.for_group', { name: g.join(', ') }) : t('guest.for_event')}</span>`; })()}
           <label class="row nowrap small"><input type="checkbox" checked=${l.active} onChange=${(e) => upd(l, { active: e.target.checked }).catch(() => {})} style="width:20px;height:20px;accent-color:var(--primary)" />${l.active ? t('guest.active') : t('guest.inactive')}</label>
         </div>
         <${CopyField} value=${appLink('/g/' + l.token)} />
@@ -863,11 +868,12 @@ function GuestLinks({ ctx }) {
 }
 
 function GuestLinkModal({ ctx, onClose, onSaved }) {
-  const [target, setTarget] = useState('');
+  const [sel, setSel] = useState(() => new Set()); // ausgewählte Gruppen; leer = ganzes Event
   const [label, setLabel] = useState('');
   const [password, setPassword] = useState(randomPassword());
   const [slug, setSlug] = useState('');
   const [busy, setBusy] = useState(false);
+  const toggle = (pid) => setSel((prev) => { const n = new Set(prev); n.has(pid) ? n.delete(pid) : n.add(pid); return n; });
   const save = async (e) => {
     e && e.preventDefault();
     if (password.trim().length < 4) return toast(t('guest.password_short'), 'error');
@@ -875,7 +881,7 @@ function GuestLinkModal({ ctx, onClose, onSaved }) {
     if (tok && !SLUG.test(tok)) return toast(t('guest.slug_invalid'), 'error');
     setBusy(true);
     try {
-      const row = { event_id: ctx.ev.id, team_id: ctx.ev.team_id, position_id: target || null, label: label.trim(), password: password.trim() };
+      const row = { event_id: ctx.ev.id, team_id: ctx.ev.team_id, position_id: null, position_ids: [...sel], label: label.trim(), password: password.trim() };
       if (tok) row.token = tok;
       await q(sb.from('guest_links').insert(row));
       onSaved();
@@ -886,12 +892,15 @@ function GuestLinkModal({ ctx, onClose, onSaved }) {
     <button class="btn ghost" onClick=${onClose}>${t('common.cancel')}</button>
     <button class="btn primary" disabled=${busy} onClick=${save}>${t('common.create')}</button>`}>
     <form class="stack" onSubmit=${save}>
-      <${Field} label=${t('guest.target')}>
-        <select class="input" value=${target} onChange=${(e) => setTarget(e.target.value)}>
-          <option value="">${t('guest.for_event')}</option>
-          ${ctx.positions.map((p) => html`<option value=${p.id}>${t('guest.for_group', { name: p.name })}</option>`)}
-        </select>
-      <//>
+      <div class="field">
+        <span class="label">${t('guest.target')}</span>
+        <p class="small muted" style="margin:0 0 6px">${t('guest.target_hint')}</p>
+        ${ctx.positions.length === 0
+          ? html`<span class="small faint">${t('guest.for_event')}</span>`
+          : html`<div class="partner-pick">${ctx.positions.map((p) => html`<label class=${'chip toggle' + (sel.has(p.id) ? ' on' : '')} key=${p.id}>
+              <input type="checkbox" checked=${sel.has(p.id)} onChange=${() => toggle(p.id)} />${p.name}</label>`)}</div>
+            <p class="small faint" style="margin:6px 0 0">${sel.size === 0 ? t('guest.for_event') : t('guest.for_group', { name: ctx.positions.filter((p) => sel.has(p.id)).map((p) => p.name).join(', ') })}</p>`}
+      </div>
       <${Field} label=${t('guest.label')} hint=${t('guest.label_hint')}><input class="input" maxlength="100" value=${label} onInput=${(e) => setLabel(e.target.value)} /><//>
       <${Field} label=${t('guest.password')} hint=${t('guest.password_hint')}>
         <div class="row nowrap"><input class="input" maxlength="64" required value=${password} onInput=${(e) => setPassword(e.target.value)} />

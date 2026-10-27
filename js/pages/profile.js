@@ -11,17 +11,18 @@ export function ProfilePage() {
   const [name, setName] = useState(profile ? profile.display_name : '');
   const [pron, setPron] = useState(profile ? profile.pronouns : '');
   const [custom, setCustom] = useState(profile ? profile.pronouns_custom : '');
+  const [bio, setBio] = useState(profile ? (profile.bio || '') : '');
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
   if (!profile) return null;
 
-  const preview = { ...profile, display_name: name, pronouns: pron, pronouns_custom: custom };
+  const preview = { ...profile, display_name: name, pronouns: pron, pronouns_custom: custom, bio };
   const save = async (e) => {
     e.preventDefault();
     if (!name.trim()) return toast(t('auth.name_required'), 'error');
     setBusy(true);
     try {
-      const patch = { display_name: name.trim(), pronouns: pron, pronouns_custom: pron === 'custom' ? custom.trim() : '' };
+      const patch = { display_name: name.trim(), pronouns: pron, pronouns_custom: pron === 'custom' ? custom.trim() : '', bio: bio.trim() };
       await q(sb.from('profiles').update(patch).eq('id', user.id));
       setState({ profile: { ...profile, ...patch } });
       toast(t('common.saved'));
@@ -52,6 +53,7 @@ export function ProfilePage() {
           ${isGuest() && html`<span class="chip" style="margin-top:6px">${t('common.guest')}</span>`}
         </div>
       </div>
+      ${bio.trim() && html`<p class="muted pre" style="margin:12px 0 0">${bio}</p>`}
     </div>
 
     <form class="card stack" onSubmit=${save}>
@@ -65,6 +67,7 @@ export function ProfilePage() {
         </select>
       <//>
       ${pron === 'custom' && html`<${Field} label=${t('profile.pronouns_custom_label')}><input class="input" maxlength="40" value=${custom} onInput=${(e) => setCustom(e.target.value)} placeholder="xier/xiem" /><//>`}
+      <${Field} label=${t('profile.about')} hint=${t('profile.about_hint')}><textarea class="input" maxlength="500" rows="3" value=${bio} onInput=${(e) => setBio(e.target.value)} placeholder=${t('profile.about_ph')}></textarea><//>
       <div class="row"><button class="btn primary" disabled=${busy}><${Icon} name="check" />${t('common.save')}</button></div>
     </form>
 
@@ -81,7 +84,7 @@ export function ProfilePage() {
       <div class="row"><button class="btn" disabled=${pw.length < 8}><${Icon} name="key" />${t('auth.change_password')}</button></div>
     </form>`}
 
-    ${!isGuest() && html`<${MailSettings} />`}
+    <${NotificationSettings} />
     <${PushSettings} />
 
     ${isGuest() && html`<div class="notice">${t('profile.guest_info')}</div>`}
@@ -99,31 +102,43 @@ function AdminLink() {
   return html`<div class="row"><a class="btn ghost" href="#/admin"><${Icon} name="shield" size=${16} />${t('admin.title')}</a></div>`;
 }
 
-const MAIL_KINDS = ['assignment', 'deadline'];
+// Pro Info-Art wählbar: Push, E-Mail oder beides. E-Mail gibt es nur für Einteilung und Deadline.
+const NOTIF_TYPES = [
+  { k: 'assignment', mail: true },
+  { k: 'deadline', mail: true },
+  { k: 'shift', mail: false },
+  { k: 'mention', mail: false },
+];
 
-function MailSettings() {
+function NotificationSettings() {
   const { user, profile } = useStore();
-  const prefs = { assignment: true, deadline: true, ...(profile.mail_prefs || {}) };
-  const setPref = async (k, v) => {
-    const next = { ...prefs, [k]: v };
-    try {
-      await q(sb.from('profiles').update({ mail_prefs: next }).eq('id', user.id));
-      setState({ profile: { ...profile, mail_prefs: next } });
-    } catch (e) { toastError(e); }
+  const guest = isGuest();
+  const push = { assignment: true, shift: true, deadline: true, mention: true, ...(profile.push_prefs || {}) };
+  const mail = { assignment: true, deadline: true, ...(profile.mail_prefs || {}) };
+  const setPush = async (k, v) => {
+    const next = { ...push, [k]: v };
+    try { await q(sb.from('profiles').update({ push_prefs: next }).eq('id', user.id)); setState({ profile: { ...profile, push_prefs: next } }); } catch (e) { toastError(e); }
+  };
+  const setMail = async (k, v) => {
+    const next = { ...mail, [k]: v };
+    try { await q(sb.from('profiles').update({ mail_prefs: next }).eq('id', user.id)); setState({ profile: { ...profile, mail_prefs: next } }); } catch (e) { toastError(e); }
   };
   return html`<div class="card stack">
-    <h3>${t('mailpref.title')}</h3>
-    <p class="small muted" style="margin:0">${t('mailpref.intro')}</p>
-    <div class="field">
-      ${MAIL_KINDS.map((k) => html`<label class="check" key=${k}>
-        <input type="checkbox" checked=${prefs[k] !== false} onChange=${(e) => setPref(k, e.target.checked)} />
-        <span><b>${t('mailpref.' + k)}</b><span class="small faint" style="display:block">${t('mailpref.' + k + '.desc')}</span></span>
-      </label>`)}
+    <h3>${t('notif.title')}</h3>
+    <p class="small muted" style="margin:0">${t('notif.intro')}</p>
+    <div class="notif-grid">
+      <div class="notif-head"><span class="grow"></span><span class="notif-col">${t('notif.push')}</span>${!guest ? html`<span class="notif-col">${t('notif.mail')}</span>` : ''}</div>
+      ${NOTIF_TYPES.map((row) => html`<div class="notif-row" key=${row.k}>
+        <div class="grow"><b>${t('push.kind_' + row.k)}</b><span class="small faint" style="display:block">${t('push.kind_' + row.k + '.desc')}</span></div>
+        <label class="notif-col"><input type="checkbox" aria-label=${t('notif.push')} checked=${push[row.k] !== false} onChange=${(e) => setPush(row.k, e.target.checked)} /></label>
+        ${!guest ? (row.mail
+          ? html`<label class="notif-col"><input type="checkbox" aria-label=${t('notif.mail')} checked=${mail[row.k] !== false} onChange=${(e) => setMail(row.k, e.target.checked)} /></label>`
+          : html`<span class="notif-col faint">–</span>`) : ''}
+      </div>`)}
     </div>
+    ${guest && html`<p class="small faint" style="margin:0">${t('notif.guest_hint')}</p>`}
   </div>`;
 }
-
-const PUSH_KINDS = ['shift', 'deadline', 'mention', 'assignment'];
 
 function PushSettings() {
   const { user, profile } = useStore();
@@ -138,7 +153,6 @@ function PushSettings() {
     loadStatus();
   };
   useEffect(() => { recheck(); }, []);
-  const prefs = { assignment: true, shift: true, deadline: true, mention: true, ...(profile.push_prefs || {}) };
 
   const toggleDevice = async () => {
     setBusy(true); setErr(null);
@@ -152,13 +166,6 @@ function PushSettings() {
         : t('err.generic') + ' (' + m + ')');
       if (m === 'denied' || m === 'unsupported') setHelp(true);
     } finally { setBusy(false); loadStatus(); }
-  };
-  const setPref = async (k, v) => {
-    const next = { ...prefs, [k]: v };
-    try {
-      await q(sb.from('profiles').update({ push_prefs: next }).eq('id', user.id));
-      setState({ profile: { ...profile, push_prefs: next } });
-    } catch (e) { toastError(e); }
   };
   // Test: sofort senden; Fehler bleibt sichtbar (mit Reset)
   const test = async () => {
@@ -230,12 +237,5 @@ function PushSettings() {
       <div class="row" style="margin-top:8px"><button class="btn small" disabled=${busy} onClick=${recheck}><${Icon} name="check" size=${15} />${t('push.recheck')}</button></div>
     </div>`}
     ${!showHelp && html`<div><button class="btn small ghost" onClick=${() => setHelp(true)}><${Icon} name="help" size=${15} />${t('push.help_title')}</button></div>`}
-
-    <div class="field"><span class="label">${t('push.what')}</span>
-      ${PUSH_KINDS.map((k) => html`<label class="check" key=${k}>
-        <input type="checkbox" checked=${prefs[k] !== false} onChange=${(e) => setPref(k, e.target.checked)} />
-        <span><b>${t('push.kind_' + k)}</b><span class="small faint" style="display:block">${t('push.kind_' + k + '.desc')}</span></span>
-      </label>`)}
-    </div>
   </div>`;
 }

@@ -12,7 +12,7 @@ import { Chat } from './chat.js';
 import { Polls } from './polls.js';
 import { shiftLabel, shiftTimesSummary } from './event.js';
 
-const PROFILE = 'profiles(id, display_name, pronouns, pronouns_custom, is_guest)';
+const PROFILE = 'profiles(id, display_name, pronouns, pronouns_custom, is_guest, bio)';
 
 function useMobile() {
   const mq = window.matchMedia('(max-width: 899px)');

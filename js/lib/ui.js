@@ -152,6 +152,7 @@ export function PersonHover({ profile, guest, children, className = '' }) {
       </div>
       <div class="pc-label">${t('profile.pronouns')}</div>
       <div class=${pron ? 'pc-pron' : 'faint small'}>${pron || t('profile.pronouns_none_shown')}</div>
+      ${p.bio && html`<div class="pc-label">${t('profile.about')}</div><div class="small pre">${p.bio}</div>`}
     </div>`}
   </span>`;
 }

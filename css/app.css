@@ -572,6 +572,12 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
 .poll-bar { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--primary) 15%, transparent); z-index: 0; transition: width 0.3s; }
 .poll-opt-main { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; font-weight: 700; }
 .poll-voters { position: relative; z-index: 1; font-size: 0.78rem; color: var(--text-2); margin-left: 24px; }
+
+/* Benachrichtigungen: pro Info Push/E-Mail */
+.notif-head { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 0.78rem; color: var(--text-2); padding-bottom: 4px; }
+.notif-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); }
+.notif-col { width: 58px; flex: none; display: flex; justify-content: center; align-items: center; text-align: center; }
+.notif-col input { width: 22px; height: 22px; accent-color: var(--primary); }
 .mention { font-weight: 800; color: var(--primary); }
 .msg.mine .bubble .mention { color: #fff; text-decoration: underline; }
 .mention.me { background: var(--st-uncertain-bg); color: var(--st-uncertain); border-radius: 6px; padding: 0 3px; }

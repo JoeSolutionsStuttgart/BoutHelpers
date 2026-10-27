@@ -20,9 +20,9 @@ const day = (d, h, m = 0) => { const x = new Date(); x.setDate(x.getDate() + d);
 const EVENT_START = day(10, 14);
 const EVENT_END = day(10, 23);
 
-const SECTIONS = ['team', 'roles', 'prefs', 'event', 'positions', 'availability', 'auto', 'answer', 'groups', 'unread', 'guests', 'profile'];
+const SECTIONS = ['team', 'roles', 'prefs', 'event', 'positions', 'availability', 'auto', 'answer', 'groups', 'unread', 'guests', 'profile', 'install'];
 const ICONS = { team: 'users', roles: 'shield', prefs: 'star', event: 'calendar', positions: 'briefcase', availability: 'clock',
-  auto: 'wand', answer: 'check', groups: 'layers', unread: 'bell', guests: 'link', profile: 'user' };
+  auto: 'wand', answer: 'check', groups: 'layers', unread: 'bell', guests: 'link', profile: 'user', install: 'home' };
 
 const demoOnly = () => toast(t('help.demo_toast'));
 
@@ -303,9 +303,27 @@ function ProfileDemo() {
   <//>`;
 }
 
+// Die Seite als "App" auf den Startbildschirm legen – je Browser
+const BROWSERS = [
+  ['chrome', 'Chrome'],
+  ['safari', 'Safari (iPhone/iPad)'],
+  ['edge', 'Edge'],
+  ['firefox', 'Firefox'],
+  ['brave', 'Brave'],
+  ['opera', 'Opera'],
+];
+function InstallDemo() {
+  return html`<${Demo}>
+    <ol class="help-steps">
+      ${BROWSERS.map(([k, name]) => html`<li key=${k}><b>${name}:</b> ${t('help.install_' + k)}</li>`)}
+    </ol>
+    <p class="small faint" style="margin:10px 0 0">${t('help.install_note')}</p>
+  <//>`;
+}
+
 const DEMOS = {
   team: TeamDemo, roles: RolesDemo, prefs: PrefsDemo, event: EventDemo, positions: PositionsDemo, availability: AvailabilityDemo,
-  auto: AutoDemo, answer: AnswerDemo, groups: GroupsDemo, unread: UnreadDemo, guests: GuestsDemo, profile: ProfileDemo,
+  auto: AutoDemo, answer: AnswerDemo, groups: GroupsDemo, unread: UnreadDemo, guests: GuestsDemo, profile: ProfileDemo, install: InstallDemo,
 };
 
 export function HelpPage() {
@@ -327,10 +345,6 @@ export function HelpPage() {
         const D = DEMOS[id];
         return html`<${Section} id=${id} key=${id} text=${id === 'event' ? true : undefined}><${D} /><//>`;
       })}
-      <section class="card help-sec">
-        <h2 style="margin-top:0">${t('help.more_title')}</h2>
-        <p class="muted" style="margin:0">${t('help.more_text')}</p>
-      </section>
     </div>
   </div>`;
 }

@@ -3,7 +3,7 @@ import { html, useState } from '../lib/h.js';
 import { sb, q, rpc } from '../lib/sb.js';
 import { t } from '../lib/i18n.js';
 import { toast, toastError, confirmDialog } from '../lib/store.js';
-import { Icon, Spinner, Empty, Field, Modal, useAsync, useRealtime } from '../lib/ui.js';
+import { Icon, Spinner, Empty, ErrorBox, Field, Modal, useAsync, useRealtime } from '../lib/ui.js';
 
 const PROFILE = 'profiles(id, display_name)';
 
@@ -25,6 +25,7 @@ export function Polls({ eventId, positionId, teamId, me, canModerate }) {
       <button class="btn primary" onClick=${() => setCreating(true)}><${Icon} name="plus" />${t('polls.new')}</button>
     </div>
     ${d.loading && !d.data && html`<${Spinner} />`}
+    ${d.error && html`<${ErrorBox} error=${d.error} onRetry=${() => d.reload(true)} />`}
     ${d.data && polls.length === 0 && html`<div class="card"><${Empty} icon="chart" title=${t('polls.none')} text=${t('polls.none_text')} /></div>`}
     ${polls.map((p) => html`<${PollCard} key=${p.id} poll=${p} me=${me} canModerate=${canModerate} onChange=${() => d.reload(true)} />`)}
     ${creating && html`<${PollModal} eventId=${eventId} positionId=${scope} onClose=${() => setCreating(false)} onSaved=${() => d.reload(true)} />`}
