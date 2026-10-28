@@ -700,4 +700,9 @@ export default {
   "event.clone": "Jako šablonu",
   "event.clone_do": "Vytvořit ze šablony",
   "event.clone_hint": "Vytvoří novou událost se stejnými skupinami a směnami. Chaty, ankety a rozdělení se nekopírují.",
+  "news.title": "Novinky",
+  "news.chat": "Nové zprávy",
+  "news.tasks": "Nové úkoly",
+  "news.poll": "Nová anketa",
+  "news.board": "Nová informace",
 };

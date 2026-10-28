@@ -700,4 +700,9 @@ export default {
   "event.clone": "Som mall",
   "event.clone_do": "Skapa från mall",
   "event.clone_hint": "Skapar ett nytt evenemang med samma grupper och pass. Chattar, omröstningar och tilldelningar kopieras inte.",
+  "news.title": "Nyheter",
+  "news.chat": "Nya meddelanden",
+  "news.tasks": "Nya uppgifter",
+  "news.poll": "Ny omröstning",
+  "news.board": "Ny info",
 };

@@ -700,4 +700,9 @@ export default {
   "event.clone": "Mallina",
   "event.clone_do": "Luo mallista",
   "event.clone_hint": "Luo uuden tapahtuman samoilla ryhmillä ja vuoroilla. Keskusteluja, äänestyksiä ja jakoja ei kopioida.",
+  "news.title": "Uutta",
+  "news.chat": "Uusia viestejä",
+  "news.tasks": "Uusia tehtäviä",
+  "news.poll": "Uusi äänestys",
+  "news.board": "Uusi tieto",
 };

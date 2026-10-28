@@ -700,4 +700,9 @@ export default {
   "event.clone": "Come modello",
   "event.clone_do": "Crea dal modello",
   "event.clone_hint": "Crea un nuovo evento con gli stessi gruppi e turni. Chat, sondaggi e assegnazioni non vengono copiati.",
+  "news.title": "Novità",
+  "news.chat": "Nuovi messaggi",
+  "news.tasks": "Nuovi compiti",
+  "news.poll": "Nuovo sondaggio",
+  "news.board": "Nuova info",
 };

@@ -92,8 +92,8 @@ export function GroupPage({ id, tab }) {
       ? html`<${Tabs} base=${'/group/' + id} active=${tab} items=${[
           { key: 'tasks', label: t('group.tab_tasks'), icon: 'tasks', unread: unread.groupTasks[id] },
           { key: 'chat', label: t('group.tab_chat'), icon: 'chat', unread: unread.groupChat[id] },
-          { key: 'polls', label: t('group.tab_polls'), icon: 'chart', count: ctx.pollCount },
-          { key: 'board', label: t('group.tab_board'), icon: 'flag' },
+          { key: 'polls', label: t('group.tab_polls'), icon: 'chart', count: ctx.pollCount, unread: unread.groupPolls[id] },
+          { key: 'board', label: t('group.tab_board'), icon: 'flag', unread: unread.groupBoard[id] },
           { key: 'members', label: t('group.tab_members'), icon: 'users' },
         ]} />
         ${sections[tab] || sections.tasks}`

@@ -700,4 +700,9 @@ export default {
   "event.clone": "Jako szablon",
   "event.clone_do": "Utwórz z szablonu",
   "event.clone_hint": "Tworzy nowe wydarzenie z tymi samymi grupami i zmianami. Czaty, ankiety i przydziały nie są kopiowane.",
+  "news.title": "Nowości",
+  "news.chat": "Nowe wiadomości",
+  "news.tasks": "Nowe zadania",
+  "news.poll": "Nowa ankieta",
+  "news.board": "Nowa informacja",
 };

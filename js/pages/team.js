@@ -11,7 +11,7 @@ import { DateBox } from './shared.js';
 import { NoticeBoard } from './notices.js';
 
 export function TeamPage({ id, tab }) {
-  const { user } = useStore();
+  const { user, unread } = useStore();
   const d = useAsync(async () => {
     const [teams, perms, members, roles, memberRoles, types, prefs, requests, guests] = await Promise.all([
       q(sb.from('teams').select('*').eq('id', id)),
@@ -55,7 +55,7 @@ export function TeamPage({ id, tab }) {
 
     <${Tabs} base=${'/team/' + id} active=${tab} items=${[
       { key: 'events', label: t('team.tab_events'), icon: 'calendar' },
-      { key: 'board', label: t('team.tab_board'), icon: 'flag' },
+      { key: 'board', label: t('team.tab_board'), icon: 'flag', unread: unread.teamBoard[id] },
       { key: 'members', label: t('team.tab_members'), icon: 'users', count: ctx.can('members.manage') ? ctx.requests.length : 0 },
       { key: 'roles', label: t('team.tab_roles'), icon: 'shield' },
       { key: 'positions', label: t('team.tab_positions'), icon: 'briefcase' },

@@ -334,6 +334,11 @@ textarea.input { resize: vertical; min-height: 90px; }
 .tab:hover { background: var(--surface-3); text-decoration: none; }
 .tab.active { background: var(--primary); color: var(--primary-ink); }
 .tab .count { background: var(--pink); color: #fff; border-radius: 999px; padding: 0 7px; font-size: 0.72rem; }
+/* Am Handy alle Reiter zeigen (umbrechen statt rechts verstecken) */
+@media (max-width: 899px) {
+  .tabs { flex-wrap: wrap; overflow-x: visible; border-radius: 18px; }
+  .tab { padding: 8px 12px; font-size: 0.9rem; }
+}
 
 .hero {
   position: relative; overflow: hidden; border-radius: 24px; padding: 26px; color: #fff; margin-bottom: 18px;
@@ -593,6 +598,13 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
 .poll-picker { position: absolute; left: 12px; right: 12px; bottom: 100%; margin-bottom: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-lg); padding: 6px; z-index: 5; max-height: 220px; overflow: auto; }
 .poll-picker button { display: flex; width: 100%; gap: 8px; align-items: center; border: 0; background: none; font: inherit; color: var(--text); padding: 8px; border-radius: 10px; cursor: pointer; text-align: left; }
 .poll-picker button:hover { background: var(--surface-3); }
+
+/* Neuigkeiten auf der Startseite */
+.news-card { border-left: 5px solid var(--pink); }
+.news-item { text-decoration: none; color: inherit; gap: 10px; }
+.news-item:hover { background: var(--surface-3); border-radius: 12px; text-decoration: none; }
+.news-ico { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; flex: none; border-radius: 10px; background: var(--surface-3); color: var(--primary); }
+.news-item .count { background: var(--pink); color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 0.78rem; font-weight: 800; }
 .mention { font-weight: 800; color: var(--primary); }
 .msg.mine .bubble .mention { color: #fff; text-decoration: underline; }
 .mention.me { background: var(--st-uncertain-bg); color: var(--st-uncertain); border-radius: 6px; padding: 0 3px; }

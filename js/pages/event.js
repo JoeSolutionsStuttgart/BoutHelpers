@@ -124,8 +124,8 @@ export function EventPage({ id, tab }) {
       { key: 'positions', label: t('event.tab_positions'), icon: 'briefcase' },
       { key: 'availability', label: t('event.tab_availability'), icon: 'clock' },
       { key: 'chat', label: t('event.tab_chat'), icon: 'chat', unread: unread.eventChat[id] },
-      { key: 'polls', label: t('event.tab_polls'), icon: 'chart' },
-      { key: 'board', label: t('event.tab_board'), icon: 'flag' },
+      { key: 'polls', label: t('event.tab_polls'), icon: 'chart', unread: unread.eventPolls[id] },
+      { key: 'board', label: t('event.tab_board'), icon: 'flag', unread: unread.eventBoard[id] },
       { key: 'groups', label: t('event.tab_groups'), icon: 'layers', unread: unread.groupsOfEvent[id] },
       { key: 'guests', label: t('event.tab_guests'), icon: 'link', hidden: !ctx.can('guests.manage') },
     ]} />

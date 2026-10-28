@@ -700,4 +700,9 @@ export default {
   "event.clone": "Como plantilla",
   "event.clone_do": "Crear desde plantilla",
   "event.clone_hint": "Crea un nuevo evento con los mismos grupos y turnos. Los chats, votaciones y asignaciones no se copian.",
+  "news.title": "Novedades",
+  "news.chat": "Mensajes nuevos",
+  "news.tasks": "Tareas nuevas",
+  "news.poll": "Nueva votación",
+  "news.board": "Nueva info",
 };

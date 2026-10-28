@@ -700,4 +700,9 @@ export default {
   "event.clone": "Şablon olarak",
   "event.clone_do": "Şablondan oluştur",
   "event.clone_hint": "Aynı gruplar ve vardiyalarla yeni bir etkinlik oluşturur. Sohbetler, anketler ve görevlendirmeler kopyalanmaz.",
+  "news.title": "Yenilikler",
+  "news.chat": "Yeni mesajlar",
+  "news.tasks": "Yeni görevler",
+  "news.poll": "Yeni anket",
+  "news.board": "Yeni bilgi",
 };

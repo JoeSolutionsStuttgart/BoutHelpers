@@ -700,4 +700,9 @@ export default {
   "event.clone": "Kao šablon",
   "event.clone_do": "Napravi iz šablona",
   "event.clone_hint": "Pravi novi događaj sa istim grupama i smenama. Ćaskanja, ankete i raspoređivanja se ne kopiraju.",
+  "news.title": "Novosti",
+  "news.chat": "Nove poruke",
+  "news.tasks": "Novi zadaci",
+  "news.poll": "Nova anketa",
+  "news.board": "Nova informacija",
 };

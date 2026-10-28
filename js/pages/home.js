@@ -1,10 +1,40 @@
-// Startseite: eigene Einsätze, nächste Events, Teams
+// Startseite: Neuigkeiten, eigene Einsätze, nächste Events, Teams
 import { html } from '../lib/h.js';
-import { sb, q } from '../lib/sb.js';
+import { sb, q, rpc } from '../lib/sb.js';
 import { t, fmtDateTime, fmtRange } from '../lib/i18n.js';
 import { useStore, isGuest } from '../lib/store.js';
 import { Icon, Spinner, Empty, StatusBadge, useAsync, ErrorBox, UnreadBadge } from '../lib/ui.js';
 import { MyAnswerButtons, DateBox } from './shared.js';
+
+// Neuigkeiten-Arten: Symbol, Text, Ziel und wo
+const NEWS = {
+  event_chat: { icon: 'chat', label: 'news.chat', href: (r) => '#/event/' + r.event_id + '/chat', where: (r) => r.event_title },
+  group_chat: { icon: 'chat', label: 'news.chat', href: (r) => '#/group/' + r.position_id + '/chat', where: (r) => r.group_name },
+  group_tasks: { icon: 'tasks', label: 'news.tasks', href: (r) => '#/group/' + r.position_id + '/tasks', where: (r) => r.group_name },
+  event_polls: { icon: 'chart', label: 'news.poll', href: (r) => '#/event/' + r.event_id + '/polls', where: (r) => r.event_title },
+  group_polls: { icon: 'chart', label: 'news.poll', href: (r) => '#/group/' + r.position_id + '/polls', where: (r) => r.group_name },
+  team_board: { icon: 'flag', label: 'news.board', href: (r) => '#/team/' + r.team_id + '/board', where: (r) => r.team_name },
+  event_board: { icon: 'flag', label: 'news.board', href: (r) => '#/event/' + r.event_id + '/board', where: (r) => r.event_title },
+  group_board: { icon: 'flag', label: 'news.board', href: (r) => '#/group/' + r.position_id + '/board', where: (r) => r.group_name },
+};
+
+function NewsCard() {
+  const { user, unread } = useStore();
+  const news = useAsync(() => rpc('my_news'), [user.id, unread.total]);
+  const rows = (news.data || []).filter((r) => NEWS[r.scope]);
+  if (rows.length === 0) return null;
+  return html`<div class="card news-card" style="margin-bottom:16px">
+    <div class="card-head"><${Icon} name="bell" /><h3 class="grow">${t('news.title')}</h3><${UnreadBadge} n=${unread.total} /></div>
+    <div class="list">${rows.map((r) => {
+      const d = NEWS[r.scope];
+      return html`<a class="list-item news-item" href=${d.href(r)} key=${r.scope + r.event_id + r.team_id + (r.position_id || '')}>
+        <span class="news-ico"><${Icon} name=${d.icon} size=${18} /></span>
+        <div class="grow"><b>${t(d.label)}</b><div class="small muted">${d.where(r) || ''}</div></div>
+        <span class="count">${r.n}</span><${Icon} name="right" />
+      </a>`;
+    })}</div>
+  </div>`;
+}
 
 export function HomePage() {
   const { user, profile, teams, unread } = useStore();
@@ -32,6 +62,8 @@ export function HomePage() {
     </div>
 
     ${isGuest() && html`<div class="notice" style="margin-bottom:16px"><${Icon} name="user" size=${18} /> ${t('home.guest_hint')}</div>`}
+
+    <${NewsCard} />
 
     ${data.loading && html`<${Spinner} />`}
     ${data.error && html`<${ErrorBox} error=${data.error} onRetry=${data.reload} />`}

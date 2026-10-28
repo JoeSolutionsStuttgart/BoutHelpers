@@ -4,6 +4,7 @@ import { sb, q, rpc } from '../lib/sb.js';
 import { t } from '../lib/i18n.js';
 import { toast, toastError, confirmDialog } from '../lib/store.js';
 import { Icon, Spinner, Empty, ErrorBox, Field, Modal, useAsync, useRealtime } from '../lib/ui.js';
+import { useSeen } from '../lib/unread.js';
 
 const PROFILE = 'profiles(id, display_name)';
 
@@ -17,6 +18,7 @@ export function Polls({ eventId, positionId, teamId, me, canModerate }) {
     return q(qb);
   }, [eventId, positionId]);
   useRealtime(teamId ? 'polls-' + (scope || eventId) : null, ['polls', 'poll_options', 'poll_votes'], 'team_id=eq.' + teamId, () => d.reload(true));
+  useSeen(scope ? 'group_polls' : 'event_polls', scope || eventId, [d.data && d.data.length]);
 
   const polls = d.data || [];
   return html`<div class="stack">

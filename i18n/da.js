@@ -700,4 +700,9 @@ export default {
   "event.clone": "Som skabelon",
   "event.clone_do": "Opret ud fra skabelon",
   "event.clone_hint": "Opretter en ny begivenhed med de samme grupper og vagter. Chats, afstemninger og fordelinger kopieres ikke.",
+  "news.title": "Nyheder",
+  "news.chat": "Nye beskeder",
+  "news.tasks": "Nye opgaver",
+  "news.poll": "Ny afstemning",
+  "news.board": "Ny info",
 };

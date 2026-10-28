@@ -700,4 +700,9 @@ export default {
   "event.clone": "Comme modèle",
   "event.clone_do": "Créer depuis le modèle",
   "event.clone_hint": "Crée un nouvel événement avec les mêmes groupes et créneaux. Les chats, sondages et affectations ne sont pas copiés.",
+  "news.title": "Nouveautés",
+  "news.chat": "Nouveaux messages",
+  "news.tasks": "Nouvelles tâches",
+  "news.poll": "Nouveau sondage",
+  "news.board": "Nouvelle info",
 };

@@ -700,4 +700,9 @@ export default {
   "event.clone": "Als Vorlage",
   "event.clone_do": "Vorlage erstellen",
   "event.clone_hint": "Erstellt ein neues Event mit denselben Gruppen und Schichten. Chats, Abstimmungen und Einteilungen werden nicht übernommen.",
+  "news.title": "Neuigkeiten",
+  "news.chat": "Neue Nachrichten",
+  "news.tasks": "Neue Aufgaben",
+  "news.poll": "Neue Abstimmung",
+  "news.board": "Neue Info",
 };

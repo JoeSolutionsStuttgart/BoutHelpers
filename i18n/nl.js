@@ -700,4 +700,9 @@ export default {
   "event.clone": "Als sjabloon",
   "event.clone_do": "Van sjabloon maken",
   "event.clone_hint": "Maakt een nieuw evenement met dezelfde groepen en diensten. Chats, peilingen en indelingen worden niet gekopieerd.",
+  "news.title": "Nieuws",
+  "news.chat": "Nieuwe berichten",
+  "news.tasks": "Nieuwe taken",
+  "news.poll": "Nieuwe peiling",
+  "news.board": "Nieuwe info",
 };

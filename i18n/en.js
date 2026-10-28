@@ -700,4 +700,9 @@ export default {
   "event.clone": "Use as template",
   "event.clone_do": "Create from template",
   "event.clone_hint": "Creates a new event with the same groups and shifts. Chats, polls and assignments are not copied.",
+  "news.title": "What’s new",
+  "news.chat": "New messages",
+  "news.tasks": "New tasks",
+  "news.poll": "New poll",
+  "news.board": "New info",
 };

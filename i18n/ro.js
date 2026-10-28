@@ -700,4 +700,9 @@ export default {
   "event.clone": "Ca șablon",
   "event.clone_do": "Creează din șablon",
   "event.clone_hint": "Creează un eveniment nou cu aceleași grupuri și ture. Chaturile, sondajele și repartizările nu se copiază.",
+  "news.title": "Noutăți",
+  "news.chat": "Mesaje noi",
+  "news.tasks": "Sarcini noi",
+  "news.poll": "Sondaj nou",
+  "news.board": "Info nouă",
 };

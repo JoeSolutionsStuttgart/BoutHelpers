@@ -700,4 +700,9 @@ export default {
   "event.clone": "Sablonként",
   "event.clone_do": "Létrehozás sablonból",
   "event.clone_hint": "Új eseményt hoz létre ugyanazokkal a csoportokkal és műszakokkal. A csevegések, szavazások és beosztások nem másolódnak át.",
+  "news.title": "Újdonságok",
+  "news.chat": "Új üzenetek",
+  "news.tasks": "Új feladatok",
+  "news.poll": "Új szavazás",
+  "news.board": "Új infó",
 };

@@ -4,6 +4,7 @@ import { sb, q } from '../lib/sb.js';
 import { t, fmtRelative } from '../lib/i18n.js';
 import { toast, toastError, confirmDialog } from '../lib/store.js';
 import { Icon, Spinner, Empty, ErrorBox, Field, Modal, Person, useAsync, useRealtime } from '../lib/ui.js';
+import { useSeen } from '../lib/unread.js';
 
 const PROFILE = 'profiles(id, display_name, pronouns, pronouns_custom, is_guest, bio)';
 
@@ -18,6 +19,7 @@ export function NoticeBoard({ teamId, eventId, positionId, canPost, canModerate,
     return q(qb);
   }, [teamId, eventId, positionId]);
   useRealtime(teamId ? 'notices-' + (positionId || eventId || teamId) : null, ['notices'], 'team_id=eq.' + teamId, () => d.reload(true));
+  useSeen(positionId ? 'group_board' : eventId ? 'event_board' : 'team_board', positionId || eventId || teamId, [d.data && d.data.length]);
 
   const notices = d.data || [];
   return html`<div class="stack">
