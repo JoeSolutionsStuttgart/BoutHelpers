@@ -605,6 +605,29 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
 .news-item:hover { background: var(--surface-3); border-radius: 12px; text-decoration: none; }
 .news-ico { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; flex: none; border-radius: 10px; background: var(--surface-3); color: var(--primary); }
 .news-item .count { background: var(--pink); color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 0.78rem; font-weight: 800; }
+
+/* Demo-Modus */
+.demobar {
+  position: fixed; top: 0; left: 0; right: 0; height: 46px; z-index: 60;
+  display: flex; align-items: center; gap: 10px; padding: 0 14px; overflow-x: auto; scrollbar-width: none;
+  background: #241d3b; color: #fff; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22); white-space: nowrap;
+}
+.demobar::-webkit-scrollbar { display: none; }
+.demobar > * { flex: none; }
+.demobar .grow { flex: 1 1 auto; }
+.demobar-tag { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: 0.74rem; letter-spacing: 0.05em; background: var(--pink); color: #fff; padding: 4px 11px; border-radius: 999px; }
+.demobar-as { display: inline-flex; align-items: center; gap: 8px; }
+.demobar-as .small { color: #c9c2e6; }
+.demobar-as select.input { padding: 5px 8px; background: #2e2848; color: #fff; border-color: #3a3360; width: auto; min-width: 150px; }
+.demobar .btn.small { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.demobar .btn.small.ghost { background: transparent; }
+.demobar .btn.small:hover { background: rgba(255, 255, 255, 0.24); }
+.shell.has-demobar { padding-top: 46px; }
+.has-demobar .topbar { top: 46px; }
+.demo-login { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+.rename-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rename-row { display: flex; flex-direction: column; gap: 2px; }
+@media (max-width: 899px) { .rename-grid { grid-template-columns: 1fr; } .demobar { gap: 7px; padding: 0 8px; } .demobar-as .small { display: none; } }
 .mention { font-weight: 800; color: var(--primary); }
 .msg.mine .bubble .mention { color: #fff; text-decoration: underline; }
 .mention.me { background: var(--st-uncertain-bg); color: var(--st-uncertain); border-radius: 6px; padding: 0 3px; }

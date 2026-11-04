@@ -18,6 +18,8 @@ import { FeedbackButton } from './pages/feedback.js';
 import { AdminPage } from './pages/admin.js';
 import { registerServiceWorker, syncPush } from './lib/push.js';
 import { startUnread, stopUnread } from './lib/unread.js';
+import { isDemo } from './lib/demo.js';
+import { DemoBar } from './pages/demobar.js';
 
 function parseHash() {
   const raw = decodeURIComponent((location.hash || '#/').slice(1));
@@ -152,7 +154,8 @@ function App() {
   }
 
   const level = levelOf(parts);
-  return html`<div class=${'shell' + (level ? ' lvl-' + level : '')} key=${key}>
+  return html`<div class=${'shell' + (level ? ' lvl-' + level : '') + (isDemo() ? ' has-demobar' : '')} key=${key}>
+    ${isDemo() && html`<${DemoBar} />`}
     <${Sidebar} parts=${parts} />
     <div class="grow" style="min-width:0">
       <${TopBar} level=${level} />

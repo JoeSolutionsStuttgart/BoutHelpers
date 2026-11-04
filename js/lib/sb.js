@@ -1,13 +1,18 @@
-// Verbindung zu Supabase
+// Verbindung zu Supabase (oder Demo-Modus: komplett im Browser)
+import { isDemo, makeDemoClient } from './demo.js';
+
 const cfg = window.TP_CONFIG || {};
+export const demo = isDemo();
 
-export const configured = !!(cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase);
+export const configured = demo || !!(cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase);
 
-export const sb = configured
-  ? window.supabase.createClient(cfg.supabaseUrl.replace(/\/+$/, ''), cfg.supabaseAnonKey, {
-      auth: { flowType: 'pkce', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
-    })
-  : null;
+export const sb = demo
+  ? makeDemoClient()
+  : (configured
+    ? window.supabase.createClient(cfg.supabaseUrl.replace(/\/+$/, ''), cfg.supabaseAnonKey, {
+        auth: { flowType: 'pkce', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+      })
+    : null);
 
 // Ergebnis einer Abfrage holen oder Fehler werfen
 export async function q(builder) {
