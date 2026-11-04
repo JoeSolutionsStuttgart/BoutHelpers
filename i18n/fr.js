@@ -706,7 +706,6 @@ export default {
   "news.poll": "Nouveau sondage",
   "news.board": "Nouvelle info",
   "demo.try": "Essayer la démo",
-  "demo.login_hint": "Ou connecte-toi avec {login} et le mot de passe {pass}",
   "demo.badge": "DÉMO",
   "demo.view_as": "Voir en tant que",
   "demo.rename": "Renommer",
@@ -720,4 +719,6 @@ export default {
   "demo.teams": "Équipes",
   "demo.groups": "Groupes",
   "demo.people": "Personnes",
+  "demo.help_title": "Espace démo",
+  "demo.help_text": "Ton compte a accès à l’espace démo. Tu peux y essayer toutes les fonctions avec des données d’exemple — rien n’est enregistré.",
 };

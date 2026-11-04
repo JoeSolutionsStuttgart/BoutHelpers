@@ -706,7 +706,6 @@ export default {
   "news.poll": "New poll",
   "news.board": "New info",
   "demo.try": "Try the demo",
-  "demo.login_hint": "Or sign in with {login} and password {pass}",
   "demo.badge": "DEMO",
   "demo.view_as": "View as",
   "demo.rename": "Rename",
@@ -720,4 +719,6 @@ export default {
   "demo.teams": "Teams",
   "demo.groups": "Groups",
   "demo.people": "People",
+  "demo.help_title": "Demo area",
+  "demo.help_text": "Your account is unlocked for the demo area. There you can try out every feature with sample data — nothing is saved.",
 };

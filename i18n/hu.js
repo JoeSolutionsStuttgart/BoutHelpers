@@ -706,7 +706,6 @@ export default {
   "news.poll": "Új szavazás",
   "news.board": "Új infó",
   "demo.try": "Demó kipróbálása",
-  "demo.login_hint": "Vagy lépj be ezzel: {login} és jelszó {pass}",
   "demo.badge": "DEMÓ",
   "demo.view_as": "Megtekintés mint",
   "demo.rename": "Átnevezés",
@@ -720,4 +719,6 @@ export default {
   "demo.teams": "Csapatok",
   "demo.groups": "Csoportok",
   "demo.people": "Személyek",
+  "demo.help_title": "Demó terület",
+  "demo.help_text": "A fiókod hozzáfér a demó területhez. Ott minden funkciót kipróbálhatsz példaadatokkal – semmi sem kerül mentésre.",
 };

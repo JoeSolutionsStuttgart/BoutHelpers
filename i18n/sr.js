@@ -706,7 +706,6 @@ export default {
   "news.poll": "Nova anketa",
   "news.board": "Nova informacija",
   "demo.try": "Isprobaj demo",
-  "demo.login_hint": "Ili se prijavi sa {login} i lozinkom {pass}",
   "demo.badge": "DEMO",
   "demo.view_as": "Prikaži kao",
   "demo.rename": "Preimenuj",
@@ -720,4 +719,6 @@ export default {
   "demo.teams": "Timovi",
   "demo.groups": "Grupe",
   "demo.people": "Osobe",
+  "demo.help_title": "Демо област",
+  "demo.help_text": "Твој налог има приступ демо области. Тамо можеш да испробаш све функције са примерима података — ништа се не чува.",
 };

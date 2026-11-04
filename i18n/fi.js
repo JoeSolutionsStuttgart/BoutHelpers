@@ -706,7 +706,6 @@ export default {
   "news.poll": "Uusi äänestys",
   "news.board": "Uusi tieto",
   "demo.try": "Kokeile demoa",
-  "demo.login_hint": "Tai kirjaudu tunnuksella {login} ja salasanalla {pass}",
   "demo.badge": "DEMO",
   "demo.view_as": "Näytä henkilönä",
   "demo.rename": "Nimeä uudelleen",
@@ -720,4 +719,6 @@ export default {
   "demo.teams": "Tiimit",
   "demo.groups": "Ryhmät",
   "demo.people": "Henkilöt",
+  "demo.help_title": "Demoalue",
+  "demo.help_text": "Tililläsi on pääsy demoalueelle. Siellä voit kokeilla kaikkia toimintoja esimerkkitiedoilla — mitään ei tallenneta.",
 };

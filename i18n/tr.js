@@ -706,7 +706,6 @@ export default {
   "news.poll": "Yeni anket",
   "news.board": "Yeni bilgi",
   "demo.try": "Demoyu dene",
-  "demo.login_hint": "Veya {login} ve parola {pass} ile giriş yap",
   "demo.badge": "DEMO",
   "demo.view_as": "Şu kişi olarak gör",
   "demo.rename": "Yeniden adlandır",
@@ -720,4 +719,6 @@ export default {
   "demo.teams": "Takımlar",
   "demo.groups": "Gruplar",
   "demo.people": "Kişiler",
+  "demo.help_title": "Demo alanı",
+  "demo.help_text": "Hesabın demo alanı için açık. Orada tüm işlevleri örnek verilerle deneyebilirsin — hiçbir şey kaydedilmez.",
 };

@@ -706,7 +706,6 @@ export default {
   "news.poll": "Новый опрос",
   "news.board": "Новая запись",
   "demo.try": "Попробовать демо",
-  "demo.login_hint": "Или войди как {login} с паролем {pass}",
   "demo.badge": "ДЕМО",
   "demo.view_as": "Смотреть как",
   "demo.rename": "Переименовать",
@@ -720,4 +719,6 @@ export default {
   "demo.teams": "Команды",
   "demo.groups": "Группы",
   "demo.people": "Люди",
+  "demo.help_title": "Демо-раздел",
+  "demo.help_text": "Ваша учётная запись открыта для демо-раздела. Там можно попробовать все функции на примерных данных — ничего не сохраняется.",
 };

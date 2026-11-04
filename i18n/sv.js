@@ -706,7 +706,6 @@ export default {
   "news.poll": "Ny omröstning",
   "news.board": "Ny info",
   "demo.try": "Prova demon",
-  "demo.login_hint": "Eller logga in med {login} och lösenord {pass}",
   "demo.badge": "DEMO",
   "demo.view_as": "Visa som",
   "demo.rename": "Byt namn",
@@ -720,4 +719,6 @@ export default {
   "demo.teams": "Team",
   "demo.groups": "Grupper",
   "demo.people": "Personer",
+  "demo.help_title": "Demoområde",
+  "demo.help_text": "Ditt konto har tillgång till demoområdet. Där kan du prova alla funktioner med exempeldata – inget sparas.",
 };

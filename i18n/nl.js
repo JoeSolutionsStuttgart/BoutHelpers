@@ -706,7 +706,6 @@ export default {
   "news.poll": "Nieuwe peiling",
   "news.board": "Nieuwe info",
   "demo.try": "Demo proberen",
-  "demo.login_hint": "Of log in met {login} en wachtwoord {pass}",
   "demo.badge": "DEMO",
   "demo.view_as": "Bekijken als",
   "demo.rename": "Hernoemen",
@@ -720,4 +719,6 @@ export default {
   "demo.teams": "Teams",
   "demo.groups": "Groepen",
   "demo.people": "Personen",
+  "demo.help_title": "Demo-omgeving",
+  "demo.help_text": "Je account heeft toegang tot de demo-omgeving. Daar kun je alle functies uitproberen met voorbeeldgegevens — er wordt niets opgeslagen.",
 };

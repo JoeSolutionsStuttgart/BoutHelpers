@@ -706,7 +706,6 @@ export default {
   "news.poll": "Nová anketa",
   "news.board": "Nová informace",
   "demo.try": "Vyzkoušet demo",
-  "demo.login_hint": "Nebo se přihlas jako {login} s heslem {pass}",
   "demo.badge": "DEMO",
   "demo.view_as": "Zobrazit jako",
   "demo.rename": "Přejmenovat",
@@ -720,4 +719,6 @@ export default {
   "demo.teams": "Týmy",
   "demo.groups": "Skupiny",
   "demo.people": "Osoby",
+  "demo.help_title": "Demo oblast",
+  "demo.help_text": "Tvůj účet má přístup do demo oblasti. Můžeš si tam vyzkoušet všechny funkce na ukázkových datech – nic se neukládá.",
 };

@@ -706,7 +706,6 @@ export default {
   "news.poll": "Sondaj nou",
   "news.board": "Info nouă",
   "demo.try": "Încearcă demo",
-  "demo.login_hint": "Sau conectează-te cu {login} și parola {pass}",
   "demo.badge": "DEMO",
   "demo.view_as": "Vezi ca",
   "demo.rename": "Redenumește",
@@ -720,4 +719,6 @@ export default {
   "demo.teams": "Echipe",
   "demo.groups": "Grupuri",
   "demo.people": "Persoane",
+  "demo.help_title": "Zona demo",
+  "demo.help_text": "Contul tău are acces la zona demo. Acolo poți încerca toate funcțiile cu date de exemplu — nu se salvează nimic.",
 };

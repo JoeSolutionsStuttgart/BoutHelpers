@@ -624,7 +624,8 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
 .demobar .btn.small:hover { background: rgba(255, 255, 255, 0.24); }
 .shell.has-demobar { padding-top: 46px; }
 .has-demobar .topbar { top: 46px; }
-.demo-login { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+.demo-access { border: 1px solid var(--violet); background: color-mix(in srgb, var(--violet) 8%, var(--card)); }
+.demo-access .help-ico { background: var(--violet); color: #fff; }
 .rename-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .rename-row { display: flex; flex-direction: column; gap: 2px; }
 @media (max-width: 899px) { .rename-grid { grid-template-columns: 1fr; } .demobar { gap: 7px; padding: 0 8px; } .demobar-as .small { display: none; } }

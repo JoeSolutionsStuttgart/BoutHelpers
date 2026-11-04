@@ -706,7 +706,6 @@ export default {
   "news.poll": "Νέα ψηφοφορία",
   "news.board": "Νέα πληροφορία",
   "demo.try": "Δοκίμασε τη δοκιμή",
-  "demo.login_hint": "Ή συνδέσου με {login} και κωδικό {pass}",
   "demo.badge": "DEMO",
   "demo.view_as": "Προβολή ως",
   "demo.rename": "Μετονομασία",
@@ -720,4 +719,6 @@ export default {
   "demo.teams": "Ομάδες",
   "demo.groups": "Γκρουπ",
   "demo.people": "Άτομα",
+  "demo.help_title": "Περιοχή demo",
+  "demo.help_text": "Ο λογαριασμός σου έχει πρόσβαση στην περιοχή demo. Εκεί μπορείς να δοκιμάσεις όλες τις λειτουργίες με δείγματα δεδομένων — τίποτα δεν αποθηκεύεται.",
 };

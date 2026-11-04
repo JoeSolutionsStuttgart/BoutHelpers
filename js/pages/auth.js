@@ -4,9 +4,6 @@ import { sb, appBase } from '../lib/sb.js';
 import { t, lang } from '../lib/i18n.js';
 import { toast, errText } from '../lib/store.js';
 import { Icon, BrandMark, Field, PasswordInput, LangSelect, ThemeSwitch, appName, go } from '../lib/ui.js';
-import { DEMO_LOGIN, DEMO_PASS, enableDemo } from '../lib/demo.js';
-
-function startDemo() { enableDemo(); location.hash = '#/'; location.reload(); }
 
 export function AuthShell({ children, title, sub }) {
   return html`<div class="auth-wrap">
@@ -33,8 +30,6 @@ export function LoginPage() {
   const [err, setErr] = useState('');
   const submit = async (e) => {
     e.preventDefault();
-    // Spezial-Login öffnet die Demo (ohne echte Datenbank)
-    if (email.trim().toLowerCase() === DEMO_LOGIN && pw === DEMO_PASS) { startDemo(); return; }
     setBusy(true); setErr('');
     const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password: pw });
     setBusy(false);
@@ -50,10 +45,6 @@ export function LoginPage() {
     <div class="row between small">
       <a href="#/forgot">${t('auth.forgot')}</a>
       <a href="#/signup">${t('auth.to_signup')}</a>
-    </div>
-    <div class="demo-login">
-      <button type="button" class="btn ghost block" onClick=${startDemo}><${Icon} name="eye" size=${16} />${t('demo.try')}</button>
-      <p class="small faint" style="margin:6px 0 0">${t('demo.login_hint', { login: DEMO_LOGIN, pass: DEMO_PASS })}</p>
     </div>
   <//>`;
 }

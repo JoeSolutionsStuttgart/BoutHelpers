@@ -1,10 +1,12 @@
 // Hilfe: erklärt die App an einem Beispiel-Event mit Beispiel-Personen.
 // Alles hier ist nur zum Ausprobieren – es wird nichts gespeichert.
-import { html, useState } from '../lib/h.js';
+import { html, useState, useEffect } from '../lib/h.js';
 import { t, fmtDateTime, fmtRange, fmtRelative } from '../lib/i18n.js';
 import { toast } from '../lib/store.js';
+import { sb } from '../lib/sb.js';
 import { Icon, Avatar, Person, PersonHover, StatusBadge, Progress, UnreadBadge } from '../lib/ui.js';
 import { DateBox } from './shared.js';
+import { isDemo, enableDemo } from '../lib/demo.js';
 
 // ---------- Beispieldaten ----------
 const P = (id, display_name, pronouns, extra = {}) => ({ id: 'demo-' + id, display_name, pronouns, pronouns_custom: '', is_guest: false, ...extra });
@@ -326,6 +328,24 @@ const DEMOS = {
   auto: AutoDemo, answer: AnswerDemo, groups: GroupsDemo, unread: UnreadDemo, guests: GuestsDemo, profile: ProfileDemo, install: InstallDemo,
 };
 
+// Knopf in den Demo-Bereich – nur sichtbar, wenn das Konto in Supabase freigeschaltet ist.
+function DemoAccess() {
+  const [ok, setOk] = useState(false);
+  useEffect(() => {
+    if (isDemo()) return undefined; // in der Demo nicht nötig
+    let on = true;
+    sb.rpc('can_demo').then(({ data }) => { if (on) setOk(!!data); }).catch(() => {});
+    return () => { on = false; };
+  }, []);
+  if (!ok) return null;
+  const open = () => { enableDemo(); location.hash = '#/'; location.reload(); };
+  return html`<div class="card demo-access">
+    <div class="card-head"><span class="help-ico"><${Icon} name="eye" /></span><h2 class="grow" style="margin:0">${t('demo.help_title')}</h2></div>
+    <p class="muted" style="margin-top:0">${t('demo.help_text')}</p>
+    <button class="btn primary" onClick=${open}><${Icon} name="eye" size=${16} />${t('demo.try')}</button>
+  </div>`;
+}
+
 export function HelpPage() {
   const jump = (id) => (e) => {
     e.preventDefault();
@@ -337,6 +357,7 @@ export function HelpPage() {
       <h1><${Icon} name="help" size=${30} /> ${t('help.title')}</h1>
       <p class="muted" style="margin:0">${t('help.intro')}</p>
     </div>
+    <${DemoAccess} />
     <nav class="help-toc" aria-label=${t('help.toc')}>
       ${SECTIONS.map((id) => html`<a class="chip" href=${'#/help'} key=${id} onClick=${jump(id)}><${Icon} name=${ICONS[id]} size=${14} />${t('help.' + id + '_title')}</a>`)}
     </nav>

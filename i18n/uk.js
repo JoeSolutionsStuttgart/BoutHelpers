@@ -706,7 +706,6 @@ export default {
   "news.poll": "Нове опитування",
   "news.board": "Нова інформація",
   "demo.try": "Спробувати демо",
-  "demo.login_hint": "Або увійди з {login} і паролем {pass}",
   "demo.badge": "ДЕМО",
   "demo.view_as": "Дивитися як",
   "demo.rename": "Перейменувати",
@@ -720,4 +719,6 @@ export default {
   "demo.teams": "Команди",
   "demo.groups": "Групи",
   "demo.people": "Люди",
+  "demo.help_title": "Демо-зона",
+  "demo.help_text": "Твій обліковий запис має доступ до демо-зони. Там можна випробувати всі функції на прикладних даних — нічого не зберігається.",
 };

@@ -3,8 +3,8 @@
 // Man kann die Sicht jeder Person einnehmen und alles (auch Personen) umbenennen.
 
 const FLAG = 'tp.demo', K_DB = 'tp.demo.db', K_ME = 'tp.demo.me', K_SEEN = 'tp.demo.seen';
-export const DEMO_LOGIN = 'demo@teamplaner.app';
-export const DEMO_PASS = 'testteam';
+// Freigeschaltet wird der Zugang in Supabase (mail_settings.demo_email).
+// Stimmt die Konto-E-Mail überein, zeigt die Hilfe-Seite einen Knopf hierher.
 const ALLPERMS = ['team.edit', 'members.manage', 'invites.create', 'roles.manage', 'positions.manage', 'events.manage', 'guests.manage', 'chat.moderate'];
 const ACTIVE = ['proposed', 'confirmed', 'uncertain'];
 
@@ -394,6 +394,7 @@ const RPC = {
   admin_feedback: () => db.feedback.map((f) => ({ id: f.id, kind: f.kind, body: f.body, done: f.done, created_at: f.created_at, name: (db.profiles.find((p) => p.id === f.user_id) || {}).display_name })),
   admin_feedback_done: (a) => { const f = db.feedback.find((x) => x.id === a.f); if (f) { f.done = !!a.d; save(); } return null; },
   is_app_admin: () => state.me === 'u1',
+  can_demo: () => false, // in der Demo keinen weiteren Demo-Knopf zeigen
   guest_link_info: (a) => { const l = db.guest_links.find((x) => x.token === (a.tok || '').toLowerCase()); if (!l) return []; return [{ kind: l.position_id ? 'group' : 'event', team_name: teamName(l.team_id), event_title: eventTitle(l.event_id), event_start: (db.events.find((e) => e.id === l.event_id) || {}).starts_at, group_name: posName(l.position_id), active: l.active }]; },
   invite_info: () => [],
   accept_invite: () => null, redeem_guest_link: () => [{ ok: false, ev: null, pos: null }], send_invite_mail: () => null,
@@ -405,7 +406,7 @@ const RPC = {
 // ---------- Client ----------
 export function makeDemoClient() {
   load();
-  const sessionUser = () => { const p = db.profiles.find((x) => x.id === state.me) || db.profiles[0]; return { id: p.id, email: DEMO_LOGIN, is_anonymous: false, user_metadata: { display_name: p.display_name } }; };
+  const sessionUser = () => { const p = db.profiles.find((x) => x.id === state.me) || db.profiles[0]; return { id: p.id, email: 'demo@local', is_anonymous: false, user_metadata: { display_name: p.display_name } }; };
   return {
     from: builder,
     rpc: (fn, args) => Promise.resolve({ data: RPC[fn] ? RPC[fn](args || {}) : null, error: null }),
