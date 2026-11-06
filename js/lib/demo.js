@@ -10,8 +10,10 @@ const ACTIVE = ['proposed', 'confirmed', 'uncertain'];
 
 export function isDemo() { try { return localStorage.getItem(FLAG) === '1'; } catch (e) { return false; } }
 export function enableDemo() { try { localStorage.setItem(FLAG, '1'); } catch (e) { /* */ } }
+// Demo verlassen: nur den Modus ausschalten. Die geänderten Daten bleiben gespeichert
+// und sind beim nächsten Öffnen der Demo wieder da. (Komplett zurücksetzen = resetDemo.)
 export function disableDemo() {
-  try { [FLAG, K_DB, K_ME, K_SEEN].forEach((k) => localStorage.removeItem(k)); } catch (e) { /* */ }
+  try { localStorage.removeItem(FLAG); } catch (e) { /* */ }
 }
 
 const now = Date.now(), DAY = 86400000;
@@ -171,15 +173,18 @@ function seed() {
 // ---------- Zustand (persistiert) ----------
 let db, state;
 function load() {
+  let fresh = false;
   try {
     const raw = localStorage.getItem(K_DB);
-    db = raw ? JSON.parse(raw) : seed();
-  } catch (e) { db = seed(); }
+    if (raw) { db = JSON.parse(raw); } else { db = seed(); fresh = true; }
+  } catch (e) { db = seed(); fresh = true; }
   let me = 'u1'; let s = {};
   try { me = localStorage.getItem(K_ME) || 'u1'; } catch (e) { /* */ }
   try { s = JSON.parse(localStorage.getItem(K_SEEN) || '{}'); } catch (e) { s = {}; }
   state = { me, seen: s };
   if (!db.profiles.some((p) => p.id === state.me)) state.me = 'u1';
+  // Startzustand sofort persistieren, damit zufällige ids stabil bleiben und ab jetzt alles gespeichert wird
+  if (fresh) save();
 }
 function save() {
   try {
