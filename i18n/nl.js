@@ -730,4 +730,8 @@ export default {
   "prefs.wants": "Gewenst door:",
   "pos.add_hint": "Kies positietypes en stel hun diensten in. Wie een dienst wenste, wordt automatisch voorlopig ingedeeld.",
   "pos.added_seeded": "{n} personen voorlopig ingedeeld op basis van hun wensen.",
+  "pos.will_remove": "wordt verwijderd",
+  "pos.remove_title": "Posities verwijderen",
+  "pos.remove_text": "{n} positie(s) met alle indelingen verwijderen?",
+  "pos.edit_hint": "Aanvinken voegt een positie toe, uitvinken verwijdert hem. Wie een dienst wenste, wordt bij toevoegen voorlopig ingedeeld.",
 };

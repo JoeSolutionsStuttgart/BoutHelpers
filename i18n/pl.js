@@ -730,4 +730,8 @@ export default {
   "prefs.wants": "Chętni:",
   "pos.add_hint": "Wybierz rodzaje stanowisk i ustaw ich zmiany. Kto chciał zmianę, zostaje automatycznie wstępnie przypisany.",
   "pos.added_seeded": "Wstępnie przypisano {n} osób zgodnie z ich życzeniami.",
+  "pos.will_remove": "zostanie usunięte",
+  "pos.remove_title": "Usuń stanowiska",
+  "pos.remove_text": "Usunąć {n} stanowisk(o) wraz z przydziałami?",
+  "pos.edit_hint": "Zaznaczenie dodaje stanowisko, odznaczenie je usuwa. Kto chciał zmianę, zostaje wstępnie przypisany przy dodaniu.",
 };

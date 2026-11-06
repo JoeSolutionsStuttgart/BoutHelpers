@@ -730,4 +730,8 @@ export default {
   "prefs.wants": "Dorit de:",
   "pos.add_hint": "Alege tipuri de poziție și stabilește turele. Cine a dorit o tură este preînscris automat.",
   "pos.added_seeded": "{n} persoane preînscrise conform dorințelor lor.",
+  "pos.will_remove": "va fi eliminată",
+  "pos.remove_title": "Elimină poziții",
+  "pos.remove_text": "Elimini {n} poziție(i) cu toate repartizările?",
+  "pos.edit_hint": "Bifarea adaugă o poziție, debifarea o elimină. Cine a dorit o tură este preînscris la adăugare.",
 };

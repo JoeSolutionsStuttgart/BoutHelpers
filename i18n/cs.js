@@ -730,4 +730,8 @@ export default {
   "prefs.wants": "Chtějí:",
   "pos.add_hint": "Vyber typy pozic a nastav jejich směny. Kdo si směnu přál, je automaticky předběžně zařazen.",
   "pos.added_seeded": "{n} osob předběžně zařazeno podle jejich přání.",
+  "pos.will_remove": "bude odebráno",
+  "pos.remove_title": "Odebrat pozice",
+  "pos.remove_text": "Odebrat {n} pozic(i) se všemi rozpisy?",
+  "pos.edit_hint": "Zaškrtnutí přidá pozici, odškrtnutí ji odebere. Kdo si přál směnu, je při přidání předběžně zařazen.",
 };

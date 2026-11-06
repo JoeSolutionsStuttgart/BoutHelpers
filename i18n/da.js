@@ -730,4 +730,8 @@ export default {
   "prefs.wants": "Ønskes af:",
   "pos.add_hint": "Vælg positionstyper og angiv deres vagter. Den der ønskede en vagt bliver automatisk forhåndstilmeldt.",
   "pos.added_seeded": "{n} personer forhåndstilmeldt efter deres ønsker.",
+  "pos.will_remove": "fjernes",
+  "pos.remove_title": "Fjern positioner",
+  "pos.remove_text": "Fjern {n} position(er) med alle fordelinger?",
+  "pos.edit_hint": "At sætte flueben tilføjer en position, at fjerne det fjerner den. Den der ønskede en vagt forhåndstilmeldes ved tilføjelse.",
 };

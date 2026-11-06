@@ -730,4 +730,8 @@ export default {
   "prefs.wants": "Deseado por:",
   "pos.add_hint": "Elige tipos de posición y define sus turnos. Quien deseó un turno queda preinscrito automáticamente.",
   "pos.added_seeded": "{n} personas preinscritas según sus deseos.",
+  "pos.will_remove": "se eliminará",
+  "pos.remove_title": "Eliminar posiciones",
+  "pos.remove_text": "¿Eliminar {n} posición(es) con todas las asignaciones?",
+  "pos.edit_hint": "Marcar añade una posición, desmarcar la elimina. Quien deseó un turno queda preinscrito al añadir.",
 };

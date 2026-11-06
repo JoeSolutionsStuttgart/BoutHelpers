@@ -109,25 +109,31 @@ export function makePlan(types) {
 
 // Positionsarten auswählen und je Position die Schichten festlegen (vorbefüllt aus Vorlagen).
 // existing(typeId) kann true liefern, wenn die Position im Event schon existiert (nur Hinweis).
-export function PositionPlanner({ types, plan, setPlan, existing, info }) {
+// locked(typeId): Position ist bereits im Event. Dann: Häkchen = behalten, abhaken = entfernen,
+// kein Schicht-Editor (Schichten werden direkt am Event bearbeitet). Sonst: anhaken legt neu an.
+export function PositionPlanner({ types, plan, setPlan, existing, info, locked }) {
   const toggle = (id) => setPlan((p) => {
     const cur = p[id]; const on = !cur.on;
-    const shifts = on && cur.shifts.length === 0 ? [{ name: '', from: '', to: '', slots: 1 }] : cur.shifts;
-    return { ...p, [id]: { on, shifts } };
+    const lk = locked && locked(id);
+    const shifts = !lk && on && cur.shifts.length === 0 ? [{ name: '', from: '', to: '', slots: 1 }] : cur.shifts;
+    return { ...p, [id]: { ...cur, on, shifts } };
   });
   const setShifts = (id) => (rows) => setPlan((p) => ({ ...p, [id]: { ...p[id], shifts: rows } }));
   return html`<div>${(types || []).map((x) => {
     const p = plan[x.id] || { on: false, shifts: [] };
+    const lk = locked && locked(x.id);
     const has = existing && existing(x.id);
     return html`<div class="pos-plan" key=${x.id}>
       <label class="row nowrap" style="gap:8px;cursor:pointer">
         <input type="checkbox" checked=${p.on} onChange=${() => toggle(x.id)} />
         <span class="dot" style=${{ background: x.color }}></span><b class="grow">${x.name}</b>
-        ${has && html`<span class="small faint">${t('pos.already_on_event')}</span>`}
-        ${!p.on && p.shifts.length > 0 && html`<span class="small faint">${t('shift.count', { n: p.shifts.length })}</span>`}
+        ${lk && p.on && html`<span class="small faint">${t('pos.already_on_event')}</span>`}
+        ${lk && !p.on && html`<span class="small" style="color:var(--st-declined)">${t('pos.will_remove')}</span>`}
+        ${!lk && has && html`<span class="small faint">${t('pos.already_on_event')}</span>`}
+        ${!lk && !p.on && p.shifts.length > 0 && html`<span class="small faint">${t('shift.count', { n: p.shifts.length })}</span>`}
       </label>
       ${info && info(x)}
-      ${p.on && html`<div style="margin:8px 0 2px 26px"><${ShiftRowsEditor} rows=${p.shifts} setRows=${setShifts(x.id)} /></div>`}
+      ${!lk && p.on && html`<div style="margin:8px 0 2px 26px"><${ShiftRowsEditor} rows=${p.shifts} setRows=${setShifts(x.id)} /></div>`}
     </div>`;
   })}</div>`;
 }

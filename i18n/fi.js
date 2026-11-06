@@ -730,4 +730,8 @@ export default {
   "prefs.wants": "Toivovat:",
   "pos.add_hint": "Valitse tehtävätyypit ja aseta vuorot. Vuoroa toivonut lisätään automaattisesti alustavasti.",
   "pos.added_seeded": "{n} henkilöä merkitty alustavasti toiveidensa mukaan.",
+  "pos.will_remove": "poistetaan",
+  "pos.remove_title": "Poista tehtäviä",
+  "pos.remove_text": "Poistetaanko {n} tehtävä(ä) kaikkine jaotteluineen?",
+  "pos.edit_hint": "Rasti lisää tehtävän, rastin poisto poistaa sen. Vuoroa toivonut merkitään alustavasti lisättäessä.",
 };

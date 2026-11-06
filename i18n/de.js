@@ -730,4 +730,8 @@ export default {
   "prefs.wants": "Gewünscht von:",
   "pos.add_hint": "Positionsarten auswählen und Schichten festlegen. Wer eine Schicht gewünscht hat, wird automatisch vorgemerkt.",
   "pos.added_seeded": "{n} Personen nach ihren Wünschen vorgemerkt.",
+  "pos.will_remove": "wird entfernt",
+  "pos.remove_title": "Positionen entfernen",
+  "pos.remove_text": "{n} Position(en) mit allen Einteilungen entfernen?",
+  "pos.edit_hint": "Anhaken fügt eine Position hinzu, Abhaken entfernt sie. Wer eine Schicht gewünscht hat, wird beim Hinzufügen vorgemerkt.",
 };

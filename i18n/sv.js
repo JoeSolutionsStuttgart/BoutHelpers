@@ -730,4 +730,8 @@ export default {
   "prefs.wants": "Önskas av:",
   "pos.add_hint": "Välj positionstyper och ange deras pass. Den som önskat ett pass förhandsbokas automatiskt.",
   "pos.added_seeded": "{n} personer förhandsbokade enligt sina önskemål.",
+  "pos.will_remove": "tas bort",
+  "pos.remove_title": "Ta bort positioner",
+  "pos.remove_text": "Ta bort {n} position(er) med alla tilldelningar?",
+  "pos.edit_hint": "Att bocka lägger till en position, att avbocka tar bort den. Den som önskat ett pass förhandsbokas vid tillägg.",
 };

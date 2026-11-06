@@ -730,4 +730,8 @@ export default {
   "prefs.wants": "İsteyenler:",
   "pos.add_hint": "Pozisyon türlerini seç ve vardiyalarını belirle. Bir vardiya isteyen otomatik olarak ön kaydedilir.",
   "pos.added_seeded": "{n} kişi istekleri doğrultusunda ön kaydedildi.",
+  "pos.will_remove": "kaldırılacak",
+  "pos.remove_title": "Pozisyonları kaldır",
+  "pos.remove_text": "{n} pozisyon tüm atamalarıyla kaldırılsın mı?",
+  "pos.edit_hint": "İşaretlemek pozisyon ekler, kaldırmak siler. Bir vardiya isteyen eklenince ön kaydedilir.",
 };

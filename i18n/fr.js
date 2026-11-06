@@ -730,4 +730,8 @@ export default {
   "prefs.wants": "Souhaité par :",
   "pos.add_hint": "Choisis des types de position et définis leurs créneaux. Qui a souhaité un créneau est préinscrit automatiquement.",
   "pos.added_seeded": "{n} personnes préinscrites selon leurs souhaits.",
+  "pos.will_remove": "sera retiré",
+  "pos.remove_title": "Retirer des positions",
+  "pos.remove_text": "Retirer {n} position(s) avec toutes les affectations ?",
+  "pos.edit_hint": "Cocher ajoute une position, décocher la retire. Qui a souhaité un créneau est préinscrit lors de l’ajout.",
 };

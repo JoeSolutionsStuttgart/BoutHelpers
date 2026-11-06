@@ -730,4 +730,8 @@ export default {
   "prefs.wants": "Richiesto da:",
   "pos.add_hint": "Scegli i tipi di posizione e definisci i turni. Chi ha richiesto un turno viene preinserito automaticamente.",
   "pos.added_seeded": "{n} persone preinserite in base ai loro desideri.",
+  "pos.will_remove": "verrà rimossa",
+  "pos.remove_title": "Rimuovi posizioni",
+  "pos.remove_text": "Rimuovere {n} posizione/i con tutte le assegnazioni?",
+  "pos.edit_hint": "Spuntare aggiunge una posizione, togliere la spunta la rimuove. Chi ha richiesto un turno viene preinserito all’aggiunta.",
 };

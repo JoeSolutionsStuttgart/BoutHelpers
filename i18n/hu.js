@@ -730,4 +730,8 @@ export default {
   "prefs.wants": "Szeretné:",
   "pos.add_hint": "Válassz pozíciótípusokat és állítsd be a műszakjaikat. Aki műszakot kért, automatikusan előjegyzésbe kerül.",
   "pos.added_seeded": "{n} személy előjegyezve a kívánságaik alapján.",
+  "pos.will_remove": "eltávolításra kerül",
+  "pos.remove_title": "Pozíciók eltávolítása",
+  "pos.remove_text": "Eltávolítasz {n} pozíciót az összes beosztással?",
+  "pos.edit_hint": "A pipa hozzáad egy pozíciót, a pipa törlése eltávolítja. Aki műszakot kért, hozzáadáskor előjegyzésbe kerül.",
 };

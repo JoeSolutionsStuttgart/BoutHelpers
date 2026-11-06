@@ -141,7 +141,7 @@ export function EventPage({ id, tab }) {
     ${tab === 'board' && html`<${NoticeBoard} teamId=${ev.team_id} eventId=${id} me=${ctx.me} canPost=${ctx.can('events.manage')} canModerate=${ctx.can('events.manage') || ctx.can('chat.moderate')} />`}
     ${tab === 'groups' && html`<${GroupsList} ctx=${ctx} />`}
     ${tab === 'guests' && ctx.can('guests.manage') && html`<${GuestLinks} ctx=${ctx} />`}
-    ${editing && html`<${EventEditModal} ev=${ev} onClose=${() => setEditing(false)} onSaved=${ctx.reload} />`}
+    ${editing && html`<${EventEditModal} ctx=${ctx} ev=${ev} onClose=${() => setEditing(false)} onSaved=${ctx.reload} />`}
     ${cloning && html`<${CloneEventModal} ev=${ev} onClose=${() => setCloning(false)} />`}
   </div>`;
 }
@@ -825,22 +825,42 @@ function GroupsList({ ctx }) {
   </div>`;
 }
 
-function EventEditModal({ ev, onClose, onSaved }) {
+function EventEditModal({ ctx, ev, onClose, onSaved }) {
   const [f, setF] = useState({
     title: ev.title, starts: toLocalInput(ev.starts_at), ends: toLocalInput(ev.ends_at), location: ev.location, description: ev.description,
     address: ev.address || '', binding: !!ev.binding, respondBy: toLocalInput(ev.respond_by),
   });
+  const existing = (typeId) => ctx.positions.some((p) => p.position_type_id === typeId);
+  // Positionen-Auswahl wie beim Erstellen: bereits vorhandene Positionsarten sind angehakt
+  const [plan, setPlan] = useState(() => { const pl = makePlan(ctx.types); ctx.types.forEach((x) => { if (existing(x.id) && pl[x.id]) pl[x.id].on = true; }); return pl; });
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const info = (x) => html`<${WishSummary} prefs=${ctx.preferences} typeId=${x.id} members=${ctx.members} templates=${normalizeTemplates(x.shift_templates)} />`;
   const save = async (e) => {
     e && e.preventDefault();
     if (!f.title.trim() || !f.starts) return;
+    const toAdd = ctx.types.filter((x) => !existing(x.id) && plan[x.id] && plan[x.id].on && plan[x.id].shifts.length > 0);
+    const removePositions = ctx.positions.filter((p) => ctx.types.some((x) => x.id === p.position_type_id && existing(x.id) && plan[x.id] && !plan[x.id].on));
+    if (removePositions.some((p) => ctx.assignments.some((a) => a.position_id === p.id))) {
+      if (!(await confirmDialog({ title: t('pos.remove_title'), text: t('pos.remove_text', { n: removePositions.length }), danger: true, ok: t('common.remove') }))) return;
+    }
     setBusy(true);
     try {
       await q(sb.from('events').update({
         title: f.title.trim(), starts_at: fromLocalInput(f.starts), ends_at: fromLocalInput(f.ends), location: f.location.trim(), description: f.description.trim(),
         address: f.address.trim(), binding: f.binding, respond_by: fromLocalInput(f.respondBy),
       }).eq('id', ev.id));
+      const evDate = f.starts.slice(0, 10);
+      for (const p of removePositions) await q(sb.from('positions').delete().eq('id', p.id));
+      let sort = ctx.positions.length; let seeded = 0;
+      for (const x of toAdd) {
+        const created = await q(sb.from('positions').insert({ event_id: ev.id, team_id: ev.team_id, position_type_id: x.id, name: x.name, description: x.description, sort: sort++ }).select('id'));
+        const createdShifts = await q(sb.from('shifts').insert(buildShiftRows(plan[x.id].shifts, { evDate, eventId: ev.id, teamId: ev.team_id, positionId: created[0].id })).select('id'));
+        const seeds = wishAssignments({ prefs: ctx.preferences, typeId: x.id, createdShifts, tmplIds: plan[x.id].shifts.map((r) => r.id) });
+        for (const s of seeds) { try { await rpc('assign_person', { sh: s.sh, uid: s.uid }); seeded++; } catch (e2) { /* schon vorhanden */ } }
+      }
+      if (seeded) flushMail();
+      if (removePositions.length || toAdd.length) refreshUnread();
       toast(t('common.saved'));
       onSaved();
       onClose();
@@ -865,6 +885,11 @@ function EventEditModal({ ev, onClose, onSaved }) {
         <input class="input" type="datetime-local" value=${f.respondBy} onInput=${set('respondBy')} /><//>
       <label class="check full"><input type="checkbox" checked=${f.binding} onChange=${(e) => setF({ ...f, binding: e.target.checked })} />
         <span><b>${t('event.binding')}</b><span class="small faint" style="display:block">${t('event.binding_hint')}</span></span></label>
+      ${ctx.types.length > 0 && html`<div class="full">
+        <h3 style="margin:12px 0 2px">${t('team.tab_positions')}</h3>
+        <p class="small muted" style="margin:0 0 6px">${t('pos.edit_hint')}</p>
+        <${PositionPlanner} types=${ctx.types} plan=${plan} setPlan=${setPlan} locked=${existing} info=${info} />
+      </div>`}
     </form>
   <//>`;
 }

@@ -730,4 +730,8 @@ export default {
   "prefs.wants": "Wanted by:",
   "pos.add_hint": "Pick position types and set their shifts. Anyone who wished a shift is pre-entered automatically.",
   "pos.added_seeded": "{n} people pre-entered based on their wishes.",
+  "pos.will_remove": "will be removed",
+  "pos.remove_title": "Remove positions",
+  "pos.remove_text": "Remove {n} position(s) with all assignments?",
+  "pos.edit_hint": "Checking adds a position, unchecking removes it. Anyone who wished a shift is pre-entered when added.",
 };
