@@ -9,7 +9,7 @@ import {
 } from '../lib/ui.js';
 import { autoAssign } from '../lib/assign.js';
 import { refreshUnread } from '../lib/unread.js';
-import { MyAnswerButtons, makePlan, PositionPlanner, buildShiftRows } from './shared.js';
+import { MyAnswerButtons, makePlan, PositionPlanner, buildShiftRows, normalizeTemplates, WishSummary, wishAssignments } from './shared.js';
 import { Chat } from './chat.js';
 import { Polls } from './polls.js';
 import { NoticeBoard } from './notices.js';
@@ -71,7 +71,10 @@ export function EventPage({ id, tab }) {
     const permSet = new Set(perms || []);
     // Mitgliederliste für alle Team-Mitglieder laden (für Wunschpartner & Übersicht); Gäste sehen per RLS nichts.
     const members = await q(sb.from('team_members').select('user_id, ' + PROFILE).eq('team_id', ev.team_id));
-    return { ev, perms: permSet, positions, shifts, assignments, guests, members, types, availability };
+    // Wünsche des Teams (für „Position hinzufügen mit Präferenzen"); nur für Verwaltende sinnvoll, sonst leer
+    let preferences = [];
+    if (permSet.has('events.manage')) { try { preferences = await q(sb.from('preferences').select('user_id, position_type_id, rank, shifts').eq('team_id', ev.team_id)); } catch (e) { preferences = []; } }
+    return { ev, perms: permSet, positions, shifts, assignments, guests, members, types, availability, preferences };
   }, [id]);
 
   useRealtime(d.data ? 'event-' + id : null, ['assignments', 'positions', 'shifts', 'availability'], 'event_id=eq.' + id, () => d.reload(true));
@@ -345,17 +348,24 @@ function AddPositionsModal({ ctx, onClose, onCustom }) {
   const [busy, setBusy] = useState(false);
   const evDate = localDatePart(ctx.ev.starts_at);
   const existing = (typeId) => ctx.positions.some((p) => p.position_type_id === typeId);
+  // zeigt pro Positionsart, wer sie wünscht (Rang + gewünschte Schichten)
+  const info = (x) => html`<${WishSummary} prefs=${ctx.preferences} typeId=${x.id} members=${ctx.members} templates=${normalizeTemplates(x.shift_templates)} />`;
   const save = async () => {
     const chosen = ctx.types.filter((x) => plan[x.id] && plan[x.id].on && plan[x.id].shifts.length > 0);
     if (!chosen.length) { onClose(); return; }
     setBusy(true);
     try {
       let sort = ctx.positions.length;
+      let seeded = 0;
       for (const x of chosen) {
         const created = await q(sb.from('positions').insert({ event_id: ctx.ev.id, team_id: ctx.ev.team_id, position_type_id: x.id, name: x.name, description: x.description, sort: sort++ }).select('id'));
-        await q(sb.from('shifts').insert(buildShiftRows(plan[x.id].shifts, { evDate, eventId: ctx.ev.id, teamId: ctx.ev.team_id, positionId: created[0].id })));
+        const createdShifts = await q(sb.from('shifts').insert(buildShiftRows(plan[x.id].shifts, { evDate, eventId: ctx.ev.id, teamId: ctx.ev.team_id, positionId: created[0].id })).select('id'));
+        // Wünscher der jeweiligen Schicht automatisch vormerken (wie manuelles Einteilen)
+        const seeds = wishAssignments({ prefs: ctx.preferences, typeId: x.id, createdShifts, tmplIds: plan[x.id].shifts.map((r) => r.id) });
+        for (const s of seeds) { try { await rpc('assign_person', { sh: s.sh, uid: s.uid }); seeded++; } catch (e) { /* schon vorhanden o. Ä. */ } }
       }
-      toast(t('common.saved'));
+      if (seeded) flushMail();
+      toast(seeded ? t('pos.added_seeded', { n: seeded }) : t('common.saved'));
       ctx.reload();
       onClose();
     } catch (err) { toastError(err); } finally { setBusy(false); }
@@ -366,8 +376,8 @@ function AddPositionsModal({ ctx, onClose, onCustom }) {
     <button class="btn primary" disabled=${busy} onClick=${save}><${Icon} name="check" />${t('common.add')}</button>`}>
     ${ctx.types.length === 0
       ? html`<div class="notice">${t('event.no_types')}</div>`
-      : html`<p class="small muted" style="margin-top:0">${t('event.positions_from_types_hint')}</p>
-        <${PositionPlanner} types=${ctx.types} plan=${plan} setPlan=${setPlan} existing=${existing} />`}
+      : html`<p class="small muted" style="margin-top:0">${t('pos.add_hint')}</p>
+        <${PositionPlanner} types=${ctx.types} plan=${plan} setPlan=${setPlan} existing=${existing} info=${info} />`}
   <//>`;
 }
 

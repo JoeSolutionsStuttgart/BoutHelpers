@@ -727,4 +727,7 @@ export default {
   "pos.add_title": "Adicionar posições",
   "pos.already_on_event": "já no evento",
   "pos.add_custom": "Posição avulsa sem modelo",
+  "prefs.wants": "Desejado por:",
+  "pos.add_hint": "Escolhe tipos de posição e define os turnos. Quem desejou um turno fica pré-inscrito automaticamente.",
+  "pos.added_seeded": "{n} pessoas pré-inscritas conforme os seus desejos.",
 };

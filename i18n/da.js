@@ -727,4 +727,7 @@ export default {
   "pos.add_title": "Tilføj positioner",
   "pos.already_on_event": "allerede i begivenheden",
   "pos.add_custom": "Enkelt position uden skabelon",
+  "prefs.wants": "Ønskes af:",
+  "pos.add_hint": "Vælg positionstyper og angiv deres vagter. Den der ønskede en vagt bliver automatisk forhåndstilmeldt.",
+  "pos.added_seeded": "{n} personer forhåndstilmeldt efter deres ønsker.",
 };

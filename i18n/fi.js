@@ -727,4 +727,7 @@ export default {
   "pos.add_title": "Lisää tehtäviä",
   "pos.already_on_event": "jo tapahtumassa",
   "pos.add_custom": "Yksittäinen tehtävä ilman pohjaa",
+  "prefs.wants": "Toivovat:",
+  "pos.add_hint": "Valitse tehtävätyypit ja aseta vuorot. Vuoroa toivonut lisätään automaattisesti alustavasti.",
+  "pos.added_seeded": "{n} henkilöä merkitty alustavasti toiveidensa mukaan.",
 };

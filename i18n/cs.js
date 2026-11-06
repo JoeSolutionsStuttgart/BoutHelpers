@@ -727,4 +727,7 @@ export default {
   "pos.add_title": "Přidat pozice",
   "pos.already_on_event": "už v akci",
   "pos.add_custom": "Jednotlivá pozice bez šablony",
+  "prefs.wants": "Chtějí:",
+  "pos.add_hint": "Vyber typy pozic a nastav jejich směny. Kdo si směnu přál, je automaticky předběžně zařazen.",
+  "pos.added_seeded": "{n} osob předběžně zařazeno podle jejich přání.",
 };

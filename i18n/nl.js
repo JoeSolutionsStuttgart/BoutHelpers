@@ -727,4 +727,7 @@ export default {
   "pos.add_title": "Posities toevoegen",
   "pos.already_on_event": "al in evenement",
   "pos.add_custom": "Losse positie zonder sjabloon",
+  "prefs.wants": "Gewenst door:",
+  "pos.add_hint": "Kies positietypes en stel hun diensten in. Wie een dienst wenste, wordt automatisch voorlopig ingedeeld.",
+  "pos.added_seeded": "{n} personen voorlopig ingedeeld op basis van hun wensen.",
 };

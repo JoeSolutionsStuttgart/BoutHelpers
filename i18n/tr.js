@@ -727,4 +727,7 @@ export default {
   "pos.add_title": "Pozisyon ekle",
   "pos.already_on_event": "etkinlikte zaten var",
   "pos.add_custom": "Şablonsuz tek pozisyon",
+  "prefs.wants": "İsteyenler:",
+  "pos.add_hint": "Pozisyon türlerini seç ve vardiyalarını belirle. Bir vardiya isteyen otomatik olarak ön kaydedilir.",
+  "pos.added_seeded": "{n} kişi istekleri doğrultusunda ön kaydedildi.",
 };

@@ -727,4 +727,7 @@ export default {
   "pos.add_title": "Positionen hinzufügen",
   "pos.already_on_event": "schon im Event",
   "pos.add_custom": "Einzelne Position ohne Vorlage",
+  "prefs.wants": "Gewünscht von:",
+  "pos.add_hint": "Positionsarten auswählen und Schichten festlegen. Wer eine Schicht gewünscht hat, wird automatisch vorgemerkt.",
+  "pos.added_seeded": "{n} Personen nach ihren Wünschen vorgemerkt.",
 };

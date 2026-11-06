@@ -727,4 +727,7 @@ export default {
   "pos.add_title": "Adaugă poziții",
   "pos.already_on_event": "deja în eveniment",
   "pos.add_custom": "Poziție individuală fără șablon",
+  "prefs.wants": "Dorit de:",
+  "pos.add_hint": "Alege tipuri de poziție și stabilește turele. Cine a dorit o tură este preînscris automat.",
+  "pos.added_seeded": "{n} persoane preînscrise conform dorințelor lor.",
 };

@@ -727,4 +727,7 @@ export default {
   "pos.add_title": "Lägg till positioner",
   "pos.already_on_event": "redan i evenemanget",
   "pos.add_custom": "Enskild position utan mall",
+  "prefs.wants": "Önskas av:",
+  "pos.add_hint": "Välj positionstyper och ange deras pass. Den som önskat ett pass förhandsbokas automatiskt.",
+  "pos.added_seeded": "{n} personer förhandsbokade enligt sina önskemål.",
 };

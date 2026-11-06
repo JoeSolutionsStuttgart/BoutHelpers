@@ -109,7 +109,7 @@ export function makePlan(types) {
 
 // Positionsarten auswählen und je Position die Schichten festlegen (vorbefüllt aus Vorlagen).
 // existing(typeId) kann true liefern, wenn die Position im Event schon existiert (nur Hinweis).
-export function PositionPlanner({ types, plan, setPlan, existing }) {
+export function PositionPlanner({ types, plan, setPlan, existing, info }) {
   const toggle = (id) => setPlan((p) => {
     const cur = p[id]; const on = !cur.on;
     const shifts = on && cur.shifts.length === 0 ? [{ name: '', from: '', to: '', slots: 1 }] : cur.shifts;
@@ -126,9 +126,38 @@ export function PositionPlanner({ types, plan, setPlan, existing }) {
         ${has && html`<span class="small faint">${t('pos.already_on_event')}</span>`}
         ${!p.on && p.shifts.length > 0 && html`<span class="small faint">${t('shift.count', { n: p.shifts.length })}</span>`}
       </label>
+      ${info && info(x)}
       ${p.on && html`<div style="margin:8px 0 2px 26px"><${ShiftRowsEditor} rows=${p.shifts} setRows=${setShifts(x.id)} /></div>`}
     </div>`;
   })}</div>`;
+}
+
+// Zeigt, wer eine Positionsart wünscht (Rang + gewünschte Schichten) – für den Hinzufügen-Dialog
+export function WishSummary({ prefs, typeId, members, templates }) {
+  const nameOf = (uid) => { const m = (members || []).find((x) => x.user_id === uid); return m && m.profiles ? m.profiles.display_name : '?'; };
+  const list = (prefs || []).filter((p) => p.position_type_id === typeId && p.rank > 0).sort((a, b) => a.rank - b.rank);
+  if (!list.length) return null;
+  return html`<div class="shift-wish sm" style="margin-left:26px">
+    <span class="small faint">${t('prefs.wants')}</span>
+    ${list.map((p) => {
+      const ws = (Array.isArray(p.shifts) ? p.shifts : []).map((id) => { const i = (templates || []).findIndex((s) => s.id === id); return i >= 0 ? tmplLabel(templates[i], i) : null; }).filter(Boolean);
+      return html`<span class="chip" key=${p.user_id} title=${t('prefs.rank_n', { n: p.rank })}>${nameOf(p.user_id)}${ws.length ? ' · ' + ws.join(', ') : ''}</span>`;
+    })}
+  </div>`;
+}
+
+// Welche Personen auf welche neu erzeugte Schicht vorgemerkt werden sollen (aus den Schicht-Wünschen).
+// createdShifts in Einfüge-Reihenfolge, tmplIds[i] = Vorlagen-id der i-ten Schicht ('' = keine).
+export function wishAssignments({ prefs, typeId, createdShifts, tmplIds }) {
+  const out = [];
+  (createdShifts || []).forEach((sh, i) => {
+    const tid = (tmplIds || [])[i];
+    if (!tid) return;
+    (prefs || []).forEach((p) => {
+      if (p.position_type_id === typeId && Array.isArray(p.shifts) && p.shifts.includes(tid)) out.push({ sh: sh.id, uid: p.user_id });
+    });
+  });
+  return out;
 }
 
 // Schicht-Zeilen des Editors in DB-Datensätze umwandeln (Event-Datum + Uhrzeit, über Mitternacht)

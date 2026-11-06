@@ -727,4 +727,7 @@ export default {
   "pos.add_title": "Añadir posiciones",
   "pos.already_on_event": "ya en el evento",
   "pos.add_custom": "Posición suelta sin plantilla",
+  "prefs.wants": "Deseado por:",
+  "pos.add_hint": "Elige tipos de posición y define sus turnos. Quien deseó un turno queda preinscrito automáticamente.",
+  "pos.added_seeded": "{n} personas preinscritas según sus deseos.",
 };

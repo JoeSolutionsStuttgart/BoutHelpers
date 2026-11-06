@@ -727,4 +727,7 @@ export default {
   "pos.add_title": "Add positions",
   "pos.already_on_event": "already on event",
   "pos.add_custom": "Single position without template",
+  "prefs.wants": "Wanted by:",
+  "pos.add_hint": "Pick position types and set their shifts. Anyone who wished a shift is pre-entered automatically.",
+  "pos.added_seeded": "{n} people pre-entered based on their wishes.",
 };

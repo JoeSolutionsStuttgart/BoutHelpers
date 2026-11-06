@@ -727,4 +727,7 @@ export default {
   "pos.add_title": "Aggiungi posizioni",
   "pos.already_on_event": "già nell’evento",
   "pos.add_custom": "Posizione singola senza modello",
+  "prefs.wants": "Richiesto da:",
+  "pos.add_hint": "Scegli i tipi di posizione e definisci i turni. Chi ha richiesto un turno viene preinserito automaticamente.",
+  "pos.added_seeded": "{n} persone preinserite in base ai loro desideri.",
 };

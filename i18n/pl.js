@@ -727,4 +727,7 @@ export default {
   "pos.add_title": "Dodaj stanowiska",
   "pos.already_on_event": "już w wydarzeniu",
   "pos.add_custom": "Pojedyncze stanowisko bez szablonu",
+  "prefs.wants": "Chętni:",
+  "pos.add_hint": "Wybierz rodzaje stanowisk i ustaw ich zmiany. Kto chciał zmianę, zostaje automatycznie wstępnie przypisany.",
+  "pos.added_seeded": "Wstępnie przypisano {n} osób zgodnie z ich życzeniami.",
 };

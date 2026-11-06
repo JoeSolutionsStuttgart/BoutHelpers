@@ -727,4 +727,7 @@ export default {
   "pos.add_title": "Ajouter des positions",
   "pos.already_on_event": "déjà dans l’événement",
   "pos.add_custom": "Position seule sans modèle",
+  "prefs.wants": "Souhaité par :",
+  "pos.add_hint": "Choisis des types de position et définis leurs créneaux. Qui a souhaité un créneau est préinscrit automatiquement.",
+  "pos.added_seeded": "{n} personnes préinscrites selon leurs souhaits.",
 };

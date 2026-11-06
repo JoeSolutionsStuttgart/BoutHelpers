@@ -727,4 +727,7 @@ export default {
   "pos.add_title": "Pozíciók hozzáadása",
   "pos.already_on_event": "már az eseményben",
   "pos.add_custom": "Egyedi pozíció sablon nélkül",
+  "prefs.wants": "Szeretné:",
+  "pos.add_hint": "Válassz pozíciótípusokat és állítsd be a műszakjaikat. Aki műszakot kért, automatikusan előjegyzésbe kerül.",
+  "pos.added_seeded": "{n} személy előjegyezve a kívánságaik alapján.",
 };
