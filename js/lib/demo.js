@@ -62,7 +62,7 @@ function seed() {
   ];
   const position_types = [
     { id: 'cA1', team_id: 'tA', name: 'Catering', description: 'Essen & Getränke', color: '#ff9f2e', sort: 0 },
-    { id: 'cA2', team_id: 'tA', name: 'Einlass', description: '', color: '#2f9bff', sort: 1 },
+    { id: 'cA2', team_id: 'tA', name: 'Einlass', description: '', color: '#2f9bff', sort: 1, shift_templates: [{ name: '', from: '17:00', to: '20:00', slots: 2 }, { name: 'Spätschicht', from: '20:00', to: '23:00', slots: 2 }] },
     { id: 'cA3', team_id: 'tA', name: 'Technik', description: 'Ton & Licht', color: '#7c5cff', sort: 2 },
     { id: 'cA4', team_id: 'tA', name: 'Deko', description: '', color: '#12b8a6', sort: 3 },
     { id: 'cA5', team_id: 'tA', name: 'Sanitäter', description: 'Erste Hilfe', color: '#ff4f8b', sort: 4 },
@@ -210,6 +210,24 @@ export function renameEntity(kind, id, name) {
 const rel = { shifts: ['shifts', 'shift_id'], profiles: ['profiles', 'user_id'], teams: ['teams', 'team_id'], events: ['events', 'event_id'], positions: ['positions', 'position_id'] };
 const childRel = { poll_options: 'poll_id', poll_votes: 'option_id' };
 function splitTop(s) { const out = []; let d = 0, cur = ''; for (const ch of s) { if (ch === '(') d++; if (ch === ')') d--; if (ch === ',' && d === 0) { out.push(cur.trim()); cur = ''; } else cur += ch; } if (cur.trim()) out.push(cur.trim()); return out; }
+// Löschen wie in der echten Datenbank: Kinder kaskadieren, damit danach wirklich nichts übrig bleibt
+const CASCADE = {
+  teams: [['events', 'team_id'], ['position_types', 'team_id'], ['preferences', 'team_id'], ['roles', 'team_id'], ['member_roles', 'team_id'], ['team_members', 'team_id'], ['join_requests', 'team_id'], ['invites', 'team_id'], ['notices', 'team_id'], ['polls', 'team_id'], ['poll_options', 'team_id'], ['poll_votes', 'team_id'], ['guest_links', 'team_id'], ['assignments', 'team_id'], ['shifts', 'team_id'], ['positions', 'team_id']],
+  events: [['positions', 'event_id'], ['shifts', 'event_id'], ['assignments', 'event_id'], ['tasks', 'event_id'], ['messages', 'event_id'], ['polls', 'event_id'], ['notices', 'event_id'], ['guest_links', 'event_id'], ['event_guests', 'event_id'], ['availability', 'event_id']],
+  positions: [['shifts', 'position_id'], ['assignments', 'position_id'], ['tasks', 'position_id'], ['messages', 'position_id'], ['polls', 'position_id'], ['notices', 'position_id'], ['guest_links', 'position_id'], ['event_guests', 'position_id']],
+  polls: [['poll_options', 'poll_id'], ['poll_votes', 'poll_id']],
+  position_types: [['preferences', 'position_type_id']],
+};
+function cascadeDelete(table, ids) {
+  if (!ids.length) return;
+  (CASCADE[table] || []).forEach(([child, key]) => {
+    const rows = (db[child] || []).filter((r) => ids.includes(r[key]));
+    if (!rows.length) return;
+    const childIds = rows.map((r) => r.id).filter((x) => x != null);
+    db[child] = db[child].filter((r) => !ids.includes(r[key]));
+    cascadeDelete(child, childIds);
+  });
+}
 function embed(row, sel) {
   const r = Object.assign({}, row);
   splitTop(sel || '*').forEach((part) => {
@@ -269,7 +287,12 @@ function builder(table) {
       } else if (st.op === 'update') {
         data = all.filter((r) => st.filters.every((f) => f(r))); data.forEach((r) => Object.assign(r, st.payload, { updated_at: iso(Date.now()) })); data = data.map((r) => embed(r, st.retSel)); save();
       } else {
-        data = all.filter((r) => st.filters.every((f) => f(r))); db[table] = all.filter((r) => !data.includes(r)); save();
+        data = all.filter((r) => st.filters.every((f) => f(r)));
+        const ids = data.map((r) => r.id).filter((x) => x != null);
+        db[table] = all.filter((r) => !data.includes(r));
+        if (table === 'position_types') db.positions.forEach((p) => { if (ids.includes(p.position_type_id)) p.position_type_id = null; });
+        cascadeDelete(table, ids);
+        save();
       }
       return Promise.resolve({ data, error: null }).then(res, rej);
     },

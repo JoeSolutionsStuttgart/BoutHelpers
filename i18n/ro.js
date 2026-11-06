@@ -721,4 +721,6 @@ export default {
   "demo.people": "Persoane",
   "demo.help_title": "Zona demo",
   "demo.help_text": "Contul tău are acces la zona demo. Acolo poți încerca toate funcțiile cu date de exemplu — nu se salvează nimic.",
+  "types.shifts": "Șabloane de ture",
+  "types.shifts_hint": "Creează ture din timp (nume, oră, locuri). La crearea unui eveniment sunt adăugate automat pentru această poziție și rămân editabile.",
 };

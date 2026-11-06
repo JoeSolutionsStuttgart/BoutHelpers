@@ -721,4 +721,6 @@ export default {
   "demo.people": "Személyek",
   "demo.help_title": "Demó terület",
   "demo.help_text": "A fiókod hozzáfér a demó területhez. Ott minden funkciót kipróbálhatsz példaadatokkal – semmi sem kerül mentésre.",
+  "types.shifts": "Műszaksablonok",
+  "types.shifts_hint": "Hozz létre műszakokat előre (név, idő, helyek). Esemény létrehozásakor automatikusan bekerülnek ehhez a pozícióhoz, és továbbra is szerkeszthetők.",
 };

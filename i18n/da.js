@@ -721,4 +721,6 @@ export default {
   "demo.people": "Personer",
   "demo.help_title": "Demoområde",
   "demo.help_text": "Din konto har adgang til demoområdet. Her kan du prøve alle funktioner med eksempeldata – intet gemmes.",
+  "types.shifts": "Vagtskabeloner",
+  "types.shifts_hint": "Opret vagter på forhånd (navn, tid, pladser). Når du opretter en begivenhed, tilføjes de automatisk til denne position og kan stadig redigeres.",
 };

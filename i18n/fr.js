@@ -721,4 +721,6 @@ export default {
   "demo.people": "Personnes",
   "demo.help_title": "Espace démo",
   "demo.help_text": "Ton compte a accès à l’espace démo. Tu peux y essayer toutes les fonctions avec des données d’exemple — rien n’est enregistré.",
+  "types.shifts": "Modèles de créneaux",
+  "types.shifts_hint": "Crée des créneaux à l’avance (nom, horaire, places). Lors de la création d’un événement, ils sont repris automatiquement pour cette position et restent modifiables.",
 };

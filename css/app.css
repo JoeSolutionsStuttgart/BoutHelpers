@@ -626,6 +626,17 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
 .has-demobar .topbar { top: 46px; }
 .demo-access { border: 1px solid var(--violet); background: color-mix(in srgb, var(--violet) 8%, var(--card)); }
 .demo-access .help-ico { background: var(--violet); color: #fff; }
+
+/* Schicht-Editor (Event-Erstellung & Positions-Vorlagen) */
+.shift-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto 72px auto; gap: 6px; align-items: center; }
+.shift-row .input[type="time"] { width: auto; }
+.shift-row .input[type="number"] { width: 72px; }
+.pos-plan { padding: 10px 0; border-top: 1px solid var(--border); }
+.pos-plan:first-of-type { border-top: 0; }
+@media (max-width: 620px) {
+  .shift-row { grid-template-columns: 1fr 1fr auto; }
+  .shift-row .input:first-child { grid-column: 1 / -1; }
+}
 .rename-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .rename-row { display: flex; flex-direction: column; gap: 2px; }
 @media (max-width: 899px) { .rename-grid { grid-template-columns: 1fr; } .demobar { gap: 7px; padding: 0 8px; } .demobar-as .small { display: none; } }

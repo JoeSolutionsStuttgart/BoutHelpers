@@ -721,4 +721,6 @@ export default {
   "demo.people": "Personen",
   "demo.help_title": "Demo-Bereich",
   "demo.help_text": "Dein Konto ist für den Demo-Bereich freigeschaltet. Dort kannst du alle Funktionen in Ruhe mit Beispieldaten ausprobieren – es wird nichts gespeichert.",
+  "types.shifts": "Schicht-Vorlagen",
+  "types.shifts_hint": "Lege Schichten vorab an (Name, Uhrzeit, Plätze). Beim Erstellen eines Events werden sie für diese Position automatisch übernommen und bleiben dort änderbar.",
 };

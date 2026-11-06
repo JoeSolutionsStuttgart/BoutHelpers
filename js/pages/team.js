@@ -1,8 +1,9 @@
 // Team-Seite: Events, Mitglieder, Rollen, Positionen & Wünsche, Einladungen, Einstellungen
 import { html, useState } from '../lib/h.js';
 import { sb, q, rpc, PERMISSIONS, appLink, flushMail } from '../lib/sb.js';
-import { t, fmtDateTime, fmtRelative, fromLocalInput } from '../lib/i18n.js';
+import { t, fmtDateTime, fmtRelative, fromLocalInput, combineDateTime } from '../lib/i18n.js';
 import { useStore, toast, toastError, confirmDialog, loadTeams } from '../lib/store.js';
+import { refreshUnread } from '../lib/unread.js';
 import {
   Icon, Spinner, Empty, ErrorBox, Field, Modal, Swatches, Person, Avatar, EditableText, CopyField, Tabs,
   useAsync, go, PALETTE, UnreadBadge,
@@ -103,11 +104,59 @@ function EventsTab({ ctx }) {
   </div>`;
 }
 
+// Schicht-Vorlagen einer Positionsart robust einlesen (altes Format ohne Spalte = keine)
+export function normalizeTemplates(x) {
+  if (!Array.isArray(x)) return [];
+  return x.map((r) => ({ name: String(r && r.name || ''), from: String(r && r.from || ''), to: String(r && r.to || ''), slots: Math.max(1, Math.min(500, Number(r && r.slots) || 1)) }));
+}
+
+// Editor für eine Liste von Schichten (Name, Uhrzeit von/bis, Plätze) – für Event-Erstellung und Vorlagen
+function ShiftRowsEditor({ rows, setRows }) {
+  const upd = (i, k, v) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
+  const add = () => { const last = rows[rows.length - 1]; setRows([...rows, { name: '', from: last ? last.to : '', to: '', slots: last ? last.slots : 1 }]); };
+  const del = (i) => setRows(rows.filter((_, j) => j !== i));
+  return html`<div class="stack-sm">
+    ${rows.length === 0 && html`<p class="small faint" style="margin:0">${t('shift.none')}</p>`}
+    ${rows.map((r, i) => html`<div class="shift-row" key=${i}>
+      <input class="input" placeholder=${t('shift.name')} maxlength="80" value=${r.name} onInput=${(e) => upd(i, 'name', e.target.value)} />
+      <input class="input" type="time" aria-label=${t('avail.from')} value=${r.from} onInput=${(e) => upd(i, 'from', e.target.value)} />
+      <input class="input" type="time" aria-label=${t('avail.to')} value=${r.to} onInput=${(e) => upd(i, 'to', e.target.value)} />
+      <input class="input" type="number" min="1" max="500" aria-label=${t('event.slots')} value=${r.slots} onInput=${(e) => upd(i, 'slots', e.target.value)} />
+      <button type="button" class="btn icon" aria-label=${t('common.remove')} onClick=${() => del(i)}><${Icon} name="trash" size=${16} /></button>
+    </div>`)}
+    <button type="button" class="btn small" onClick=${add}><${Icon} name="plus" size=${16} />${t('shift.add')}</button>
+  </div>`;
+}
+
+// Schicht-Vorlagen einer Positionsart bearbeiten
+function ShiftTemplateModal({ ctx, type, onClose }) {
+  const [rows, setRows] = useState(() => normalizeTemplates(type.shift_templates));
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    setBusy(true);
+    const clean = rows.map((r) => ({ name: (r.name || '').trim().slice(0, 80), from: r.from || '', to: r.to || '', slots: Math.max(1, Math.min(500, Number(r.slots) || 1)) }));
+    try { await q(sb.from('position_types').update({ shift_templates: clean }).eq('id', type.id)); ctx.reload(); toast(t('common.saved')); onClose(); } catch (e) { toastError(e); } finally { setBusy(false); }
+  };
+  return html`<${Modal} title=${t('types.shifts') + ' · ' + type.name} onClose=${onClose} footer=${html`
+    <button class="btn ghost" onClick=${onClose}>${t('common.cancel')}</button>
+    <button class="btn primary" disabled=${busy} onClick=${save}><${Icon} name="check" />${t('common.save')}</button>`}>
+    <p class="small muted" style="margin:0 0 10px">${t('types.shifts_hint')}</p>
+    <${ShiftRowsEditor} rows=${rows} setRows=${setRows} />
+  <//>`;
+}
+
 function EventCreateModal({ ctx, onClose }) {
   const [f, setF] = useState({ title: '', starts: '', ends: '', location: '', address: '', description: '' });
-  const [slots, setSlots] = useState(() => Object.fromEntries(ctx.types.map((x) => [x.id, 0])));
+  // je Positionsart: ein-/ausgeschaltet + Schichten (vorbefüllt aus den Vorlagen)
+  const [plan, setPlan] = useState(() => Object.fromEntries(ctx.types.map((x) => [x.id, { on: false, shifts: normalizeTemplates(x.shift_templates) }])));
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const toggle = (id) => setPlan((p) => {
+    const cur = p[id]; const on = !cur.on;
+    const shifts = on && cur.shifts.length === 0 ? [{ name: '', from: '', to: '', slots: 1 }] : cur.shifts;
+    return { ...p, [id]: { on, shifts } };
+  });
+  const setShifts = (id) => (rows) => setPlan((p) => ({ ...p, [id]: { ...p[id], shifts: rows } }));
   const save = async (e) => {
     e && e.preventDefault();
     if (!f.title.trim() || !f.starts) return toast(t('event.need_title_date'), 'error');
@@ -118,16 +167,18 @@ function EventCreateModal({ ctx, onClose }) {
         location: f.location.trim(), address: f.address.trim(), description: f.description.trim(), created_by: ctx.me,
       }).select('id'));
       const evId = rows[0].id;
-      const chosen = ctx.types.filter((x) => Number(slots[x.id]) > 0);
-      const pos = chosen.map((x, i) => ({
-        event_id: evId, team_id: ctx.team.id, position_type_id: x.id, name: x.name, description: x.description, sort: i,
-      }));
-      if (pos.length) {
-        const created = await q(sb.from('positions').insert(pos).select('id, position_type_id'));
-        await q(sb.from('shifts').insert(created.map((c) => ({
-          position_id: c.id, event_id: evId, team_id: ctx.team.id, name: '',
-          slots: Math.min(500, Number(slots[c.position_type_id]) || 1),
-        }))));
+      const evDate = f.starts.slice(0, 10); // lokales Datum des Events für die Schicht-Uhrzeiten
+      const chosen = ctx.types.filter((x) => plan[x.id] && plan[x.id].on && plan[x.id].shifts.length > 0);
+      let sort = 0;
+      for (const x of chosen) {
+        const created = await q(sb.from('positions').insert({ event_id: evId, team_id: ctx.team.id, position_type_id: x.id, name: x.name, description: x.description, sort: sort++ }).select('id'));
+        const pid = created[0].id;
+        const shiftRows = plan[x.id].shifts.map((r, i) => {
+          let s = combineDateTime(evDate, r.from); let en = combineDateTime(evDate, r.to);
+          if (s && en && new Date(en) <= new Date(s)) en = new Date(new Date(en).getTime() + 86400000).toISOString();
+          return { position_id: pid, event_id: evId, team_id: ctx.team.id, name: (r.name || '').trim(), slots: Math.max(1, Math.min(500, Number(r.slots) || 1)), starts_at: s, ends_at: en, sort: i };
+        });
+        await q(sb.from('shifts').insert(shiftRows));
       }
       toast(t('event.created'));
       go('/event/' + evId);
@@ -149,12 +200,17 @@ function EventCreateModal({ ctx, onClose }) {
         <h3>${t('event.positions_from_types')}</h3>
         <p class="small muted">${t('event.positions_from_types_hint')}</p>
         ${ctx.types.length === 0 && html`<div class="notice">${t('event.no_types')}</div>`}
-        ${ctx.types.map((x) => html`<div class="rank-row" key=${x.id}>
-          <span class="dot" style=${{ background: x.color }}></span><b class="grow">${x.name}</b>
-          <label class="row nowrap small">${t('event.slots')}
-            <input class="input" type="number" min="0" max="500" style="width:90px" value=${slots[x.id]} onInput=${(e) => setSlots({ ...slots, [x.id]: e.target.value })} />
-          </label>
-        </div>`)}
+        ${ctx.types.map((x) => {
+          const p = plan[x.id] || { on: false, shifts: [] };
+          return html`<div class="pos-plan" key=${x.id}>
+            <label class="row nowrap" style="gap:8px;cursor:pointer">
+              <input type="checkbox" checked=${p.on} onChange=${() => toggle(x.id)} />
+              <span class="dot" style=${{ background: x.color }}></span><b class="grow">${x.name}</b>
+              ${!p.on && p.shifts.length > 0 && html`<span class="small faint">${t('shift.count', { n: p.shifts.length })}</span>`}
+            </label>
+            ${p.on && html`<div style="margin:8px 0 2px 26px"><${ShiftRowsEditor} rows=${p.shifts} setRows=${setShifts(x.id)} /></div>`}
+          </div>`;
+        })}
       </div>
     </form>
   <//>`;
@@ -358,6 +414,7 @@ function RoleCreateModal({ ctx, onClose }) {
 function PositionsTab({ ctx }) {
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(PALETTE[2]);
+  const [shiftType, setShiftType] = useState(null);
   const canTypes = ctx.can('positions.manage');
   const canSeeAll = ctx.can('events.manage') || canTypes;
   const myRank = (typeId) => {
@@ -419,6 +476,7 @@ function PositionsTab({ ctx }) {
           <div class="small muted"><${EditableText} value=${x.description} canEdit=${canTypes} multiline required=${false} maxLength=${1000} placeholder=${t('types.add_description')} onSave=${(v) => updType(x, { description: v })} /></div>
           ${canTypes && html`<details class="color-pick" style="margin-top:6px"><summary><span class="dot" style=${{ background: x.color }}></span>${t('team.color')}</summary><${Swatches} value=${x.color} onChange=${(c) => updType(x, { color: c }).catch(() => {})} /></details>`}
         </div>
+        ${(() => { const n = normalizeTemplates(x.shift_templates).length; return canTypes && html`<button class="btn small ghost" onClick=${() => setShiftType(x)}><${Icon} name="clock" size=${16} />${t('types.shifts')}${n > 0 ? html`<span class="chip">${n}</span>` : ''}</button>`; })()}
         ${canTypes && html`<button class="btn icon" aria-label=${t('common.delete')} onClick=${() => delType(x)}><${Icon} name="trash" /></button>`}
       </div>`)}</div>
       ${canTypes && html`<form class="row" style="margin-top:12px" onSubmit=${addType}>
@@ -439,6 +497,7 @@ function PositionsTab({ ctx }) {
         </div>`;
       })}</div>
     </div>`}
+    ${shiftType && html`<${ShiftTemplateModal} ctx=${ctx} type=${shiftType} onClose=${() => setShiftType(null)} />`}
   </div>`;
 }
 
@@ -510,7 +569,7 @@ function SettingsTab({ ctx, saveTeam, isOwner }) {
   };
   const del = async () => {
     if (!(await confirmDialog({ title: t('team.delete'), text: t('team.delete_text', { name: ctx.team.name }), danger: true, ok: t('team.delete') }))) return;
-    try { await q(sb.from('teams').delete().eq('id', ctx.team.id)); await loadTeams(); toast(t('team.deleted')); go('/'); } catch (e) { toastError(e); }
+    try { await q(sb.from('teams').delete().eq('id', ctx.team.id)); await loadTeams(); refreshUnread(); toast(t('team.deleted')); go('/'); } catch (e) { toastError(e); }
   };
   return html`<div class="stack">
     <div class="card stack">

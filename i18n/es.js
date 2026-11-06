@@ -721,4 +721,6 @@ export default {
   "demo.people": "Personas",
   "demo.help_title": "Zona de demostración",
   "demo.help_text": "Tu cuenta tiene acceso a la zona de demostración. Allí puedes probar todas las funciones con datos de ejemplo; no se guarda nada.",
+  "types.shifts": "Plantillas de turnos",
+  "types.shifts_hint": "Crea turnos por adelantado (nombre, hora, plazas). Al crear un evento se añaden automáticamente a esta posición y siguen siendo editables.",
 };

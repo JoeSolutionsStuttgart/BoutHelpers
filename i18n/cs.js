@@ -721,4 +721,6 @@ export default {
   "demo.people": "Osoby",
   "demo.help_title": "Demo oblast",
   "demo.help_text": "Tvůj účet má přístup do demo oblasti. Můžeš si tam vyzkoušet všechny funkce na ukázkových datech – nic se neukládá.",
+  "types.shifts": "Šablony směn",
+  "types.shifts_hint": "Vytvoř směny předem (název, čas, místa). Při vytvoření akce se automaticky přidají k této pozici a zůstanou upravitelné.",
 };

@@ -8,6 +8,7 @@ import {
   useAsync, useRealtime, go, UnreadBadge,
 } from '../lib/ui.js';
 import { autoAssign } from '../lib/assign.js';
+import { refreshUnread } from '../lib/unread.js';
 import { MyAnswerButtons } from './shared.js';
 import { Chat } from './chat.js';
 import { Polls } from './polls.js';
@@ -228,7 +229,7 @@ function PositionCard({ ctx, pos, byShift, onModal, filter }) {
 
   const delPos = async () => {
     if (!(await confirmDialog({ title: t('pos.delete'), text: t('pos.delete_text', { name: pos.name }), danger: true, ok: t('common.delete') }))) return;
-    try { await q(sb.from('positions').delete().eq('id', pos.id)); ctx.reload(); } catch (e) { toastError(e); }
+    try { await q(sb.from('positions').delete().eq('id', pos.id)); ctx.reload(); refreshUnread(); } catch (e) { toastError(e); }
   };
 
   return html`<div class=${'card pos-card' + (mineHere ? ' mine-group' : '')} style=${{ '--c': type ? type.color : 'var(--orange)' }}>
@@ -804,7 +805,7 @@ function EventEditModal({ ev, onClose, onSaved }) {
   };
   const del = async () => {
     if (!(await confirmDialog({ title: t('event.delete'), text: t('event.delete_text', { name: ev.title }), danger: true, ok: t('event.delete') }))) return;
-    try { await q(sb.from('events').delete().eq('id', ev.id)); onClose(); go('/team/' + ev.team_id); } catch (err) { toastError(err); }
+    try { await q(sb.from('events').delete().eq('id', ev.id)); onClose(); refreshUnread(); go('/team/' + ev.team_id); } catch (err) { toastError(err); }
   };
   return html`<${Modal} title=${t('event.edit')} onClose=${onClose} footer=${html`
     <button class="btn danger" style="margin-right:auto" onClick=${del}><${Icon} name="trash" size=${16} />${t('event.delete')}</button>

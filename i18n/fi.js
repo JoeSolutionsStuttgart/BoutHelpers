@@ -721,4 +721,6 @@ export default {
   "demo.people": "Henkilöt",
   "demo.help_title": "Demoalue",
   "demo.help_text": "Tililläsi on pääsy demoalueelle. Siellä voit kokeilla kaikkia toimintoja esimerkkitiedoilla — mitään ei tallenneta.",
+  "types.shifts": "Vuoropohjat",
+  "types.shifts_hint": "Luo vuorot etukäteen (nimi, aika, paikat). Kun luot tapahtuman, ne lisätään automaattisesti tähän tehtävään ja pysyvät muokattavina.",
 };

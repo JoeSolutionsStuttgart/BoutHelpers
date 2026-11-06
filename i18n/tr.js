@@ -721,4 +721,6 @@ export default {
   "demo.people": "Kişiler",
   "demo.help_title": "Demo alanı",
   "demo.help_text": "Hesabın demo alanı için açık. Orada tüm işlevleri örnek verilerle deneyebilirsin — hiçbir şey kaydedilmez.",
+  "types.shifts": "Vardiya şablonları",
+  "types.shifts_hint": "Vardiyaları önceden oluştur (ad, saat, kontenjan). Bir etkinlik oluşturduğunda bu pozisyon için otomatik eklenir ve düzenlenebilir kalır.",
 };

@@ -721,4 +721,6 @@ export default {
   "demo.people": "Persone",
   "demo.help_title": "Area demo",
   "demo.help_text": "Il tuo account ha accesso all’area demo. Lì puoi provare tutte le funzioni con dati di esempio: non viene salvato nulla.",
+  "types.shifts": "Modelli di turni",
+  "types.shifts_hint": "Crea i turni in anticipo (nome, orario, posti). Quando crei un evento vengono aggiunti automaticamente a questa posizione e restano modificabili.",
 };
