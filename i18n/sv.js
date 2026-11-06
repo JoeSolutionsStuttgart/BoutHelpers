@@ -723,4 +723,5 @@ export default {
   "demo.help_text": "Ditt konto har tillgång till demoområdet. Där kan du prova alla funktioner med exempeldata – inget sparas.",
   "types.shifts": "Passmallar",
   "types.shifts_hint": "Skapa pass i förväg (namn, tid, platser). När du skapar ett evenemang läggs de till automatiskt för den här positionen och går att ändra.",
+  "prefs.shift_wish": "Önskade pass:",
 };

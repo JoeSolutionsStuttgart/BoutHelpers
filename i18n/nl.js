@@ -723,4 +723,5 @@ export default {
   "demo.help_text": "Je account heeft toegang tot de demo-omgeving. Daar kun je alle functies uitproberen met voorbeeldgegevens — er wordt niets opgeslagen.",
   "types.shifts": "Dienstsjablonen",
   "types.shifts_hint": "Maak diensten vooraf aan (naam, tijd, plekken). Bij het aanmaken van een evenement worden ze automatisch voor deze positie overgenomen en blijven bewerkbaar.",
+  "prefs.shift_wish": "Gewenste diensten:",
 };

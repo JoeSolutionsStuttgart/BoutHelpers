@@ -21,7 +21,7 @@ export function TeamPage({ id, tab }) {
       q(sb.from('roles').select('*').eq('team_id', id).order('sort').order('created_at')),
       q(sb.from('member_roles').select('user_id, role_id').eq('team_id', id)),
       q(sb.from('position_types').select('*').eq('team_id', id).order('sort').order('name')),
-      q(sb.from('preferences').select('user_id, position_type_id, rank').eq('team_id', id)),
+      q(sb.from('preferences').select('user_id, position_type_id, rank, shifts').eq('team_id', id)),
       q(sb.from('join_requests').select('id, message, created_at, user_id, profiles(id, display_name, pronouns, pronouns_custom)').eq('team_id', id).order('created_at')),
       q(sb.from('event_guests').select('user_id, event_id, profiles(id, display_name, pronouns, pronouns_custom, is_guest), events!inner(id, title, team_id)').eq('events.team_id', id)),
     ]);
@@ -104,10 +104,17 @@ function EventsTab({ ctx }) {
   </div>`;
 }
 
+const tmplId = () => 's' + Math.random().toString(36).slice(2, 9);
 // Schicht-Vorlagen einer Positionsart robust einlesen (altes Format ohne Spalte = keine)
 export function normalizeTemplates(x) {
   if (!Array.isArray(x)) return [];
-  return x.map((r) => ({ name: String(r && r.name || ''), from: String(r && r.from || ''), to: String(r && r.to || ''), slots: Math.max(1, Math.min(500, Number(r && r.slots) || 1)) }));
+  return x.map((r) => ({ id: String(r && r.id || ''), name: String(r && r.name || ''), from: String(r && r.from || ''), to: String(r && r.to || ''), slots: Math.max(1, Math.min(500, Number(r && r.slots) || 1)) }));
+}
+// Kurzname einer Schicht-Vorlage für Anzeige (Name oder Uhrzeit oder „Schicht n")
+function tmplLabel(tpl, i) {
+  if (tpl.name) return tpl.name;
+  if (tpl.from) return tpl.from + (tpl.to ? '–' + tpl.to : '');
+  return t('shift.n', { n: i + 1 });
 }
 
 // Editor für eine Liste von Schichten (Name, Uhrzeit von/bis, Plätze) – für Event-Erstellung und Vorlagen
@@ -134,7 +141,7 @@ function ShiftTemplateModal({ ctx, type, onClose }) {
   const [busy, setBusy] = useState(false);
   const save = async () => {
     setBusy(true);
-    const clean = rows.map((r) => ({ name: (r.name || '').trim().slice(0, 80), from: r.from || '', to: r.to || '', slots: Math.max(1, Math.min(500, Number(r.slots) || 1)) }));
+    const clean = rows.map((r) => ({ id: r.id || tmplId(), name: (r.name || '').trim().slice(0, 80), from: r.from || '', to: r.to || '', slots: Math.max(1, Math.min(500, Number(r.slots) || 1)) }));
     try { await q(sb.from('position_types').update({ shift_templates: clean }).eq('id', type.id)); ctx.reload(); toast(t('common.saved')); onClose(); } catch (e) { toastError(e); } finally { setBusy(false); }
   };
   return html`<${Modal} title=${t('types.shifts') + ' · ' + type.name} onClose=${onClose} footer=${html`
@@ -417,9 +424,14 @@ function PositionsTab({ ctx }) {
   const [shiftType, setShiftType] = useState(null);
   const canTypes = ctx.can('positions.manage');
   const canSeeAll = ctx.can('events.manage') || canTypes;
-  const myRank = (typeId) => {
-    const p = ctx.prefs.find((x) => x.user_id === ctx.me && x.position_type_id === typeId);
-    return p ? p.rank : 0;
+  const myPref = (typeId) => ctx.prefs.find((x) => x.user_id === ctx.me && x.position_type_id === typeId);
+  const myRank = (typeId) => { const p = myPref(typeId); return p ? p.rank : 0; };
+  const toggleShift = async (typeId, shiftId) => {
+    const pref = myPref(typeId);
+    if (!pref) return; // nur mit gesetztem Interesse (Rang) wählbar
+    const cur = Array.isArray(pref.shifts) ? pref.shifts : [];
+    const next = cur.includes(shiftId) ? cur.filter((s) => s !== shiftId) : [...cur, shiftId];
+    try { await q(sb.from('preferences').update({ shifts: next, updated_at: new Date().toISOString() }).eq('user_id', ctx.me).eq('position_type_id', typeId)); ctx.reload(); } catch (e) { toastError(e); }
   };
   const setRank = async (typeId, rank) => {
     try {
@@ -455,13 +467,21 @@ function PositionsTab({ ctx }) {
       ${ctx.types.length === 0 && html`<${Empty} icon="briefcase" title=${t('types.none')} text=${canTypes ? t('types.none_admin') : t('types.none_member')} />`}
       ${ctx.types.map((x) => {
         const r = myRank(x.id);
-        return html`<div class="rank-row" key=${x.id}>
-          <span class="dot" style=${{ background: x.color }}></span>
-          <div class="grow" style="min-width:140px"><b>${x.name}</b>${x.description && html`<div class="small faint">${x.description}</div>`}</div>
-          <div class="rank-pick" role="group" aria-label=${t('prefs.rank_for', { name: x.name })}>
-            <button class=${'off' + (r === 0 ? ' on' : '')} title=${t('prefs.no_interest')} aria-pressed=${r === 0} onClick=${() => setRank(x.id, 0)}>–</button>
-            ${[1, 2, 3, 4, 5].map((n) => html`<button class=${r === n ? 'on' : ''} aria-pressed=${r === n} title=${t('prefs.rank_n', { n })} onClick=${() => setRank(x.id, n)}>${n}</button>`)}
+        const tpls = normalizeTemplates(x.shift_templates).filter((s) => s.id);
+        const mine = (myPref(x.id) && Array.isArray(myPref(x.id).shifts) ? myPref(x.id).shifts : []);
+        return html`<div key=${x.id}>
+          <div class="rank-row">
+            <span class="dot" style=${{ background: x.color }}></span>
+            <div class="grow" style="min-width:140px"><b>${x.name}</b>${x.description && html`<div class="small faint">${x.description}</div>`}</div>
+            <div class="rank-pick" role="group" aria-label=${t('prefs.rank_for', { name: x.name })}>
+              <button class=${'off' + (r === 0 ? ' on' : '')} title=${t('prefs.no_interest')} aria-pressed=${r === 0} onClick=${() => setRank(x.id, 0)}>–</button>
+              ${[1, 2, 3, 4, 5].map((n) => html`<button class=${r === n ? 'on' : ''} aria-pressed=${r === n} title=${t('prefs.rank_n', { n })} onClick=${() => setRank(x.id, n)}>${n}</button>`)}
+            </div>
           </div>
+          ${r > 0 && tpls.length > 0 && html`<div class="shift-wish">
+            <span class="small faint">${t('prefs.shift_wish')}</span>
+            ${tpls.map((s, i) => html`<button type="button" key=${s.id} class=${'chip toggle' + (mine.includes(s.id) ? ' on' : '')} aria-pressed=${mine.includes(s.id)} onClick=${() => toggleShift(x.id, s.id)}>${tmplLabel(s, i)}</button>`)}
+          </div>`}
         </div>`;
       })}
     </div>
@@ -490,10 +510,18 @@ function PositionsTab({ ctx }) {
       <div class="card-head"><${Icon} name="users" /><h3 class="grow">${t('prefs.overview')}</h3></div>
       <div class="grid">${ctx.types.map((x) => {
         const list = ctx.prefs.filter((p) => p.position_type_id === x.id).sort((a, b) => a.rank - b.rank);
+        const tpls = normalizeTemplates(x.shift_templates).filter((s) => s.id);
+        const wishLabels = (p) => (Array.isArray(p.shifts) ? p.shifts : [])
+          .map((id) => { const i = tpls.findIndex((s) => s.id === id); return i >= 0 ? tmplLabel(tpls[i], i) : null; }).filter(Boolean);
         return html`<div class="card flat" key=${x.id} style=${{ borderTop: '4px solid ' + x.color, padding: '14px' }}>
           <b>${x.name}</b> <span class="small faint">(${list.length})</span>
-          <div class="stack-sm" style="margin-top:8px">${list.length === 0 ? html`<span class="small faint">${t('prefs.nobody')}</span>` : list.map((p) => html`
-            <div class="row nowrap"><span class="badge st-waitlist">${p.rank}</span><span class="grow">${nameOf(p.user_id).display_name}</span></div>`)}</div>
+          <div class="stack-sm" style="margin-top:8px">${list.length === 0 ? html`<span class="small faint">${t('prefs.nobody')}</span>` : list.map((p) => {
+            const w = wishLabels(p);
+            return html`<div class="pref-person" key=${p.user_id}>
+              <div class="row nowrap"><span class="badge st-waitlist">${p.rank}</span><span class="grow">${nameOf(p.user_id).display_name}</span></div>
+              ${w.length > 0 && html`<div class="shift-wish sm">${w.map((l) => html`<span class="chip">${l}</span>`)}</div>`}
+            </div>`;
+          })}</div>
         </div>`;
       })}</div>
     </div>`}

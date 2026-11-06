@@ -723,4 +723,5 @@ export default {
   "demo.help_text": "Hesabın demo alanı için açık. Orada tüm işlevleri örnek verilerle deneyebilirsin — hiçbir şey kaydedilmez.",
   "types.shifts": "Vardiya şablonları",
   "types.shifts_hint": "Vardiyaları önceden oluştur (ad, saat, kontenjan). Bir etkinlik oluşturduğunda bu pozisyon için otomatik eklenir ve düzenlenebilir kalır.",
+  "prefs.shift_wish": "Tercih edilen vardiyalar:",
 };

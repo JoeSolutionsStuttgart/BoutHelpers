@@ -723,4 +723,5 @@ export default {
   "demo.help_text": "Your account is unlocked for the demo area. There you can try out every feature with sample data — nothing is saved.",
   "types.shifts": "Shift templates",
   "types.shifts_hint": "Set up shifts in advance (name, time, slots). When you create an event they are added automatically for this position and stay editable there.",
+  "prefs.shift_wish": "Preferred shifts:",
 };

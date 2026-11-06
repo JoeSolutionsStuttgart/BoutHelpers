@@ -723,4 +723,5 @@ export default {
   "demo.help_text": "A tua conta tem acesso à área de demonstração. Aí podes experimentar todas as funções com dados de exemplo — nada é guardado.",
   "types.shifts": "Modelos de turnos",
   "types.shifts_hint": "Cria turnos com antecedência (nome, hora, vagas). Ao criar um evento são adicionados automaticamente a esta posição e continuam editáveis.",
+  "prefs.shift_wish": "Turnos preferidos:",
 };

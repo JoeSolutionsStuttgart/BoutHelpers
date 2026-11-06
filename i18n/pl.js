@@ -723,4 +723,5 @@ export default {
   "demo.help_text": "Twoje konto ma dostęp do obszaru demo. Możesz tam wypróbować wszystkie funkcje na przykładowych danych — nic nie jest zapisywane.",
   "types.shifts": "Szablony zmian",
   "types.shifts_hint": "Utwórz zmiany z wyprzedzeniem (nazwa, godzina, miejsca). Przy tworzeniu wydarzenia zostaną automatycznie dodane do tej pozycji i pozostaną edytowalne.",
+  "prefs.shift_wish": "Preferowane zmiany:",
 };

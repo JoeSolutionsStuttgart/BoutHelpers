@@ -62,7 +62,7 @@ function seed() {
   ];
   const position_types = [
     { id: 'cA1', team_id: 'tA', name: 'Catering', description: 'Essen & Getränke', color: '#ff9f2e', sort: 0 },
-    { id: 'cA2', team_id: 'tA', name: 'Einlass', description: '', color: '#2f9bff', sort: 1, shift_templates: [{ name: '', from: '17:00', to: '20:00', slots: 2 }, { name: 'Spätschicht', from: '20:00', to: '23:00', slots: 2 }] },
+    { id: 'cA2', team_id: 'tA', name: 'Einlass', description: '', color: '#2f9bff', sort: 1, shift_templates: [{ id: 'tE1', name: '', from: '17:00', to: '20:00', slots: 2 }, { id: 'tE2', name: 'Spätschicht', from: '20:00', to: '23:00', slots: 2 }] },
     { id: 'cA3', team_id: 'tA', name: 'Technik', description: 'Ton & Licht', color: '#7c5cff', sort: 2 },
     { id: 'cA4', team_id: 'tA', name: 'Deko', description: '', color: '#12b8a6', sort: 3 },
     { id: 'cA5', team_id: 'tA', name: 'Sanitäter', description: 'Erste Hilfe', color: '#ff4f8b', sort: 4 },
@@ -71,8 +71,10 @@ function seed() {
     { id: 'cB3', team_id: 'tB', name: 'Kasse', description: '', color: '#12b8a6', sort: 2 },
   ];
   const preferences = [];
-  const prefPairs = [['u1', 'cA1', 1], ['u2', 'cA1', 1], ['u5', 'cA1', 2], ['u6', 'cA1', 1], ['u7', 'cA4', 1], ['u3', 'cA3', 1], ['u8', 'cA2', 1], ['u9', 'cA2', 2], ['u10', 'cA2', 1], ['u11', 'cA3', 2], ['u12', 'cA4', 1], ['u13', 'cA4', 2], ['u14', 'cA4', 1], ['u16', 'cA5', 1], ['u4', 'cA5', 2]];
-  prefPairs.forEach(([u, c, r]) => preferences.push({ team_id: 'tA', user_id: u, position_type_id: c, rank: r }));
+  const prefPairs = [['u1', 'cA1', 1], ['u1', 'cA2', 2], ['u2', 'cA1', 1], ['u5', 'cA1', 2], ['u6', 'cA1', 1], ['u7', 'cA4', 1], ['u3', 'cA3', 1], ['u8', 'cA2', 1], ['u9', 'cA2', 2], ['u10', 'cA2', 1], ['u11', 'cA3', 2], ['u12', 'cA4', 1], ['u13', 'cA4', 2], ['u14', 'cA4', 1], ['u16', 'cA5', 1], ['u4', 'cA5', 2]];
+  prefPairs.forEach(([u, c, r]) => preferences.push({ team_id: 'tA', user_id: u, position_type_id: c, rank: r, shifts: [] }));
+  // Beispiel: u8 bewirbt sich für die Früh-Einlass-Schicht
+  const pe = preferences.find((p) => p.user_id === 'u8' && p.position_type_id === 'cA2'); if (pe) pe.shifts = ['tE1'];
 
   const events = [
     { id: 'eA1', team_id: 'tA', title: 'Stadtfest 2026', description: 'Großes Fest auf dem Lindenplatz.', location: 'Lindenplatz', address: 'Lindenplatz 1, 12345 Musterstadt', starts_at: iso(now + 12 * DAY), ends_at: iso(now + 12 * DAY + 7 * 3600000), binding: false, respond_by: iso(now + 6 * DAY), created_at: iso(now - 5 * DAY) },
