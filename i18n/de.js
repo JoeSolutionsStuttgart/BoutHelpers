@@ -724,4 +724,7 @@ export default {
   "types.shifts": "Schicht-Vorlagen",
   "types.shifts_hint": "Lege Schichten vorab an (Name, Uhrzeit, Plätze). Beim Erstellen eines Events werden sie für diese Position automatisch übernommen und bleiben dort änderbar.",
   "prefs.shift_wish": "Gewünschte Schichten:",
+  "pos.add_title": "Positionen hinzufügen",
+  "pos.already_on_event": "schon im Event",
+  "pos.add_custom": "Einzelne Position ohne Vorlage",
 };

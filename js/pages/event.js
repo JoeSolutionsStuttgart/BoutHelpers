@@ -9,7 +9,7 @@ import {
 } from '../lib/ui.js';
 import { autoAssign } from '../lib/assign.js';
 import { refreshUnread } from '../lib/unread.js';
-import { MyAnswerButtons } from './shared.js';
+import { MyAnswerButtons, makePlan, PositionPlanner, buildShiftRows } from './shared.js';
 import { Chat } from './chat.js';
 import { Polls } from './polls.js';
 import { NoticeBoard } from './notices.js';
@@ -195,7 +195,7 @@ function PositionsBoard({ ctx }) {
 
   return html`<div>
     ${manage && html`<div class="toolbar">
-      <button class="btn primary" onClick=${() => setModal({ kind: 'position' })}><${Icon} name="plus" />${t('pos.new')}</button>
+      <button class="btn primary" onClick=${() => setModal({ kind: 'addpos' })}><${Icon} name="plus" />${t('pos.new')}</button>
       <button class="btn" onClick=${() => setModal({ kind: 'auto' })} disabled=${ctx.shifts.length === 0}><${Icon} name="wand" />${t('pos.auto')}${openSlots > 0 ? html`<span class="chip">${openSlots}</span>` : ''}</button>
     </div>`}
     <div class="legend">
@@ -210,6 +210,7 @@ function PositionsBoard({ ctx }) {
     ${ctx.positions.length > 0 && shown.length === 0 && html`<div class="card"><${Empty} icon="search" title=${t('pos.filter_none')} /></div>`}
     <div class="pos-grid">${shown.map((p) => html`<${PositionCard} key=${p.id} ctx=${ctx} pos=${p} byShift=${byShift} onModal=${setModal} filter=${active} />`)}</div>
 
+    ${modal && modal.kind === 'addpos' && html`<${AddPositionsModal} ctx=${ctx} onClose=${() => setModal(null)} onCustom=${() => setModal({ kind: 'position' })} />`}
     ${modal && modal.kind === 'position' && html`<${PositionModal} ctx=${ctx} pos=${modal.pos} onClose=${() => setModal(null)} />`}
     ${modal && modal.kind === 'shift' && html`<${ShiftModal} ctx=${ctx} pos=${modal.pos} shift=${modal.shift} onClose=${() => setModal(null)} />`}
     ${modal && modal.kind === 'assign' && html`<${AssignModal} ctx=${ctx} pos=${modal.pos} shift=${modal.shift} list=${byShift[modal.shift.id] || []} onClose=${() => setModal(null)} />`}
@@ -336,6 +337,38 @@ function ShiftBlock({ ctx, pos, shift, label, list, onModal, showDelete, filter 
       ${manage && html`<button class="btn small ghost" onClick=${() => onModal({ kind: 'assign', pos, shift })}><${Icon} name="plus" size=${16} />${t('pos.assign_person')}</button>`}
     </div>
   </div>`;
+}
+
+// Nachträglich Positionen hinzufügen – wie beim Event-Erstellen (Typ-Auswahl + Schichten aus Vorlagen)
+function AddPositionsModal({ ctx, onClose, onCustom }) {
+  const [plan, setPlan] = useState(() => makePlan(ctx.types));
+  const [busy, setBusy] = useState(false);
+  const evDate = localDatePart(ctx.ev.starts_at);
+  const existing = (typeId) => ctx.positions.some((p) => p.position_type_id === typeId);
+  const save = async () => {
+    const chosen = ctx.types.filter((x) => plan[x.id] && plan[x.id].on && plan[x.id].shifts.length > 0);
+    if (!chosen.length) { onClose(); return; }
+    setBusy(true);
+    try {
+      let sort = ctx.positions.length;
+      for (const x of chosen) {
+        const created = await q(sb.from('positions').insert({ event_id: ctx.ev.id, team_id: ctx.ev.team_id, position_type_id: x.id, name: x.name, description: x.description, sort: sort++ }).select('id'));
+        await q(sb.from('shifts').insert(buildShiftRows(plan[x.id].shifts, { evDate, eventId: ctx.ev.id, teamId: ctx.ev.team_id, positionId: created[0].id })));
+      }
+      toast(t('common.saved'));
+      ctx.reload();
+      onClose();
+    } catch (err) { toastError(err); } finally { setBusy(false); }
+  };
+  return html`<${Modal} title=${t('pos.add_title')} onClose=${onClose} wide footer=${html`
+    <button class="btn ghost" style="margin-right:auto" onClick=${onCustom}><${Icon} name="plus" size=${16} />${t('pos.add_custom')}</button>
+    <button class="btn ghost" onClick=${onClose}>${t('common.cancel')}</button>
+    <button class="btn primary" disabled=${busy} onClick=${save}><${Icon} name="check" />${t('common.add')}</button>`}>
+    ${ctx.types.length === 0
+      ? html`<div class="notice">${t('event.no_types')}</div>`
+      : html`<p class="small muted" style="margin-top:0">${t('event.positions_from_types_hint')}</p>
+        <${PositionPlanner} types=${ctx.types} plan=${plan} setPlan=${setPlan} existing=${existing} />`}
+  <//>`;
 }
 
 function PositionModal({ ctx, pos, onClose }) {

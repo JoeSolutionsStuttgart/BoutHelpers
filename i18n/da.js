@@ -724,4 +724,7 @@ export default {
   "types.shifts": "Vagtskabeloner",
   "types.shifts_hint": "Opret vagter på forhånd (navn, tid, pladser). Når du opretter en begivenhed, tilføjes de automatisk til denne position og kan stadig redigeres.",
   "prefs.shift_wish": "Ønskede vagter:",
+  "pos.add_title": "Tilføj positioner",
+  "pos.already_on_event": "allerede i begivenheden",
+  "pos.add_custom": "Enkelt position uden skabelon",
 };

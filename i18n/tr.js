@@ -724,4 +724,7 @@ export default {
   "types.shifts": "Vardiya şablonları",
   "types.shifts_hint": "Vardiyaları önceden oluştur (ad, saat, kontenjan). Bir etkinlik oluşturduğunda bu pozisyon için otomatik eklenir ve düzenlenebilir kalır.",
   "prefs.shift_wish": "Tercih edilen vardiyalar:",
+  "pos.add_title": "Pozisyon ekle",
+  "pos.already_on_event": "etkinlikte zaten var",
+  "pos.add_custom": "Şablonsuz tek pozisyon",
 };

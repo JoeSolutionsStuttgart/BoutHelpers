@@ -724,4 +724,7 @@ export default {
   "types.shifts": "Passmallar",
   "types.shifts_hint": "Skapa pass i förväg (namn, tid, platser). När du skapar ett evenemang läggs de till automatiskt för den här positionen och går att ändra.",
   "prefs.shift_wish": "Önskade pass:",
+  "pos.add_title": "Lägg till positioner",
+  "pos.already_on_event": "redan i evenemanget",
+  "pos.add_custom": "Enskild position utan mall",
 };

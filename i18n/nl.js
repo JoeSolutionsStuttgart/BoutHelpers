@@ -724,4 +724,7 @@ export default {
   "types.shifts": "Dienstsjablonen",
   "types.shifts_hint": "Maak diensten vooraf aan (naam, tijd, plekken). Bij het aanmaken van een evenement worden ze automatisch voor deze positie overgenomen en blijven bewerkbaar.",
   "prefs.shift_wish": "Gewenste diensten:",
+  "pos.add_title": "Posities toevoegen",
+  "pos.already_on_event": "al in evenement",
+  "pos.add_custom": "Losse positie zonder sjabloon",
 };

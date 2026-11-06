@@ -724,4 +724,7 @@ export default {
   "types.shifts": "Szablony zmian",
   "types.shifts_hint": "Utwórz zmiany z wyprzedzeniem (nazwa, godzina, miejsca). Przy tworzeniu wydarzenia zostaną automatycznie dodane do tej pozycji i pozostaną edytowalne.",
   "prefs.shift_wish": "Preferowane zmiany:",
+  "pos.add_title": "Dodaj stanowiska",
+  "pos.already_on_event": "już w wydarzeniu",
+  "pos.add_custom": "Pojedyncze stanowisko bez szablonu",
 };

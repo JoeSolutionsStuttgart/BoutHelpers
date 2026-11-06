@@ -1,14 +1,14 @@
 // Team-Seite: Events, Mitglieder, Rollen, Positionen & Wünsche, Einladungen, Einstellungen
 import { html, useState } from '../lib/h.js';
 import { sb, q, rpc, PERMISSIONS, appLink, flushMail } from '../lib/sb.js';
-import { t, fmtDateTime, fmtRelative, fromLocalInput, combineDateTime } from '../lib/i18n.js';
+import { t, fmtDateTime, fmtRelative, fromLocalInput } from '../lib/i18n.js';
 import { useStore, toast, toastError, confirmDialog, loadTeams } from '../lib/store.js';
 import { refreshUnread } from '../lib/unread.js';
 import {
   Icon, Spinner, Empty, ErrorBox, Field, Modal, Swatches, Person, Avatar, EditableText, CopyField, Tabs,
   useAsync, go, PALETTE, UnreadBadge,
 } from '../lib/ui.js';
-import { DateBox } from './shared.js';
+import { DateBox, normalizeTemplates, tmplLabel, ShiftRowsEditor, tmplId, makePlan, PositionPlanner, buildShiftRows } from './shared.js';
 import { NoticeBoard } from './notices.js';
 
 export function TeamPage({ id, tab }) {
@@ -104,37 +104,6 @@ function EventsTab({ ctx }) {
   </div>`;
 }
 
-const tmplId = () => 's' + Math.random().toString(36).slice(2, 9);
-// Schicht-Vorlagen einer Positionsart robust einlesen (altes Format ohne Spalte = keine)
-export function normalizeTemplates(x) {
-  if (!Array.isArray(x)) return [];
-  return x.map((r) => ({ id: String(r && r.id || ''), name: String(r && r.name || ''), from: String(r && r.from || ''), to: String(r && r.to || ''), slots: Math.max(1, Math.min(500, Number(r && r.slots) || 1)) }));
-}
-// Kurzname einer Schicht-Vorlage für Anzeige (Name oder Uhrzeit oder „Schicht n")
-function tmplLabel(tpl, i) {
-  if (tpl.name) return tpl.name;
-  if (tpl.from) return tpl.from + (tpl.to ? '–' + tpl.to : '');
-  return t('shift.n', { n: i + 1 });
-}
-
-// Editor für eine Liste von Schichten (Name, Uhrzeit von/bis, Plätze) – für Event-Erstellung und Vorlagen
-function ShiftRowsEditor({ rows, setRows }) {
-  const upd = (i, k, v) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
-  const add = () => { const last = rows[rows.length - 1]; setRows([...rows, { name: '', from: last ? last.to : '', to: '', slots: last ? last.slots : 1 }]); };
-  const del = (i) => setRows(rows.filter((_, j) => j !== i));
-  return html`<div class="stack-sm">
-    ${rows.length === 0 && html`<p class="small faint" style="margin:0">${t('shift.none')}</p>`}
-    ${rows.map((r, i) => html`<div class="shift-row" key=${i}>
-      <input class="input" placeholder=${t('shift.name')} maxlength="80" value=${r.name} onInput=${(e) => upd(i, 'name', e.target.value)} />
-      <input class="input" type="time" aria-label=${t('avail.from')} value=${r.from} onInput=${(e) => upd(i, 'from', e.target.value)} />
-      <input class="input" type="time" aria-label=${t('avail.to')} value=${r.to} onInput=${(e) => upd(i, 'to', e.target.value)} />
-      <input class="input" type="number" min="1" max="500" aria-label=${t('event.slots')} value=${r.slots} onInput=${(e) => upd(i, 'slots', e.target.value)} />
-      <button type="button" class="btn icon" aria-label=${t('common.remove')} onClick=${() => del(i)}><${Icon} name="trash" size=${16} /></button>
-    </div>`)}
-    <button type="button" class="btn small" onClick=${add}><${Icon} name="plus" size=${16} />${t('shift.add')}</button>
-  </div>`;
-}
-
 // Schicht-Vorlagen einer Positionsart bearbeiten
 function ShiftTemplateModal({ ctx, type, onClose }) {
   const [rows, setRows] = useState(() => normalizeTemplates(type.shift_templates));
@@ -154,16 +123,9 @@ function ShiftTemplateModal({ ctx, type, onClose }) {
 
 function EventCreateModal({ ctx, onClose }) {
   const [f, setF] = useState({ title: '', starts: '', ends: '', location: '', address: '', description: '' });
-  // je Positionsart: ein-/ausgeschaltet + Schichten (vorbefüllt aus den Vorlagen)
-  const [plan, setPlan] = useState(() => Object.fromEntries(ctx.types.map((x) => [x.id, { on: false, shifts: normalizeTemplates(x.shift_templates) }])));
+  const [plan, setPlan] = useState(() => makePlan(ctx.types)); // je Positionsart: aus/an + Schichten (aus Vorlagen)
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-  const toggle = (id) => setPlan((p) => {
-    const cur = p[id]; const on = !cur.on;
-    const shifts = on && cur.shifts.length === 0 ? [{ name: '', from: '', to: '', slots: 1 }] : cur.shifts;
-    return { ...p, [id]: { on, shifts } };
-  });
-  const setShifts = (id) => (rows) => setPlan((p) => ({ ...p, [id]: { ...p[id], shifts: rows } }));
   const save = async (e) => {
     e && e.preventDefault();
     if (!f.title.trim() || !f.starts) return toast(t('event.need_title_date'), 'error');
@@ -179,13 +141,7 @@ function EventCreateModal({ ctx, onClose }) {
       let sort = 0;
       for (const x of chosen) {
         const created = await q(sb.from('positions').insert({ event_id: evId, team_id: ctx.team.id, position_type_id: x.id, name: x.name, description: x.description, sort: sort++ }).select('id'));
-        const pid = created[0].id;
-        const shiftRows = plan[x.id].shifts.map((r, i) => {
-          let s = combineDateTime(evDate, r.from); let en = combineDateTime(evDate, r.to);
-          if (s && en && new Date(en) <= new Date(s)) en = new Date(new Date(en).getTime() + 86400000).toISOString();
-          return { position_id: pid, event_id: evId, team_id: ctx.team.id, name: (r.name || '').trim(), slots: Math.max(1, Math.min(500, Number(r.slots) || 1)), starts_at: s, ends_at: en, sort: i };
-        });
-        await q(sb.from('shifts').insert(shiftRows));
+        await q(sb.from('shifts').insert(buildShiftRows(plan[x.id].shifts, { evDate, eventId: evId, teamId: ctx.team.id, positionId: created[0].id })));
       }
       toast(t('event.created'));
       go('/event/' + evId);
@@ -207,17 +163,7 @@ function EventCreateModal({ ctx, onClose }) {
         <h3>${t('event.positions_from_types')}</h3>
         <p class="small muted">${t('event.positions_from_types_hint')}</p>
         ${ctx.types.length === 0 && html`<div class="notice">${t('event.no_types')}</div>`}
-        ${ctx.types.map((x) => {
-          const p = plan[x.id] || { on: false, shifts: [] };
-          return html`<div class="pos-plan" key=${x.id}>
-            <label class="row nowrap" style="gap:8px;cursor:pointer">
-              <input type="checkbox" checked=${p.on} onChange=${() => toggle(x.id)} />
-              <span class="dot" style=${{ background: x.color }}></span><b class="grow">${x.name}</b>
-              ${!p.on && p.shifts.length > 0 && html`<span class="small faint">${t('shift.count', { n: p.shifts.length })}</span>`}
-            </label>
-            ${p.on && html`<div style="margin:8px 0 2px 26px"><${ShiftRowsEditor} rows=${p.shifts} setRows=${setShifts(x.id)} /></div>`}
-          </div>`;
-        })}
+        <${PositionPlanner} types=${ctx.types} plan=${plan} setPlan=${setPlan} />
       </div>
     </form>
   <//>`;

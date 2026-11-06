@@ -724,4 +724,7 @@ export default {
   "types.shifts": "Műszaksablonok",
   "types.shifts_hint": "Hozz létre műszakokat előre (név, idő, helyek). Esemény létrehozásakor automatikusan bekerülnek ehhez a pozícióhoz, és továbbra is szerkeszthetők.",
   "prefs.shift_wish": "Kívánt műszakok:",
+  "pos.add_title": "Pozíciók hozzáadása",
+  "pos.already_on_event": "már az eseményben",
+  "pos.add_custom": "Egyedi pozíció sablon nélkül",
 };

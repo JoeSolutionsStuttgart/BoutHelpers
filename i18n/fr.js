@@ -724,4 +724,7 @@ export default {
   "types.shifts": "Modèles de créneaux",
   "types.shifts_hint": "Crée des créneaux à l’avance (nom, horaire, places). Lors de la création d’un événement, ils sont repris automatiquement pour cette position et restent modifiables.",
   "prefs.shift_wish": "Créneaux souhaités :",
+  "pos.add_title": "Ajouter des positions",
+  "pos.already_on_event": "déjà dans l’événement",
+  "pos.add_custom": "Position seule sans modèle",
 };

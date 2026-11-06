@@ -724,4 +724,7 @@ export default {
   "types.shifts": "Vuoropohjat",
   "types.shifts_hint": "Luo vuorot etukäteen (nimi, aika, paikat). Kun luot tapahtuman, ne lisätään automaattisesti tähän tehtävään ja pysyvät muokattavina.",
   "prefs.shift_wish": "Toivotut vuorot:",
+  "pos.add_title": "Lisää tehtäviä",
+  "pos.already_on_event": "jo tapahtumassa",
+  "pos.add_custom": "Yksittäinen tehtävä ilman pohjaa",
 };

@@ -724,4 +724,7 @@ export default {
   "types.shifts": "Šablony směn",
   "types.shifts_hint": "Vytvoř směny předem (název, čas, místa). Při vytvoření akce se automaticky přidají k této pozici a zůstanou upravitelné.",
   "prefs.shift_wish": "Preferované směny:",
+  "pos.add_title": "Přidat pozice",
+  "pos.already_on_event": "už v akci",
+  "pos.add_custom": "Jednotlivá pozice bez šablony",
 };

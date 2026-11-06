@@ -1,7 +1,7 @@
 // Gemeinsame Aktionen für Einsätze
 import { html } from '../lib/h.js';
 import { rpc } from '../lib/sb.js';
-import { t } from '../lib/i18n.js';
+import { t, combineDateTime } from '../lib/i18n.js';
 import { toast, toastError, promptDialog, confirmDialog } from '../lib/store.js';
 import { Icon } from '../lib/ui.js';
 
@@ -66,4 +66,76 @@ export function DateBox({ date, color }) {
     <b>${new Intl.DateTimeFormat(document.documentElement.lang || 'de', { day: 'numeric' }).format(d)}</b>
     <span>${new Intl.DateTimeFormat(document.documentElement.lang || 'de', { month: 'short' }).format(d)}</span>
   </div>`;
+}
+
+// ---------- Schichten: Vorlagen, Editor & Positions-Planer (Event-Erstellung + nachträglich) ----------
+export const tmplId = () => 's' + Math.random().toString(36).slice(2, 9);
+
+// Schicht-Vorlagen einer Positionsart robust einlesen (altes Format ohne Spalte = keine)
+export function normalizeTemplates(x) {
+  if (!Array.isArray(x)) return [];
+  return x.map((r) => ({ id: String(r && r.id || ''), name: String(r && r.name || ''), from: String(r && r.from || ''), to: String(r && r.to || ''), slots: Math.max(1, Math.min(500, Number(r && r.slots) || 1)) }));
+}
+
+// Kurzname einer Schicht-Vorlage (Name oder Uhrzeit oder „Schicht n")
+export function tmplLabel(tpl, i) {
+  if (tpl.name) return tpl.name;
+  if (tpl.from) return tpl.from + (tpl.to ? '–' + tpl.to : '');
+  return t('shift.n', { n: i + 1 });
+}
+
+// Editor für eine Liste von Schichten (Name, Uhrzeit von/bis, Plätze)
+export function ShiftRowsEditor({ rows, setRows }) {
+  const upd = (i, k, v) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
+  const add = () => { const last = rows[rows.length - 1]; setRows([...rows, { name: '', from: last ? last.to : '', to: '', slots: last ? last.slots : 1 }]); };
+  const del = (i) => setRows(rows.filter((_, j) => j !== i));
+  return html`<div class="stack-sm">
+    ${rows.length === 0 && html`<p class="small faint" style="margin:0">${t('shift.none')}</p>`}
+    ${rows.map((r, i) => html`<div class="shift-row" key=${i}>
+      <input class="input" placeholder=${t('shift.name')} maxlength="80" value=${r.name} onInput=${(e) => upd(i, 'name', e.target.value)} />
+      <input class="input" type="time" aria-label=${t('avail.from')} value=${r.from} onInput=${(e) => upd(i, 'from', e.target.value)} />
+      <input class="input" type="time" aria-label=${t('avail.to')} value=${r.to} onInput=${(e) => upd(i, 'to', e.target.value)} />
+      <input class="input" type="number" min="1" max="500" aria-label=${t('event.slots')} value=${r.slots} onInput=${(e) => upd(i, 'slots', e.target.value)} />
+      <button type="button" class="btn icon" aria-label=${t('common.remove')} onClick=${() => del(i)}><${Icon} name="trash" size=${16} /></button>
+    </div>`)}
+    <button type="button" class="btn small" onClick=${add}><${Icon} name="plus" size=${16} />${t('shift.add')}</button>
+  </div>`;
+}
+
+// Anfangszustand des Planers: je Positionsart aus/an + Schichten (aus den Vorlagen)
+export function makePlan(types) {
+  return Object.fromEntries((types || []).map((x) => [x.id, { on: false, shifts: normalizeTemplates(x.shift_templates) }]));
+}
+
+// Positionsarten auswählen und je Position die Schichten festlegen (vorbefüllt aus Vorlagen).
+// existing(typeId) kann true liefern, wenn die Position im Event schon existiert (nur Hinweis).
+export function PositionPlanner({ types, plan, setPlan, existing }) {
+  const toggle = (id) => setPlan((p) => {
+    const cur = p[id]; const on = !cur.on;
+    const shifts = on && cur.shifts.length === 0 ? [{ name: '', from: '', to: '', slots: 1 }] : cur.shifts;
+    return { ...p, [id]: { on, shifts } };
+  });
+  const setShifts = (id) => (rows) => setPlan((p) => ({ ...p, [id]: { ...p[id], shifts: rows } }));
+  return html`<div>${(types || []).map((x) => {
+    const p = plan[x.id] || { on: false, shifts: [] };
+    const has = existing && existing(x.id);
+    return html`<div class="pos-plan" key=${x.id}>
+      <label class="row nowrap" style="gap:8px;cursor:pointer">
+        <input type="checkbox" checked=${p.on} onChange=${() => toggle(x.id)} />
+        <span class="dot" style=${{ background: x.color }}></span><b class="grow">${x.name}</b>
+        ${has && html`<span class="small faint">${t('pos.already_on_event')}</span>`}
+        ${!p.on && p.shifts.length > 0 && html`<span class="small faint">${t('shift.count', { n: p.shifts.length })}</span>`}
+      </label>
+      ${p.on && html`<div style="margin:8px 0 2px 26px"><${ShiftRowsEditor} rows=${p.shifts} setRows=${setShifts(x.id)} /></div>`}
+    </div>`;
+  })}</div>`;
+}
+
+// Schicht-Zeilen des Editors in DB-Datensätze umwandeln (Event-Datum + Uhrzeit, über Mitternacht)
+export function buildShiftRows(shifts, { evDate, eventId, teamId, positionId }) {
+  return (shifts || []).map((r, i) => {
+    let s = combineDateTime(evDate, r.from); let en = combineDateTime(evDate, r.to);
+    if (s && en && new Date(en) <= new Date(s)) en = new Date(new Date(en).getTime() + 86400000).toISOString();
+    return { position_id: positionId, event_id: eventId, team_id: teamId, name: (r.name || '').trim(), slots: Math.max(1, Math.min(500, Number(r.slots) || 1)), starts_at: s, ends_at: en, sort: i };
+  });
 }

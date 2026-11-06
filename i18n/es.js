@@ -724,4 +724,7 @@ export default {
   "types.shifts": "Plantillas de turnos",
   "types.shifts_hint": "Crea turnos por adelantado (nombre, hora, plazas). Al crear un evento se añaden automáticamente a esta posición y siguen siendo editables.",
   "prefs.shift_wish": "Turnos preferidos:",
+  "pos.add_title": "Añadir posiciones",
+  "pos.already_on_event": "ya en el evento",
+  "pos.add_custom": "Posición suelta sin plantilla",
 };

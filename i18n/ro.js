@@ -724,4 +724,7 @@ export default {
   "types.shifts": "Șabloane de ture",
   "types.shifts_hint": "Creează ture din timp (nume, oră, locuri). La crearea unui eveniment sunt adăugate automat pentru această poziție și rămân editabile.",
   "prefs.shift_wish": "Ture preferate:",
+  "pos.add_title": "Adaugă poziții",
+  "pos.already_on_event": "deja în eveniment",
+  "pos.add_custom": "Poziție individuală fără șablon",
 };

@@ -724,4 +724,7 @@ export default {
   "types.shifts": "Shift templates",
   "types.shifts_hint": "Set up shifts in advance (name, time, slots). When you create an event they are added automatically for this position and stay editable there.",
   "prefs.shift_wish": "Preferred shifts:",
+  "pos.add_title": "Add positions",
+  "pos.already_on_event": "already on event",
+  "pos.add_custom": "Single position without template",
 };

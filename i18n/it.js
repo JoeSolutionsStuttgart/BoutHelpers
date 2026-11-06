@@ -724,4 +724,7 @@ export default {
   "types.shifts": "Modelli di turni",
   "types.shifts_hint": "Crea i turni in anticipo (nome, orario, posti). Quando crei un evento vengono aggiunti automaticamente a questa posizione e restano modificabili.",
   "prefs.shift_wish": "Turni preferiti:",
+  "pos.add_title": "Aggiungi posizioni",
+  "pos.already_on_event": "già nell’evento",
+  "pos.add_custom": "Posizione singola senza modello",
 };
