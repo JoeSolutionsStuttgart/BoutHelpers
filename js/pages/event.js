@@ -59,7 +59,7 @@ export function EventPage({ id, tab }) {
     const evs = await q(sb.from('events').select('*, teams(id, name, color)').eq('id', id));
     if (!evs[0]) return null;
     const ev = evs[0];
-    const [perms, positions, shifts, assignments, guests, types, availability] = await Promise.all([
+    const [perms, positions, shifts, assignments, guests, types, availability, contacts] = await Promise.all([
       rpc('my_permissions', { t: ev.team_id }),
       q(sb.from('positions').select('*').eq('event_id', id).order('sort').order('created_at')),
       q(sb.from('shifts').select('*').eq('event_id', id).order('sort').order('starts_at', { nullsFirst: true }).order('created_at')),
@@ -67,6 +67,7 @@ export function EventPage({ id, tab }) {
       q(sb.from('event_guests').select('*, ' + PROFILE).eq('event_id', id)),
       q(sb.from('position_types').select('*').eq('team_id', ev.team_id).order('sort').order('name')),
       q(sb.from('availability').select('*, ' + PROFILE).eq('event_id', id)),
+      q(sb.from('position_contacts').select('*').eq('event_id', id).order('created_at')).catch(() => []),
     ]);
     const permSet = new Set(perms || []);
     // Mitgliederliste für alle Team-Mitglieder laden (für Wunschpartner & Übersicht); Gäste sehen per RLS nichts.
@@ -74,7 +75,7 @@ export function EventPage({ id, tab }) {
     // Wünsche des Teams (für „Position hinzufügen mit Präferenzen"); nur für Verwaltende sinnvoll, sonst leer
     let preferences = [];
     if (permSet.has('events.manage')) { try { preferences = await q(sb.from('preferences').select('user_id, position_type_id, rank, shifts').eq('team_id', ev.team_id)); } catch (e) { preferences = []; } }
-    return { ev, perms: permSet, positions, shifts, assignments, guests, members, types, availability, preferences };
+    return { ev, perms: permSet, positions, shifts, assignments, guests, members, types, availability, preferences, contacts };
   }, [id]);
 
   useRealtime(d.data ? 'event-' + id : null, ['assignments', 'positions', 'shifts', 'availability'], 'event_id=eq.' + id, () => d.reload(true));
@@ -90,6 +91,8 @@ export function EventPage({ id, tab }) {
     can: (p) => d.data.perms.has(p),
     reload: () => d.reload(true),
     shiftsOf: (pid) => d.data.shifts.filter((s) => s.position_id === pid),
+    contactsOf: (pid) => (d.data.contacts || []).filter((c) => c.position_id === pid),
+    nameOf: (uid) => { const m = (d.data.members || []).find((x) => x.user_id === uid); return m && m.profiles ? m.profiles.display_name : '—'; },
     avOf: (uid) => d.data.availability.find((a) => a.user_id === uid),
   };
   const manage = ctx.can('events.manage');
@@ -236,26 +239,72 @@ function PositionCard({ ctx, pos, byShift, onModal, filter }) {
     try { await q(sb.from('positions').delete().eq('id', pos.id)); ctx.reload(); refreshUnread(); } catch (e) { toastError(e); }
   };
 
-  return html`<div class=${'card pos-card' + (mineHere ? ' mine-group' : '')} style=${{ '--c': type ? type.color : 'var(--orange)' }}>
+  const isContact = !!pos.contact;
+  return html`<div class=${'card pos-card' + (mineHere ? ' mine-group' : '')} style=${{ '--c': isContact ? 'var(--teal)' : (type ? type.color : 'var(--orange)') }}>
     <div class="card-head" style="margin-bottom:4px">
       <h3 class="grow">${pos.name}</h3>
-      ${canGroup && html`<a class="btn icon" href=${'#/group/' + pos.id} title=${t('group.open')} aria-label=${t('group.open')}><${Icon} name="layers" /></a>`}
+      ${!isContact && canGroup && html`<a class="btn icon" href=${'#/group/' + pos.id} title=${t('group.open')} aria-label=${t('group.open')}><${Icon} name="layers" /></a>`}
       ${manage && html`<button class="btn icon" title=${t('common.edit')} aria-label=${t('common.edit')} onClick=${() => onModal({ kind: 'position', pos })}><${Icon} name="edit" /></button>
         <button class="btn icon" title=${t('common.delete')} aria-label=${t('common.delete')} onClick=${delPos}><${Icon} name="trash" /></button>`}
     </div>
     <div class="row" style="gap:6px">
-      ${mineHere && html`<span class="chip mine-chip"><${Icon} name="check" size=${13} />${t('groups.yours')}</span>`}
+      ${isContact && html`<span class="chip"><${Icon} name="user" size=${13} />${t('pos.contact_badge')}</span>`}
+      ${!isContact && mineHere && html`<span class="chip mine-chip"><${Icon} name="check" size=${13} />${t('groups.yours')}</span>`}
       ${type && type.name !== pos.name && html`<span class="chip">${type.name}</span>`}
-      ${shifts.length > 1 && html`<span class="chip">${t('shift.count', { n: shifts.length })}</span>`}
-      <span class="small faint">${all.length}/${slots}</span>
+      ${!isContact && shifts.length > 1 && html`<span class="chip">${t('shift.count', { n: shifts.length })}</span>`}
+      ${!isContact && html`<span class="small faint">${all.length}/${slots}</span>`}
     </div>
     ${pos.description && html`<div class="small muted pre" style="margin-top:4px">${pos.description}</div>`}
 
-    ${shifts.length === 0 && html`<p class="small faint">${t('shift.none')}</p>`}
-    ${shifts.map((s, i) => html`<${ShiftBlock} key=${s.id} ctx=${ctx} pos=${pos} shift=${s} label=${shiftLabel(s, i, shifts.length)}
-      list=${byShift[s.id] || []} onModal=${onModal} showDelete=${shifts.length > 1} filter=${filter} />`)}
+    ${isContact
+      ? html`<${ContactSection} ctx=${ctx} pos=${pos} />`
+      : html`
+        ${shifts.length === 0 && html`<p class="small faint">${t('shift.none')}</p>`}
+        ${shifts.map((s, i) => html`<${ShiftBlock} key=${s.id} ctx=${ctx} pos=${pos} shift=${s} label=${shiftLabel(s, i, shifts.length)}
+          list=${byShift[s.id] || []} onModal=${onModal} showDelete=${shifts.length > 1} filter=${filter} />`)}
+        ${!filter && manage && html`<button class="btn small ghost" style="margin-top:10px" onClick=${() => onModal({ kind: 'shift', pos })}><${Icon} name="plus" size=${16} />${t('shift.add')}</button>`}`}
+  </div>`;
+}
 
-    ${!filter && manage && html`<button class="btn small ghost" style="margin-top:10px" onClick=${() => onModal({ kind: 'shift', pos })}><${Icon} name="plus" size=${16} />${t('shift.add')}</button>`}
+// Kontaktliste einer Kontaktposition: wer kennt jemanden (Name, Kontaktdaten, Infos)
+function ContactSection({ ctx, pos }) {
+  const manage = ctx.can('events.manage');
+  const list = ctx.contactsOf(pos.id);
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ name: '', contact: '', note: '' });
+  const [busy, setBusy] = useState(false);
+  const add = async (e) => {
+    e && e.preventDefault();
+    if (!f.name.trim()) return;
+    setBusy(true);
+    try {
+      await q(sb.from('position_contacts').insert({ position_id: pos.id, event_id: ctx.ev.id, team_id: ctx.ev.team_id, added_by: ctx.me, name: f.name.trim(), contact: f.contact.trim(), note: f.note.trim() }));
+      setF({ name: '', contact: '', note: '' }); setOpen(false); ctx.reload();
+    } catch (err) { toastError(err); } finally { setBusy(false); }
+  };
+  const del = async (c) => {
+    try { await q(sb.from('position_contacts').delete().eq('id', c.id)); ctx.reload(); } catch (err) { toastError(err); }
+  };
+  return html`<div class="contact-list" style="margin-top:8px">
+    ${list.length === 0 && html`<p class="small faint" style="margin:4px 0">${t('pos.contact_none')}</p>`}
+    ${list.map((c) => html`<div class="contact-item" key=${c.id}>
+      <div class="grow" style="min-width:0">
+        <b>${c.name}</b>
+        ${c.contact && html`<div class="small" style="word-break:break-word">${c.contact}</div>`}
+        ${c.note && html`<div class="small muted pre">${c.note}</div>`}
+        <div class="small faint">${t('pos.contact_by', { name: ctx.nameOf(c.added_by) })}</div>
+      </div>
+      ${(manage || c.added_by === ctx.me) && html`<button class="btn icon" aria-label=${t('common.delete')} onClick=${() => del(c)}><${Icon} name="trash" size=${16} /></button>`}
+    </div>`)}
+    ${open
+      ? html`<form class="stack-sm contact-form" onSubmit=${add} style="margin-top:8px">
+          <input class="input" required maxlength="120" placeholder=${t('pos.contact_name_ph')} value=${f.name} onInput=${(e) => setF({ ...f, name: e.target.value })} />
+          <input class="input" maxlength="300" placeholder=${t('pos.contact_data_ph')} value=${f.contact} onInput=${(e) => setF({ ...f, contact: e.target.value })} />
+          <textarea class="input" maxlength="1000" rows="2" placeholder=${t('pos.contact_note_ph')} value=${f.note} onInput=${(e) => setF({ ...f, note: e.target.value })}></textarea>
+          <div class="row" style="gap:8px"><button class="btn small primary" disabled=${busy}><${Icon} name="check" size=${16} />${t('common.save')}</button>
+            <button type="button" class="btn small ghost" onClick=${() => setOpen(false)}>${t('common.cancel')}</button></div>
+        </form>`
+      : html`<button class="btn small" style="margin-top:8px" onClick=${() => setOpen(true)}><${Icon} name="plus" size=${16} />${t('pos.contact_add')}</button>`}
   </div>`;
 }
 
@@ -343,6 +392,14 @@ function ShiftBlock({ ctx, pos, shift, label, list, onModal, showDelete, filter 
 }
 
 // Nachträglich Positionen hinzufügen – wie beim Event-Erstellen (Typ-Auswahl + Schichten aus Vorlagen)
+// Schichten bestehender Positionen als „übernehmen von …"-Vorlage (Shortcut)
+function existingShiftSources(ctx) {
+  return (ctx.positions || []).filter((p) => !p.contact && ctx.shiftsOf(p.id).length > 0).map((p) => ({
+    label: t('shift.from_position', { name: p.name }),
+    rows: ctx.shiftsOf(p.id).map((s) => ({ name: s.name || '', from: localTimePart(s.starts_at), to: localTimePart(s.ends_at), slots: s.slots })),
+  }));
+}
+
 function AddPositionsModal({ ctx, onClose, onCustom }) {
   const [plan, setPlan] = useState(() => makePlan(ctx.types));
   const [busy, setBusy] = useState(false);
@@ -377,14 +434,14 @@ function AddPositionsModal({ ctx, onClose, onCustom }) {
     ${ctx.types.length === 0
       ? html`<div class="notice">${t('event.no_types')}</div>`
       : html`<p class="small muted" style="margin-top:0">${t('pos.add_hint')}</p>
-        <${PositionPlanner} types=${ctx.types} plan=${plan} setPlan=${setPlan} existing=${existing} info=${info} />`}
+        <${PositionPlanner} types=${ctx.types} plan=${plan} setPlan=${setPlan} existing=${existing} info=${info} shiftSources=${existingShiftSources(ctx)} />`}
   <//>`;
 }
 
 function PositionModal({ ctx, pos, onClose }) {
   const [f, setF] = useState({
     name: pos ? pos.name : '', type: pos ? pos.position_type_id || '' : '', description: pos ? pos.description : '',
-    slots: 1, from: '', to: '', shifts: 1,
+    contact: pos ? !!pos.contact : false, slots: 1, from: '', to: '', shifts: 1,
   });
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -397,10 +454,13 @@ function PositionModal({ ctx, pos, onClose }) {
     e && e.preventDefault();
     if (!f.name.trim()) return;
     setBusy(true);
-    const row = { name: f.name.trim(), position_type_id: f.type || null, description: f.description.trim() };
+    const row = { name: f.name.trim(), position_type_id: f.type || null, description: f.description.trim(), contact: !!f.contact };
     try {
       if (pos) {
         await q(sb.from('positions').update(row).eq('id', pos.id));
+      } else if (f.contact) {
+        // Kontaktposition: keine Schichten
+        await q(sb.from('positions').insert({ ...row, event_id: ctx.ev.id, team_id: ctx.ev.team_id, sort: ctx.positions.length }));
       } else {
         const created = await q(sb.from('positions').insert({ ...row, event_id: ctx.ev.id, team_id: ctx.ev.team_id, sort: ctx.positions.length }).select('id'));
         const pid = created[0].id;
@@ -440,7 +500,9 @@ function PositionModal({ ctx, pos, onClose }) {
       <//>
       <${Field} label=${t('pos.name')} hint=${t('pos.name_hint')}><input class="input" required maxlength="80" value=${f.name} onInput=${set('name')} /><//>
       <${Field} className="full" label=${t('event.description')}><textarea class="input" maxlength="2000" value=${f.description} onInput=${set('description')}></textarea><//>
-      ${!pos && html`
+      <label class="check full"><input type="checkbox" checked=${f.contact} onChange=${(e) => setF({ ...f, contact: e.target.checked })} />
+        <span><b>${t('pos.contact_toggle')}</b><span class="small faint" style="display:block">${t('pos.contact_toggle_hint')}</span></span></label>
+      ${!pos && !f.contact && html`
         <div class="full"><h3 style="margin:6px 0 0">${t('shift.title')}</h3><p class="small muted" style="margin:4px 0 0">${t('shift.create_hint')}</p></div>
         <${Field} label=${t('shift.how_many')}><input class="input" type="number" min="1" max="20" value=${f.shifts} onInput=${set('shifts')} /><//>
         <${Field} label=${t('shift.slots_each')}><input class="input" type="number" min="1" max="500" value=${f.slots} onInput=${set('slots')} /><//>
@@ -888,7 +950,7 @@ function EventEditModal({ ctx, ev, onClose, onSaved }) {
       ${ctx.types.length > 0 && html`<div class="full">
         <h3 style="margin:12px 0 2px">${t('team.tab_positions')}</h3>
         <p class="small muted" style="margin:0 0 6px">${t('pos.edit_hint')}</p>
-        <${PositionPlanner} types=${ctx.types} plan=${plan} setPlan=${setPlan} locked=${existing} info=${info} />
+        <${PositionPlanner} types=${ctx.types} plan=${plan} setPlan=${setPlan} locked=${existing} info=${info} shiftSources=${existingShiftSources(ctx)} />
       </div>`}
     </form>
   <//>`;

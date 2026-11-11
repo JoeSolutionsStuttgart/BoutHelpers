@@ -90,6 +90,7 @@ function seed() {
     { id: 'pT', event_id: 'eA1', team_id: 'tA', position_type_id: 'cA3', name: 'Technik', description: 'Bühne & Ton', deadline: iso(now + 5 * DAY), reminder_hours: 24, remind_at: iso(now + 4 * DAY), reminder_sent_at: null, sort: 2, created_at: iso(now - 5 * DAY) },
     { id: 'pD', event_id: 'eA1', team_id: 'tA', position_type_id: 'cA4', name: 'Deko', description: '', deadline: null, reminder_hours: 48, sort: 3, created_at: iso(now - 5 * DAY) },
     { id: 'pS', event_id: 'eA1', team_id: 'tA', position_type_id: 'cA5', name: 'Sanitäter', description: '', deadline: null, reminder_hours: 48, sort: 4, created_at: iso(now - 5 * DAY) },
+    { id: 'pDJ', event_id: 'eA1', team_id: 'tA', position_type_id: null, name: 'DJ / Musik', description: 'Wir brauchen jemanden fürs Abendprogramm. Kennt jemand eine DJ oder einen DJ?', contact: true, deadline: null, reminder_hours: 48, sort: 5, created_at: iso(now - 4 * DAY) },
     { id: 'pG', event_id: 'eB1', team_id: 'tB', position_type_id: 'cB1', name: 'Garderobe', description: '', deadline: null, reminder_hours: 48, sort: 0, created_at: iso(now - 7 * DAY) },
     { id: 'pB', event_id: 'eB1', team_id: 'tB', position_type_id: 'cB2', name: 'Bühne', description: '', deadline: null, reminder_hours: 48, sort: 1, created_at: iso(now - 7 * DAY) },
   ];
@@ -167,7 +168,10 @@ function seed() {
     { id: uid('f'), user_id: 'u5', kind: 'idea', body: 'Könnten wir eine Kalender-Export-Funktion bekommen?', done: false, created_at: iso(now - DAY) },
     { id: uid('f'), user_id: 'u8', kind: 'problem', body: 'Die Push-Nachricht kam bei mir doppelt an.', done: false, created_at: iso(now - 2 * DAY) },
   ];
-  return { profiles, teams, team_members, roles, member_roles, position_types, preferences, events, positions, shifts, assignments, availability, tasks, messages, polls, poll_options, poll_votes, notices, guest_links, event_guests, join_requests, invites, feedback };
+  const position_contacts = [
+    { id: uid('pc'), position_id: 'pDJ', event_id: 'eA1', team_id: 'tA', added_by: 'u2', name: 'DJ Marco (Freund von Ben)', contact: '0170 1234567 · marco@example.com', note: 'Legt Charts & 90er. Hat eigene Anlage.', created_at: iso(now - 2 * DAY) },
+  ];
+  return { profiles, teams, team_members, roles, member_roles, position_types, preferences, events, positions, shifts, assignments, availability, tasks, messages, polls, poll_options, poll_votes, notices, guest_links, event_guests, join_requests, invites, feedback, position_contacts };
 }
 
 // ---------- Zustand (persistiert) ----------
@@ -219,9 +223,9 @@ const childRel = { poll_options: 'poll_id', poll_votes: 'option_id' };
 function splitTop(s) { const out = []; let d = 0, cur = ''; for (const ch of s) { if (ch === '(') d++; if (ch === ')') d--; if (ch === ',' && d === 0) { out.push(cur.trim()); cur = ''; } else cur += ch; } if (cur.trim()) out.push(cur.trim()); return out; }
 // Löschen wie in der echten Datenbank: Kinder kaskadieren, damit danach wirklich nichts übrig bleibt
 const CASCADE = {
-  teams: [['events', 'team_id'], ['position_types', 'team_id'], ['preferences', 'team_id'], ['roles', 'team_id'], ['member_roles', 'team_id'], ['team_members', 'team_id'], ['join_requests', 'team_id'], ['invites', 'team_id'], ['notices', 'team_id'], ['polls', 'team_id'], ['poll_options', 'team_id'], ['poll_votes', 'team_id'], ['guest_links', 'team_id'], ['assignments', 'team_id'], ['shifts', 'team_id'], ['positions', 'team_id']],
-  events: [['positions', 'event_id'], ['shifts', 'event_id'], ['assignments', 'event_id'], ['tasks', 'event_id'], ['messages', 'event_id'], ['polls', 'event_id'], ['notices', 'event_id'], ['guest_links', 'event_id'], ['event_guests', 'event_id'], ['availability', 'event_id']],
-  positions: [['shifts', 'position_id'], ['assignments', 'position_id'], ['tasks', 'position_id'], ['messages', 'position_id'], ['polls', 'position_id'], ['notices', 'position_id'], ['guest_links', 'position_id'], ['event_guests', 'position_id']],
+  teams: [['events', 'team_id'], ['position_types', 'team_id'], ['preferences', 'team_id'], ['roles', 'team_id'], ['member_roles', 'team_id'], ['team_members', 'team_id'], ['join_requests', 'team_id'], ['invites', 'team_id'], ['notices', 'team_id'], ['polls', 'team_id'], ['poll_options', 'team_id'], ['poll_votes', 'team_id'], ['guest_links', 'team_id'], ['assignments', 'team_id'], ['shifts', 'team_id'], ['positions', 'team_id'], ['position_contacts', 'team_id']],
+  events: [['positions', 'event_id'], ['shifts', 'event_id'], ['assignments', 'event_id'], ['tasks', 'event_id'], ['messages', 'event_id'], ['polls', 'event_id'], ['notices', 'event_id'], ['guest_links', 'event_id'], ['event_guests', 'event_id'], ['availability', 'event_id'], ['position_contacts', 'event_id']],
+  positions: [['shifts', 'position_id'], ['assignments', 'position_id'], ['tasks', 'position_id'], ['messages', 'position_id'], ['polls', 'position_id'], ['notices', 'position_id'], ['guest_links', 'position_id'], ['event_guests', 'position_id'], ['position_contacts', 'position_id']],
   polls: [['poll_options', 'poll_id'], ['poll_votes', 'poll_id']],
   position_types: [['preferences', 'position_type_id']],
 };

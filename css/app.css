@@ -635,6 +635,11 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
 .pos-plan:first-of-type { border-top: 0; }
 .shift-wish { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 2px 0 12px 26px; }
 .shift-wish.sm { margin: 4px 0 0; }
+
+/* Kontaktpositionen */
+.contact-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--border); }
+.contact-item:first-child { border-top: 0; }
+.contact-form { border-top: 1px dashed var(--border); padding-top: 10px; }
 .chip.toggle { cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--ink); }
 .chip.toggle.on { background: var(--violet); color: #fff; border-color: var(--violet); }
 @media (max-width: 620px) {

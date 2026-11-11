@@ -84,12 +84,26 @@ export function tmplLabel(tpl, i) {
   return t('shift.n', { n: i + 1 });
 }
 
-// Editor für eine Liste von Schichten (Name, Uhrzeit von/bis, Plätze)
-export function ShiftRowsEditor({ rows, setRows }) {
+// Schicht-Zeilen bereinigen (ohne Vorlagen-id → neue, unabhängige Schichten)
+export function cleanShiftRows(rows) {
+  return (rows || []).map((r) => ({ name: String(r && r.name || ''), from: String(r && r.from || ''), to: String(r && r.to || ''), slots: Math.max(1, Math.min(500, Number(r && r.slots) || 1)) }));
+}
+
+// Editor für eine Liste von Schichten (Name, Uhrzeit von/bis, Plätze).
+// sources (optional): [{label, rows}] – „Schichten übernehmen von …" als Shortcut.
+export function ShiftRowsEditor({ rows, setRows, sources }) {
   const upd = (i, k, v) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
   const add = () => { const last = rows[rows.length - 1]; setRows([...rows, { name: '', from: last ? last.to : '', to: '', slots: last ? last.slots : 1 }]); };
   const del = (i) => setRows(rows.filter((_, j) => j !== i));
+  const pick = (e) => { const i = Number(e.target.value); e.target.value = ''; if (!Number.isNaN(i) && sources[i]) setRows(cleanShiftRows(sources[i].rows)); };
   return html`<div class="stack-sm">
+    ${sources && sources.length > 0 && html`<label class="row nowrap" style="gap:6px">
+      <span class="small faint">${t('shift.take_from')}</span>
+      <select class="input" style="width:auto;max-width:100%" onChange=${pick}>
+        <option value="">${t('shift.take_choose')}</option>
+        ${sources.map((s, i) => html`<option value=${i} key=${i}>${s.label}</option>`)}
+      </select>
+    </label>`}
     ${rows.length === 0 && html`<p class="small faint" style="margin:0">${t('shift.none')}</p>`}
     ${rows.map((r, i) => html`<div class="shift-row" key=${i}>
       <input class="input" placeholder=${t('shift.name')} maxlength="80" value=${r.name} onInput=${(e) => upd(i, 'name', e.target.value)} />
@@ -111,7 +125,7 @@ export function makePlan(types) {
 // existing(typeId) kann true liefern, wenn die Position im Event schon existiert (nur Hinweis).
 // locked(typeId): Position ist bereits im Event. Dann: Häkchen = behalten, abhaken = entfernen,
 // kein Schicht-Editor (Schichten werden direkt am Event bearbeitet). Sonst: anhaken legt neu an.
-export function PositionPlanner({ types, plan, setPlan, existing, info, locked }) {
+export function PositionPlanner({ types, plan, setPlan, existing, info, locked, shiftSources }) {
   const toggle = (id) => setPlan((p) => {
     const cur = p[id]; const on = !cur.on;
     const lk = locked && locked(id);
@@ -119,6 +133,15 @@ export function PositionPlanner({ types, plan, setPlan, existing, info, locked }
     return { ...p, [id]: { ...cur, on, shifts } };
   });
   const setShifts = (id) => (rows) => setPlan((p) => ({ ...p, [id]: { ...p[id], shifts: rows } }));
+  // „Schichten übernehmen von …": Vorlagen anderer Positionsarten + bereits gesetzte Positionen + Bestand
+  const sourcesFor = (typeId) => {
+    const out = []; const seen = new Set();
+    const push = (label, rows) => { if (label && rows && rows.length && !seen.has(label)) { seen.add(label); out.push({ label, rows }); } };
+    (types || []).forEach((y) => push(t('shift.from_template', { name: y.name }), normalizeTemplates(y.shift_templates)));
+    (types || []).forEach((y) => { if (y.id !== typeId) { const pr = plan[y.id]; if (pr && pr.on) push(t('shift.from_position', { name: y.name }), pr.shifts); } });
+    (shiftSources || []).forEach((s) => push(s.label, s.rows));
+    return out;
+  };
   return html`<div>${(types || []).map((x) => {
     const p = plan[x.id] || { on: false, shifts: [] };
     const lk = locked && locked(x.id);
@@ -133,7 +156,7 @@ export function PositionPlanner({ types, plan, setPlan, existing, info, locked }
         ${!lk && !p.on && p.shifts.length > 0 && html`<span class="small faint">${t('shift.count', { n: p.shifts.length })}</span>`}
       </label>
       ${info && info(x)}
-      ${!lk && p.on && html`<div style="margin:8px 0 2px 26px"><${ShiftRowsEditor} rows=${p.shifts} setRows=${setShifts(x.id)} /></div>`}
+      ${!lk && p.on && html`<div style="margin:8px 0 2px 26px"><${ShiftRowsEditor} rows=${p.shifts} setRows=${setShifts(x.id)} sources=${sourcesFor(x.id)} /></div>`}
     </div>`;
   })}</div>`;
 }

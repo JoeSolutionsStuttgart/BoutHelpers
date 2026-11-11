@@ -117,7 +117,7 @@ function ShiftTemplateModal({ ctx, type, onClose }) {
     <button class="btn ghost" onClick=${onClose}>${t('common.cancel')}</button>
     <button class="btn primary" disabled=${busy} onClick=${save}><${Icon} name="check" />${t('common.save')}</button>`}>
     <p class="small muted" style="margin:0 0 10px">${t('types.shifts_hint')}</p>
-    <${ShiftRowsEditor} rows=${rows} setRows=${setRows} />
+    <${ShiftRowsEditor} rows=${rows} setRows=${setRows} sources=${ctx.types.filter((y) => y.id !== type.id).map((y) => ({ label: t('shift.from_template', { name: y.name }), rows: normalizeTemplates(y.shift_templates) })).filter((s) => s.rows.length)} />
   <//>`;
 }
 
