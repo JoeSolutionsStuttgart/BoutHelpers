@@ -6,7 +6,7 @@ import { getState, setState } from './store.js';
 export const EMPTY_UNREAD = {
   total: 0, byTeam: {}, byEvent: {}, byGroup: {}, groupsOfEvent: {},
   eventChat: {}, groupChat: {}, groupTasks: {},
-  eventPolls: {}, groupPolls: {}, teamBoard: {}, eventBoard: {}, groupBoard: {},
+  eventPolls: {}, groupPolls: {}, teamPolls: {}, teamBoard: {}, eventBoard: {}, groupBoard: {},
 };
 
 let timer = null;
@@ -30,7 +30,7 @@ export async function loadUnread() {
     const u = {
       total: 0, byTeam: {}, byEvent: {}, byGroup: {}, groupsOfEvent: {},
       eventChat: {}, groupChat: {}, groupTasks: {},
-      eventPolls: {}, groupPolls: {}, teamBoard: {}, eventBoard: {}, groupBoard: {},
+      eventPolls: {}, groupPolls: {}, teamPolls: {}, teamBoard: {}, eventBoard: {}, groupBoard: {},
     };
     const groupBuckets = { group_chat: 'groupChat', group_tasks: 'groupTasks', group_polls: 'groupPolls', group_board: 'groupBoard' };
     const eventBuckets = { event_chat: 'eventChat', event_polls: 'eventPolls', event_board: 'eventBoard' };
@@ -44,6 +44,8 @@ export async function loadUnread() {
         add(u.groupsOfEvent, r.event_id, r.n);
       } else if (eventBuckets[r.scope]) {
         u[eventBuckets[r.scope]][r.ref] = r.n;
+      } else if (r.scope === 'team_polls') {
+        u.teamPolls[r.ref] = r.n;
       } else if (r.scope === 'team_board') {
         u.teamBoard[r.ref] = r.n;
       }
@@ -89,7 +91,7 @@ export async function markSeen(scope, ref) {
   const u = getState().unread || EMPTY_UNREAD;
   const map = {
     event_chat: 'eventChat', group_chat: 'groupChat', group_tasks: 'groupTasks',
-    event_polls: 'eventPolls', group_polls: 'groupPolls', team_board: 'teamBoard', event_board: 'eventBoard', group_board: 'groupBoard',
+    event_polls: 'eventPolls', group_polls: 'groupPolls', team_polls: 'teamPolls', team_board: 'teamBoard', event_board: 'eventBoard', group_board: 'groupBoard',
   }[scope];
   if (u[map] && u[map][ref]) {
     const n = u[map][ref];

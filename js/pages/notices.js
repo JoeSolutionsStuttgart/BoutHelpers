@@ -11,7 +11,7 @@ const PROFILE = 'profiles(id, display_name, pronouns, pronouns_custom, is_guest,
 export function NoticeBoard({ teamId, eventId, positionId, canPost, canModerate, me }) {
   const [editing, setEditing] = useState(null); // {} = neu, Notiz = bearbeiten
   const d = useAsync(async () => {
-    let qb = sb.from('notices').select('*, author:' + PROFILE)
+    let qb = sb.from('notices').select('*, author:' + PROFILE + ', notice_reactions(user_id, emoji)')
       .order('pinned', { ascending: false }).order('created_at', { ascending: false });
     if (positionId) qb = qb.eq('position_id', positionId);
     else if (eventId) qb = qb.eq('event_id', eventId).is('position_id', null);
@@ -35,8 +35,21 @@ export function NoticeBoard({ teamId, eventId, positionId, canPost, canModerate,
   </div>`;
 }
 
+const EMOJIS = ['👍', '❤️', '😂', '🎉', '👏', '✅', '🙏', '🔥'];
 function NoticeCard({ notice, me, canModerate, onEdit, onChange }) {
   const canEdit = notice.created_by === me || canModerate;
+  const [pal, setPal] = useState(false);
+  const reacts = notice.notice_reactions || [];
+  const grouped = [...reacts.reduce((m, r) => m.set(r.emoji, [...(m.get(r.emoji) || []), r.user_id]), new Map())];
+  const react = async (emoji) => {
+    setPal(false);
+    const mine = reacts.some((r) => r.user_id === me && r.emoji === emoji);
+    try {
+      if (mine) await q(sb.from('notice_reactions').delete().eq('notice_id', notice.id).eq('user_id', me).eq('emoji', emoji));
+      else await q(sb.from('notice_reactions').insert({ notice_id: notice.id, team_id: notice.team_id, user_id: me, emoji }));
+      onChange();
+    } catch (e) { toastError(e); }
+  };
   const del = async () => {
     if (!(await confirmDialog({ title: t('board.delete'), text: t('board.delete_confirm'), danger: true, ok: t('common.delete') }))) return;
     try { await q(sb.from('notices').delete().eq('id', notice.id)); toast(t('common.saved')); onChange(); } catch (e) { toastError(e); }
@@ -51,6 +64,13 @@ function NoticeCard({ notice, me, canModerate, onEdit, onChange }) {
         <button class="btn icon" aria-label=${t('common.delete')} onClick=${del}><${Icon} name="trash" size=${16} /></button>`}
     </div>
     <div class="pre">${notice.body}</div>
+    <div class="reactions">
+      ${grouped.map(([emoji, users]) => html`<button key=${emoji} class=${'reaction' + (users.includes(me) ? ' mine' : '')} onClick=${() => react(emoji)} title=${t('board.react')}>${emoji} ${users.length}</button>`)}
+      <div class="react-wrap">
+        <button class="reaction add" aria-label=${t('board.react')} title=${t('board.react')} onClick=${() => setPal((v) => !v)}><${Icon} name="plus" size=${14} /></button>
+        ${pal && html`<div class="emoji-pal">${EMOJIS.map((e) => html`<button type="button" key=${e} onClick=${() => react(e)}>${e}</button>`)}</div>`}
+      </div>
+    </div>
     <div class="row small faint">
       ${notice.author && html`<${Person} profile=${notice.author} size="sm" />`}
       <span class="grow"></span><span>${fmtRelative(notice.created_at)}</span>

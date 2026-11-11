@@ -26,17 +26,22 @@ function mentionParts(body, names, people, me) {
   return parts;
 }
 
-// Nachrichtentext mit @Erwähnungen und Verweisen auf Abstimmungen ([[poll:id]])
-function MessageText({ body, mentions, people, me, polls, pollHref }) {
+// Nachrichtentext mit @Erwähnungen und Verweisen auf Abstimmungen ([[poll:id]]) und Infos ([[notice:id]])
+function MessageText({ body, mentions, people, me, polls, pollHref, notices, noticeHref }) {
   const names = (mentions || []).map((id) => people[id]).filter(Boolean)
     .map((p) => ({ id: p.id, name: p.display_name })).sort((a, b) => b.name.length - a.name.length);
-  const tok = /\[\[poll:([\w-]+)\]\]/g;
+  const tok = /\[\[(poll|notice):([\w-]+)\]\]/g;
   const out = [];
   let last = 0; let m;
   while ((m = tok.exec(body)) !== null) {
     if (m.index > last) out.push(...mentionParts(body.slice(last, m.index), names, people, me));
-    const title = (polls && polls[m[1]]) || t('polls.heading');
-    out.push(html`<a class="poll-ref" href=${pollHref}><${Icon} name="chart" size=${14} />${title}</a>`);
+    if (m[1] === 'poll') {
+      const title = (polls && polls[m[2]]) || t('polls.heading');
+      out.push(html`<a class="poll-ref" href=${pollHref}><${Icon} name="chart" size=${14} />${title}</a>`);
+    } else {
+      const title = (notices && notices[m[2]]) || t('board.heading');
+      out.push(html`<a class="poll-ref" href=${noticeHref}><${Icon} name="flag" size=${14} />${title}</a>`);
+    }
     last = m.index + m[0].length;
   }
   if (last < body.length) out.push(...mentionParts(body.slice(last), names, people, me));
@@ -52,6 +57,9 @@ export function Chat({ eventId, positionId, title, canModerate }) {
   const [members, setMembers] = useState([]);
   const [polls, setPolls] = useState([]); // Abstimmungen im Raum (zum Verlinken)
   const [pollPick, setPollPick] = useState(false);
+  const [notices, setNotices] = useState([]); // Infos im Raum (zum Verlinken)
+  const [noticePick, setNoticePick] = useState(false);
+  const [replyTo, setReplyTo] = useState(null); // Nachricht, auf die geantwortet wird
   const [suggest, setSuggest] = useState(null); // { query, start, items, index }
   const picked = useRef({}); // Name -> id der ausgewählten Erwähnungen
   const scroller = useRef();
@@ -90,6 +98,12 @@ export function Chat({ eventId, positionId, title, canModerate }) {
       pb = room ? pb.eq('position_id', room) : pb.is('position_id', null);
       const pr = await q(pb).catch(() => []);
       if (alive) setPolls(pr || []);
+    })();
+    (async () => {
+      let nb = sb.from('notices').select('id, title, body').eq('event_id', eventId);
+      nb = room ? nb.eq('position_id', room) : nb.is('position_id', null);
+      const nr = await q(nb).catch(() => []);
+      if (alive) setNotices(nr || []);
     })();
 
     const ch = sb.channel('chat-' + eventId + '-' + (room || 'event') + '-' + Math.random().toString(36).slice(2))
@@ -150,6 +164,12 @@ export function Chat({ eventId, positionId, title, canModerate }) {
     setPollPick(false);
     setTimeout(() => { if (input.current) input.current.focus(); }, 0);
   };
+  // Verweis auf eine Info (Infotafel) einfügen
+  const insertNotice = (n) => {
+    setText((prev) => prev + (prev && !/\s$/.test(prev) ? ' ' : '') + '[[notice:' + n.id + ']] ');
+    setNoticePick(false);
+    setTimeout(() => { if (input.current) input.current.focus(); }, 0);
+  };
 
   const send = async (e) => {
     e && e.preventDefault();
@@ -165,13 +185,14 @@ export function Chat({ eventId, positionId, title, canModerate }) {
         // Erwähnt ist, wessen "@Name" noch im Text steht
         const mentions = [...new Set(Object.entries(picked.current)
           .filter(([name]) => body.includes('@' + name)).map(([, id]) => id))];
-        const rows = await q(sb.from('messages').insert({ event_id: eventId, position_id: room, user_id: user.id, body, mentions })
+        const rows = await q(sb.from('messages').insert({ event_id: eventId, position_id: room, user_id: user.id, body, mentions, reply_to: replyTo ? replyTo.id : null })
           .select('*, profiles(' + PROFILE_COLS + ')'));
         if (rows[0]) { profiles.current[user.id] = rows[0].profiles; stick.current = true; upsert(rows[0]); }
         if (mentions.length) flushMail();
       }
       picked.current = {};
       setText('');
+      setReplyTo(null);
     } catch (err) { toastError(err); } finally { setBusy(false); }
   };
 
@@ -195,7 +216,13 @@ export function Chat({ eventId, positionId, title, canModerate }) {
 
   const pollMap = {};
   polls.forEach((p) => { pollMap[p.id] = p.question; });
+  const noticeMap = {};
+  notices.forEach((n) => { noticeMap[n.id] = n.title || (n.body || '').slice(0, 40); });
   const pollHref = '#/' + (room ? 'group/' + room : 'event/' + eventId) + '/polls';
+  const noticeHref = '#/' + (room ? 'group/' + room : 'event/' + eventId) + '/board';
+  const byId = {};
+  (msgs || []).forEach((m) => { byId[m.id] = m; });
+  const snippet = (s) => { const x = (s || '').replace(/\[\[(poll|notice):[\w-]+\]\]/g, '').trim(); return x.length > 60 ? x.slice(0, 60) + '…' : x; };
   let lastDay = '';
   let lastUser = '';
   let lastTime = 0;
@@ -218,11 +245,13 @@ export function Chat({ eventId, positionId, title, canModerate }) {
           <div class=${'msg' + (mine ? ' mine' : '') + (grouped ? ' grouped' : '') + (mentionsMe && !mine ? ' pinged' : '')} key=${m.id}>
             ${!mine && (grouped ? html`<span style="width:28px;flex:none"></span>` : html`<${PersonHover} profile=${p}><${Avatar} profile=${p} size="sm" /><//>`)}
             <div class="bubble">
+              ${m.reply_to && (() => { const par = byId[m.reply_to]; return html`<div class="reply-quote">${par ? html`<b>${(par.profiles && par.profiles.display_name) || '—'}</b> ${snippet(par.body) || t('chat.linked')}` : t('chat.reply_gone')}</div>`; })()}
               ${!grouped && html`<div class="meta">${!mine && html`<${PersonHover} profile=${p}><span>${p.display_name}</span><//>`}<span>${fmtTime(m.created_at)}</span></div>`}
-              <${MessageText} body=${m.body} mentions=${m.mentions} people=${profiles.current} me=${user.id} polls=${pollMap} pollHref=${pollHref} />
+              <${MessageText} body=${m.body} mentions=${m.mentions} people=${profiles.current} me=${user.id} polls=${pollMap} pollHref=${pollHref} notices=${noticeMap} noticeHref=${noticeHref} />
               ${m.edited_at && html`<div class="meta">${t('chat.edited')}</div>`}
             </div>
             <div class="tools">
+              <button class="btn icon" aria-label=${t('chat.reply')} title=${t('chat.reply')} onClick=${() => { setReplyTo(m); setTimeout(() => input.current && input.current.focus(), 0); }}><${Icon} name="reply" size=${15} /></button>
               ${mine && html`<button class="btn icon" aria-label=${t('common.edit')} title=${t('common.edit')} onClick=${() => startEdit(m)}><${Icon} name="edit" size=${15} /></button>`}
               ${(mine || canModerate) && html`<button class="btn icon" aria-label=${t('common.delete')} title=${t('common.delete')} onClick=${() => del(m)}><${Icon} name="trash" size=${15} /></button>`}
             </div>
@@ -231,13 +260,19 @@ export function Chat({ eventId, positionId, title, canModerate }) {
     </div>
     ${editing && html`<div class="row small" style="padding:6px 14px;background:var(--surface-2)"><${Icon} name="edit" size=${14} /><span class="grow">${t('chat.editing')}</span>
       <button class="btn small ghost" onClick=${() => { setEditing(null); setText(''); }}>${t('common.cancel')}</button></div>`}
+    ${replyTo && !editing && html`<div class="row small" style="padding:6px 14px;background:var(--surface-2)"><${Icon} name="reply" size=${14} />
+      <span class="grow" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t('chat.replying_to', { name: (replyTo.profiles && replyTo.profiles.display_name) || '—' })}: ${snippet(replyTo.body)}</span>
+      <button class="btn small ghost" onClick=${() => setReplyTo(null)}>${t('common.cancel')}</button></div>`}
     <form class="chat-input" onSubmit=${send}>
       ${suggest && html`<div class="mention-list" role="listbox">${suggest.items.map((p, i) => html`
         <button type="button" role="option" aria-selected=${i === suggest.index} class=${i === suggest.index ? 'on' : ''}
           onMouseDown=${(e) => { e.preventDefault(); choose(p); }}><${Avatar} profile=${p} size="sm" />${p.display_name}</button>`)}</div>`}
       ${pollPick && polls.length > 0 && html`<div class="poll-picker" role="listbox">${polls.map((p) => html`
         <button type="button" key=${p.id} onMouseDown=${(e) => { e.preventDefault(); insertPoll(p); }}><${Icon} name="chart" size=${16} />${p.question}</button>`)}</div>`}
-      ${polls.length > 0 && html`<button type="button" class="btn icon" aria-label=${t('chat.link_poll')} title=${t('chat.link_poll')} onClick=${() => setPollPick((v) => !v)}><${Icon} name="chart" /></button>`}
+      ${noticePick && notices.length > 0 && html`<div class="poll-picker" role="listbox">${notices.map((n) => html`
+        <button type="button" key=${n.id} onMouseDown=${(e) => { e.preventDefault(); insertNotice(n); }}><${Icon} name="flag" size=${16} />${n.title || (n.body || '').slice(0, 40)}</button>`)}</div>`}
+      ${polls.length > 0 && html`<button type="button" class="btn icon" aria-label=${t('chat.link_poll')} title=${t('chat.link_poll')} onClick=${() => { setPollPick((v) => !v); setNoticePick(false); }}><${Icon} name="chart" /></button>`}
+      ${notices.length > 0 && html`<button type="button" class="btn icon" aria-label=${t('chat.link_notice')} title=${t('chat.link_notice')} onClick=${() => { setNoticePick((v) => !v); setPollPick(false); }}><${Icon} name="flag" /></button>`}
       <textarea class="input" rows="1" maxlength="4000" placeholder=${t('chat.placeholder')} value=${text} ref=${input}
         onInput=${(e) => { setText(e.target.value); updateSuggest(e.target.value, e.target.selectionStart); e.target.style.height = 'auto'; e.target.style.height = Math.min(140, e.target.scrollHeight) + 'px'; }}
         onKeyDown=${onKey} onBlur=${() => setTimeout(() => setSuggest(null), 150)}></textarea>

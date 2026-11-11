@@ -146,13 +146,14 @@ export function PositionPlanner({ types, plan, setPlan, existing, info, locked, 
     const p = plan[x.id] || { on: false, shifts: [] };
     const lk = locked && locked(x.id);
     const has = existing && existing(x.id);
-    return html`<div class="pos-plan" key=${x.id}>
-      <label class="row nowrap" style="gap:8px;cursor:pointer">
-        <input type="checkbox" checked=${p.on} onChange=${() => toggle(x.id)} />
+    const blocked = !lk && has; // schon im Event -> nicht erneut hinzufügbar (keine Dubletten)
+    return html`<div class=${'pos-plan' + (blocked ? ' is-disabled' : '')} key=${x.id}>
+      <label class="row nowrap" style=${{ gap: '8px', cursor: blocked ? 'default' : 'pointer' }}>
+        <input type="checkbox" checked=${p.on} disabled=${blocked} onChange=${() => { if (!blocked) toggle(x.id); }} />
         <span class="dot" style=${{ background: x.color }}></span><b class="grow">${x.name}</b>
         ${lk && p.on && html`<span class="small faint">${t('pos.already_on_event')}</span>`}
         ${lk && !p.on && html`<span class="small" style="color:var(--st-declined)">${t('pos.will_remove')}</span>`}
-        ${!lk && has && html`<span class="small faint">${t('pos.already_on_event')}</span>`}
+        ${blocked && html`<span class="small faint">${t('pos.already_on_event')}</span>`}
         ${!lk && !p.on && p.shifts.length > 0 && html`<span class="small faint">${t('shift.count', { n: p.shifts.length })}</span>`}
       </label>
       ${info && info(x)}

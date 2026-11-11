@@ -132,8 +132,9 @@ function seed() {
     { id: uid('m'), event_id: 'eA1', position_id: 'pC', user_id: 'u1', body: 'Super, danke!', created_at: iso(now - 600000) },
   ];
   const polls = [
-    { id: 'plE', event_id: 'eA1', team_id: 'tA', position_id: null, question: 'Wann machen wir die Manöverkritik?', multiple: false, allow_add: true, closed: false, created_by: 'u2', created_at: iso(now - DAY) },
-    { id: 'plC', event_id: 'eA1', team_id: 'tA', position_id: 'pC', question: 'Was sollen wir mitbringen?', multiple: true, allow_add: true, closed: false, created_by: 'u6', created_at: iso(now - 2 * 3600000) },
+    { id: 'plE', event_id: 'eA1', team_id: 'tA', position_id: null, question: 'Wann machen wir die Manöverkritik?', multiple: false, allow_add: true, closed: false, closes_at: null, created_by: 'u2', created_at: iso(now - DAY) },
+    { id: 'plC', event_id: 'eA1', team_id: 'tA', position_id: 'pC', question: 'Was sollen wir mitbringen?', multiple: true, allow_add: true, closed: false, closes_at: null, created_by: 'u6', created_at: iso(now - 2 * 3600000) },
+    { id: 'plT', event_id: null, team_id: 'tA', position_id: null, question: 'Wann passt euch das nächste Team-Treffen?', multiple: false, allow_add: true, closed: false, closes_at: iso(now + 5 * DAY), created_by: 'u2', created_at: iso(now - DAY) },
   ];
   const poll_options = [
     { id: 'oE1', poll_id: 'plE', team_id: 'tA', text: 'Freitagabend', sort: 0, created_by: 'u2' },
@@ -142,6 +143,8 @@ function seed() {
     { id: 'oC1', poll_id: 'plC', team_id: 'tA', text: 'Kuchen', sort: 0, created_by: 'u6' },
     { id: 'oC2', poll_id: 'plC', team_id: 'tA', text: 'Getränke', sort: 1, created_by: 'u6' },
     { id: 'oC3', poll_id: 'plC', team_id: 'tA', text: 'Servietten', sort: 2, created_by: 'u1' },
+    { id: 'oT1', poll_id: 'plT', team_id: 'tA', text: 'Montagabend', sort: 0, created_by: 'u2' },
+    { id: 'oT2', poll_id: 'plT', team_id: 'tA', text: 'Mittwochabend', sort: 1, created_by: 'u2' },
   ];
   const poll_votes = [
     { id: uid('v'), poll_id: 'plE', option_id: 'oE1', team_id: 'tA', user_id: 'u2' },
@@ -150,9 +153,11 @@ function seed() {
     { id: uid('v'), poll_id: 'plC', option_id: 'oC1', team_id: 'tA', user_id: 'u6' },
     { id: uid('v'), poll_id: 'plC', option_id: 'oC2', team_id: 'tA', user_id: 'u6' },
     { id: uid('v'), poll_id: 'plC', option_id: 'oC1', team_id: 'tA', user_id: 'u1' },
+    { id: uid('v'), poll_id: 'plT', option_id: 'oT1', team_id: 'tA', user_id: 'u3' },
+    { id: uid('v'), poll_id: 'plT', option_id: 'oT2', team_id: 'tA', user_id: 'u7' },
   ];
   const notices = [
-    { id: uid('n'), team_id: 'tA', event_id: null, position_id: null, title: 'Parkplätze', body: 'Bitte nicht vor dem Haupteingang parken – dort halten die Lieferwagen.', pinned: true, created_by: 'u2', created_at: iso(now - DAY), updated_at: iso(now - DAY) },
+    { id: 'nParking', team_id: 'tA', event_id: null, position_id: null, title: 'Parkplätze', body: 'Bitte nicht vor dem Haupteingang parken – dort halten die Lieferwagen.', pinned: true, created_by: 'u2', created_at: iso(now - DAY), updated_at: iso(now - DAY) },
     { id: uid('n'), team_id: 'tA', event_id: null, position_id: null, title: '', body: 'Die T-Shirts in Teamfarbe könnt ihr im Lager abholen.', pinned: false, created_by: 'u1', created_at: iso(now - 2 * DAY), updated_at: iso(now - 2 * DAY) },
     { id: uid('n'), team_id: 'tA', event_id: 'eA1', position_id: null, title: 'Treffpunkt', body: 'Alle um 9:00 Uhr am Haupteingang. Bringt Sonnencreme mit!', pinned: true, created_by: 'u2', created_at: iso(now - 12 * 3600000), updated_at: iso(now - 12 * 3600000) },
     { id: uid('n'), team_id: 'tA', event_id: 'eA1', position_id: 'pC', title: '', body: 'Der große Kühlschrank ist für uns reserviert.', pinned: false, created_by: 'u6', created_at: iso(now - 3 * 3600000), updated_at: iso(now - 3 * 3600000) },
@@ -171,7 +176,12 @@ function seed() {
   const position_contacts = [
     { id: uid('pc'), position_id: 'pDJ', event_id: 'eA1', team_id: 'tA', added_by: 'u2', name: 'DJ Marco (Freund von Ben)', contact: '0170 1234567 · marco@example.com', note: 'Legt Charts & 90er. Hat eigene Anlage.', created_at: iso(now - 2 * DAY) },
   ];
-  return { profiles, teams, team_members, roles, member_roles, position_types, preferences, events, positions, shifts, assignments, availability, tasks, messages, polls, poll_options, poll_votes, notices, guest_links, event_guests, join_requests, invites, feedback, position_contacts };
+  const notice_reactions = [
+    { notice_id: 'nParking', team_id: 'tA', user_id: 'u6', emoji: '👍' },
+    { notice_id: 'nParking', team_id: 'tA', user_id: 'u8', emoji: '👍' },
+    { notice_id: 'nParking', team_id: 'tA', user_id: 'u3', emoji: '🙏' },
+  ];
+  return { profiles, teams, team_members, roles, member_roles, position_types, preferences, events, positions, shifts, assignments, availability, tasks, messages, polls, poll_options, poll_votes, notices, guest_links, event_guests, join_requests, invites, feedback, position_contacts, notice_reactions };
 }
 
 // ---------- Zustand (persistiert) ----------
@@ -219,14 +229,15 @@ export function renameEntity(kind, id, name) {
 
 // ---------- Abfrage-Engine ----------
 const rel = { shifts: ['shifts', 'shift_id'], profiles: ['profiles', 'user_id'], teams: ['teams', 'team_id'], events: ['events', 'event_id'], positions: ['positions', 'position_id'] };
-const childRel = { poll_options: 'poll_id', poll_votes: 'option_id' };
+const childRel = { poll_options: 'poll_id', poll_votes: 'option_id', notice_reactions: 'notice_id' };
 function splitTop(s) { const out = []; let d = 0, cur = ''; for (const ch of s) { if (ch === '(') d++; if (ch === ')') d--; if (ch === ',' && d === 0) { out.push(cur.trim()); cur = ''; } else cur += ch; } if (cur.trim()) out.push(cur.trim()); return out; }
 // Löschen wie in der echten Datenbank: Kinder kaskadieren, damit danach wirklich nichts übrig bleibt
 const CASCADE = {
-  teams: [['events', 'team_id'], ['position_types', 'team_id'], ['preferences', 'team_id'], ['roles', 'team_id'], ['member_roles', 'team_id'], ['team_members', 'team_id'], ['join_requests', 'team_id'], ['invites', 'team_id'], ['notices', 'team_id'], ['polls', 'team_id'], ['poll_options', 'team_id'], ['poll_votes', 'team_id'], ['guest_links', 'team_id'], ['assignments', 'team_id'], ['shifts', 'team_id'], ['positions', 'team_id'], ['position_contacts', 'team_id']],
+  teams: [['events', 'team_id'], ['position_types', 'team_id'], ['preferences', 'team_id'], ['roles', 'team_id'], ['member_roles', 'team_id'], ['team_members', 'team_id'], ['join_requests', 'team_id'], ['invites', 'team_id'], ['notices', 'team_id'], ['polls', 'team_id'], ['poll_options', 'team_id'], ['poll_votes', 'team_id'], ['guest_links', 'team_id'], ['assignments', 'team_id'], ['shifts', 'team_id'], ['positions', 'team_id'], ['position_contacts', 'team_id'], ['notice_reactions', 'team_id']],
   events: [['positions', 'event_id'], ['shifts', 'event_id'], ['assignments', 'event_id'], ['tasks', 'event_id'], ['messages', 'event_id'], ['polls', 'event_id'], ['notices', 'event_id'], ['guest_links', 'event_id'], ['event_guests', 'event_id'], ['availability', 'event_id'], ['position_contacts', 'event_id']],
   positions: [['shifts', 'position_id'], ['assignments', 'position_id'], ['tasks', 'position_id'], ['messages', 'position_id'], ['polls', 'position_id'], ['notices', 'position_id'], ['guest_links', 'position_id'], ['event_guests', 'position_id'], ['position_contacts', 'position_id']],
   polls: [['poll_options', 'poll_id'], ['poll_votes', 'poll_id']],
+  notices: [['notice_reactions', 'notice_id']],
   position_types: [['preferences', 'position_type_id']],
 };
 function cascadeDelete(table, ids) {
@@ -346,6 +357,7 @@ function computeUnread() {
     push('group_board', p.id, p.event_id, p.team_id, db.notices.filter((n) => n.position_id === p.id && n.created_by !== me && n.created_at > seenAt('group_board', p.id)).length);
   });
   myTeams.forEach((tid) => push('team_board', tid, null, tid, db.notices.filter((n) => n.team_id === tid && !n.event_id && !n.position_id && n.created_by !== me && n.created_at > seenAt('team_board', tid)).length));
+  myTeams.forEach((tid) => push('team_polls', tid, null, tid, db.polls.filter((pl) => pl.team_id === tid && !pl.event_id && !pl.position_id && pl.created_by !== me && pl.created_at > seenAt('team_polls', tid)).length));
   return out;
 }
 
@@ -401,13 +413,18 @@ const RPC = {
   },
   set_group_deadline: (a) => { const p = db.positions.find((x) => x.id === a.pos); if (p) { p.deadline = a.dl; p.remind_at = a.dl ? a.remind : null; save(); } return null; },
   create_poll: (a) => {
-    const pid = uid('pl'); const tid = a.pos ? (db.positions.find((p) => p.id === a.pos) || {}).team_id : (db.events.find((e) => e.id === a.ev) || {}).team_id;
-    db.polls.push({ id: pid, event_id: a.pos ? (db.positions.find((p) => p.id === a.pos) || {}).event_id : a.ev, team_id: tid, position_id: a.pos || null, question: (a.question || '').trim(), multiple: !!a.multiple, allow_add: !!a.allow_add, closed: false, created_by: state.me, created_at: iso(Date.now()) });
+    const pid = uid('pl');
+    const tid = a.pos ? (db.positions.find((p) => p.id === a.pos) || {}).team_id
+      : a.ev ? (db.events.find((e) => e.id === a.ev) || {}).team_id : a.team;
+    const evId = a.pos ? (db.positions.find((p) => p.id === a.pos) || {}).event_id : (a.ev || null);
+    db.polls.push({ id: pid, event_id: evId, team_id: tid, position_id: a.pos || null, question: (a.question || '').trim(), multiple: !!a.multiple, allow_add: !!a.allow_add, closed: false, closes_at: a.closes || null, created_by: state.me, created_at: iso(Date.now()) });
     (a.options || []).forEach((o, i) => { if (o && o.trim()) db.poll_options.push({ id: uid('o'), poll_id: pid, team_id: tid, text: o.trim(), sort: i, created_by: state.me }); });
     save(); return pid;
   },
-  add_poll_option: (a) => { const pl = db.polls.find((p) => p.id === a.p); if (pl && !pl.closed) { const mx = Math.max(-1, ...db.poll_options.filter((o) => o.poll_id === a.p).map((o) => o.sort)); db.poll_options.push({ id: uid('o'), poll_id: a.p, team_id: pl.team_id, text: (a.otext || '').trim(), sort: mx + 1, created_by: state.me }); save(); } return null; },
-  poll_vote: (a) => { const o = db.poll_options.find((x) => x.id === a.opt); if (!o) throw new Error('not found'); const pl = db.polls.find((p) => p.id === o.poll_id); if (pl.closed) throw new Error('poll closed'); nextVotes(a.opt, state.me, pl); save(); return null; },
+  edit_poll: (a) => { const pl = db.polls.find((p) => p.id === a.p); if (pl) { pl.question = (a.question || '').trim(); pl.multiple = !!a.multiple; pl.allow_add = !!a.allow_add; pl.closes_at = a.closes || null; save(); } return null; },
+  remove_poll_option: (a) => { db.poll_options = db.poll_options.filter((o) => o.id !== a.opt); db.poll_votes = db.poll_votes.filter((v) => v.option_id !== a.opt); save(); return null; },
+  add_poll_option: (a) => { const pl = db.polls.find((p) => p.id === a.p); const closedNow = pl && (pl.closed || (pl.closes_at && new Date(pl.closes_at) < new Date())); if (pl && !closedNow) { const mx = Math.max(-1, ...db.poll_options.filter((o) => o.poll_id === a.p).map((o) => o.sort)); db.poll_options.push({ id: uid('o'), poll_id: a.p, team_id: pl.team_id, text: (a.otext || '').trim(), sort: mx + 1, created_by: state.me }); save(); } return null; },
+  poll_vote: (a) => { const o = db.poll_options.find((x) => x.id === a.opt); if (!o) throw new Error('not found'); const pl = db.polls.find((p) => p.id === o.poll_id); if (pl.closed || (pl.closes_at && new Date(pl.closes_at) < new Date())) throw new Error('poll closed'); nextVotes(a.opt, state.me, pl); save(); return null; },
   set_poll_closed: (a) => { const pl = db.polls.find((p) => p.id === a.p); if (pl) { pl.closed = !!a.c; save(); } return null; },
   delete_poll: (a) => { db.polls = db.polls.filter((p) => p.id !== a.p); db.poll_options = db.poll_options.filter((o) => o.poll_id !== a.p); db.poll_votes = db.poll_votes.filter((v) => v.poll_id !== a.p); save(); return null; },
   clone_event: (a) => {

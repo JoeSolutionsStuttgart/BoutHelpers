@@ -640,6 +640,24 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
 .contact-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--border); }
 .contact-item:first-child { border-top: 0; }
 .contact-form { border-top: 1px dashed var(--border); padding-top: 10px; }
+
+/* Abstimmungs-Option mit Entfernen-Knopf */
+.poll-opt-row { display: flex; gap: 6px; align-items: center; }
+.poll-opt-row .poll-opt { flex: 1 1 auto; width: auto; }
+
+/* Infotafel-Reaktionen (Emojis) */
+.reactions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 2px; }
+.reaction { border: 1px solid var(--border); background: var(--card); color: var(--ink); border-radius: 999px; padding: 2px 10px; font-size: 0.85rem; line-height: 1.5; cursor: pointer; }
+.reaction:hover { border-color: var(--violet); }
+.reaction.mine { background: color-mix(in srgb, var(--violet) 18%, var(--card)); border-color: var(--violet); }
+.reaction.add { padding: 3px 8px; color: var(--muted); display: inline-flex; align-items: center; }
+.react-wrap { position: relative; display: inline-flex; }
+.emoji-pal { position: absolute; bottom: 118%; left: 0; display: flex; gap: 4px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 6px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22); z-index: 6; }
+.emoji-pal button { font-size: 1.15rem; background: none; border: none; cursor: pointer; padding: 2px 5px; border-radius: 6px; }
+.emoji-pal button:hover { background: var(--surface-2); }
+
+/* Chat: Antwort-Zitat */
+.reply-quote { border-left: 3px solid var(--violet); padding: 2px 8px; margin: 0 0 4px; font-size: 0.82rem; color: var(--muted); background: color-mix(in srgb, var(--violet) 8%, transparent); border-radius: 0 6px 6px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chip.toggle { cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--ink); }
 .chip.toggle.on { background: var(--violet); color: #fff; border-color: var(--violet); }
 @media (max-width: 620px) {

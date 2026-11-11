@@ -408,7 +408,7 @@ function AddPositionsModal({ ctx, onClose, onCustom }) {
   // zeigt pro Positionsart, wer sie wünscht (Rang + gewünschte Schichten)
   const info = (x) => html`<${WishSummary} prefs=${ctx.preferences} typeId=${x.id} members=${ctx.members} templates=${normalizeTemplates(x.shift_templates)} />`;
   const save = async () => {
-    const chosen = ctx.types.filter((x) => plan[x.id] && plan[x.id].on && plan[x.id].shifts.length > 0);
+    const chosen = ctx.types.filter((x) => plan[x.id] && plan[x.id].on && plan[x.id].shifts.length > 0 && !existing(x.id));
     if (!chosen.length) { onClose(); return; }
     setBusy(true);
     try {

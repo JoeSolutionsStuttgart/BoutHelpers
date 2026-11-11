@@ -10,6 +10,7 @@ import {
 } from '../lib/ui.js';
 import { DateBox, normalizeTemplates, tmplLabel, ShiftRowsEditor, tmplId, makePlan, PositionPlanner, buildShiftRows } from './shared.js';
 import { NoticeBoard } from './notices.js';
+import { Polls } from './polls.js';
 
 export function TeamPage({ id, tab }) {
   const { user, unread } = useStore();
@@ -57,6 +58,7 @@ export function TeamPage({ id, tab }) {
     <${Tabs} base=${'/team/' + id} active=${tab} items=${[
       { key: 'events', label: t('team.tab_events'), icon: 'calendar' },
       { key: 'board', label: t('team.tab_board'), icon: 'flag', unread: unread.teamBoard[id] },
+      { key: 'polls', label: t('team.tab_polls'), icon: 'chart', unread: unread.teamPolls[id] },
       { key: 'members', label: t('team.tab_members'), icon: 'users', count: ctx.can('members.manage') ? ctx.requests.length : 0 },
       { key: 'roles', label: t('team.tab_roles'), icon: 'shield' },
       { key: 'positions', label: t('team.tab_positions'), icon: 'briefcase' },
@@ -66,6 +68,7 @@ export function TeamPage({ id, tab }) {
 
     ${tab === 'events' && html`<${EventsTab} ctx=${ctx} />`}
     ${tab === 'board' && html`<${NoticeBoard} teamId=${ctx.team.id} me=${ctx.me} canPost=${ctx.can('team.edit') || ctx.can('events.manage')} canModerate=${ctx.can('events.manage') || ctx.can('team.edit') || ctx.can('chat.moderate')} />`}
+    ${tab === 'polls' && html`<${Polls} teamId=${ctx.team.id} eventId=${null} positionId=${null} me=${ctx.me} canModerate=${ctx.can('events.manage') || ctx.can('chat.moderate')} />`}
     ${tab === 'members' && html`<${MembersTab} ctx=${ctx} />`}
     ${tab === 'roles' && html`<${RolesTab} ctx=${ctx} />`}
     ${tab === 'positions' && html`<${PositionsTab} ctx=${ctx} />`}
