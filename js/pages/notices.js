@@ -6,7 +6,7 @@ import { toast, toastError, confirmDialog } from '../lib/store.js';
 import { Icon, Spinner, Empty, ErrorBox, Field, Modal, Person, useAsync, useRealtime } from '../lib/ui.js';
 import { useSeen } from '../lib/unread.js';
 
-const PROFILE = 'profiles(id, display_name, pronouns, pronouns_custom, is_guest, bio)';
+const PROFILE = 'profiles!created_by(id, display_name, pronouns, pronouns_custom, is_guest, bio)';
 
 export function NoticeBoard({ teamId, eventId, positionId, canPost, canModerate, me }) {
   const [editing, setEditing] = useState(null); // {} = neu, Notiz = bearbeiten

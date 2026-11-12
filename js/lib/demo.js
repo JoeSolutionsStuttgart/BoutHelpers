@@ -261,6 +261,7 @@ function embed(row, sel) {
     let key = col;
     if (fk && /done_by/.test(fk)) key = 'done_by';
     else if (fk && /assignee/.test(fk)) key = 'assignee';
+    else if (fk && /created_by/.test(fk)) key = 'created_by';
     const target = (db[table] || []).find((x) => x.id === row[key]);
     r[alias || name] = target ? embed(target, inner) : null;
   });
