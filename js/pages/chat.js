@@ -59,6 +59,7 @@ export function Chat({ eventId, positionId, title, canModerate }) {
   const [pollPick, setPollPick] = useState(false);
   const [notices, setNotices] = useState([]); // Infos im Raum (zum Verlinken)
   const [noticePick, setNoticePick] = useState(false);
+  const [refs, setRefs] = useState([]); // verlinkte Abstimmungen/Infos: { kind, id, label }
   const [replyTo, setReplyTo] = useState(null); // Nachricht, auf die geantwortet wird
   const [suggest, setSuggest] = useState(null); // { query, start, items, index }
   const picked = useRef({}); // Name -> id der ausgewählten Erwähnungen
@@ -158,22 +159,21 @@ export function Chat({ eventId, positionId, title, canModerate }) {
     setTimeout(() => { const el = input.current; if (el) { el.focus(); el.setSelectionRange(pos, pos); } }, 0);
   };
 
-  // Verweis auf eine Abstimmung in den Text einfügen
-  const insertPoll = (p) => {
-    setText((prev) => prev + (prev && !/\s$/.test(prev) ? ' ' : '') + '[[poll:' + p.id + ']] ');
-    setPollPick(false);
+  // Verweis als entfernbaren Anhang vormerken (statt Rohtext ins Eingabefeld)
+  const addRef = (kind, id, label) => {
+    setRefs((prev) => (prev.some((r) => r.kind === kind && r.id === id) ? prev : [...prev, { kind, id, label }]));
     setTimeout(() => { if (input.current) input.current.focus(); }, 0);
   };
-  // Verweis auf eine Info (Infotafel) einfügen
-  const insertNotice = (n) => {
-    setText((prev) => prev + (prev && !/\s$/.test(prev) ? ' ' : '') + '[[notice:' + n.id + ']] ');
-    setNoticePick(false);
-    setTimeout(() => { if (input.current) input.current.focus(); }, 0);
-  };
+  const removeRef = (kind, id) => setRefs((prev) => prev.filter((r) => !(r.kind === kind && r.id === id)));
+  // Verweis auf eine Abstimmung vormerken
+  const insertPoll = (p) => { addRef('poll', p.id, p.question); setPollPick(false); };
+  // Verweis auf eine Info (Infotafel) vormerken
+  const insertNotice = (n) => { addRef('notice', n.id, n.title || (n.body || '').slice(0, 40)); setNoticePick(false); };
 
   const send = async (e) => {
     e && e.preventDefault();
-    const body = text.trim();
+    const tokens = refs.map((r) => '[[' + r.kind + ':' + r.id + ']]').join(' ');
+    const body = (text.trim() + (tokens ? (text.trim() ? ' ' : '') + tokens : '')).trim();
     if (!body || busy) return;
     setBusy(true);
     try {
@@ -192,6 +192,7 @@ export function Chat({ eventId, positionId, title, canModerate }) {
       }
       picked.current = {};
       setText('');
+      setRefs([]);
       setReplyTo(null);
     } catch (err) { toastError(err); } finally { setBusy(false); }
   };
@@ -263,6 +264,10 @@ export function Chat({ eventId, positionId, title, canModerate }) {
     ${replyTo && !editing && html`<div class="row small" style="padding:6px 14px;background:var(--surface-2)"><${Icon} name="reply" size=${14} />
       <span class="grow" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t('chat.replying_to', { name: (replyTo.profiles && replyTo.profiles.display_name) || '—' })}: ${snippet(replyTo.body)}</span>
       <button class="btn small ghost" onClick=${() => setReplyTo(null)}>${t('common.cancel')}</button></div>`}
+    ${refs.length > 0 && !editing && html`<div class="chat-refs">${refs.map((r) => html`
+      <span class="chip-ref" key=${r.kind + r.id}><${Icon} name=${r.kind === 'poll' ? 'chart' : 'flag'} size=${14} />
+        <span class="chip-ref-label">${r.label || (r.kind === 'poll' ? t('polls.heading') : t('board.heading'))}</span>
+        <button type="button" class="chip-ref-x" aria-label=${t('common.remove')} onClick=${() => removeRef(r.kind, r.id)}>×</button></span>`)}</div>`}
     <form class="chat-input" onSubmit=${send}>
       ${suggest && html`<div class="mention-list" role="listbox">${suggest.items.map((p, i) => html`
         <button type="button" role="option" aria-selected=${i === suggest.index} class=${i === suggest.index ? 'on' : ''}
@@ -276,7 +281,7 @@ export function Chat({ eventId, positionId, title, canModerate }) {
       <textarea class="input" rows="1" maxlength="4000" placeholder=${t('chat.placeholder')} value=${text} ref=${input}
         onInput=${(e) => { setText(e.target.value); updateSuggest(e.target.value, e.target.selectionStart); e.target.style.height = 'auto'; e.target.style.height = Math.min(140, e.target.scrollHeight) + 'px'; }}
         onKeyDown=${onKey} onBlur=${() => setTimeout(() => setSuggest(null), 150)}></textarea>
-      <button class="btn primary" disabled=${busy || !text.trim()} aria-label=${t('chat.send')}><${Icon} name="send" /></button>
+      <button class="btn primary" disabled=${busy || (!text.trim() && refs.length === 0)} aria-label=${t('chat.send')}><${Icon} name="send" /></button>
     </form>
     <div class="chat-hint small faint">${t('chat.mention_hint')}</div>
   </div>`;

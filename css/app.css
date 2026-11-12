@@ -652,9 +652,10 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
 .reaction.mine { background: color-mix(in srgb, var(--violet) 18%, var(--card)); border-color: var(--violet); }
 .reaction.add { padding: 3px 8px; color: var(--muted); display: inline-flex; align-items: center; }
 .react-wrap { position: relative; display: inline-flex; }
-.emoji-pal { position: absolute; bottom: 118%; left: 0; display: flex; gap: 4px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 6px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22); z-index: 6; }
-.emoji-pal button { font-size: 1.15rem; background: none; border: none; cursor: pointer; padding: 2px 5px; border-radius: 6px; }
-.emoji-pal button:hover { background: var(--surface-2); }
+.emoji-pal { position: absolute; bottom: 124%; left: 0; display: flex; flex-wrap: wrap; gap: 4px; width: 246px; background: var(--surface); border: 1px solid var(--violet); border-radius: 12px; padding: 7px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.32), 0 0 0 4px color-mix(in srgb, var(--violet) 14%, transparent); z-index: 20; }
+.emoji-pal::after { content: ''; position: absolute; top: 100%; left: 16px; border: 7px solid transparent; border-top-color: var(--violet); }
+.emoji-pal button { font-size: 1.25rem; background: var(--surface-2); border: 1px solid transparent; cursor: pointer; padding: 3px 6px; border-radius: 8px; line-height: 1.1; }
+.emoji-pal button:hover { background: color-mix(in srgb, var(--violet) 18%, var(--surface-2)); border-color: var(--violet); }
 
 /* Chat: Antwort-Zitat */
 .reply-quote { border-left: 3px solid var(--violet); padding: 2px 8px; margin: 0 0 4px; font-size: 0.82rem; color: var(--muted); background: color-mix(in srgb, var(--violet) 8%, transparent); border-radius: 0 6px 6px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -674,6 +675,11 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
 .mention-list button { display: flex; width: 100%; gap: 8px; align-items: center; border: 0; background: none; font: inherit; color: var(--text); padding: 7px 8px; border-radius: 10px; cursor: pointer; text-align: left; }
 .mention-list button.on, .mention-list button:hover { background: var(--primary-soft); }
 .chat-input { position: relative; }
+.chat-refs { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 14px 0; }
+.chip-ref { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; background: color-mix(in srgb, var(--violet) 14%, var(--surface)); border: 1px solid var(--violet); color: var(--ink); border-radius: 999px; padding: 3px 6px 3px 10px; font-size: 0.82rem; }
+.chip-ref-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+.chip-ref-x { border: none; background: none; cursor: pointer; color: var(--muted); font-size: 1.05rem; line-height: 1; padding: 0 2px; border-radius: 50%; }
+.chip-ref-x:hover { color: var(--ink); background: color-mix(in srgb, var(--violet) 22%, transparent); }
 .shift-title { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; padding: 8px 0 2px; border-bottom: 2px solid var(--surface-3); }
 .msg.pinged .bubble { box-shadow: 0 0 0 2px var(--st-uncertain); }
 .chat-hint { padding: 0 14px 10px; }

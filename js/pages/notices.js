@@ -35,7 +35,7 @@ export function NoticeBoard({ teamId, eventId, positionId, canPost, canModerate,
   </div>`;
 }
 
-const EMOJIS = ['👍', '❤️', '😂', '🎉', '👏', '✅', '🙏', '🔥'];
+const EMOJIS = ['👍', '👎', '🤷', '😐', '❤️', '😂', '🎉', '👏', '✅', '🙏', '🔥'];
 function NoticeCard({ notice, me, canModerate, onEdit, onChange }) {
   const canEdit = notice.created_by === me || canModerate;
   const [pal, setPal] = useState(false);
