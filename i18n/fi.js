@@ -762,4 +762,13 @@ export default {
   "chat.reply_gone": "Viesti poistettu",
   "chat.linked": "Viittaus",
   "chat.link_notice": "Linkitä tieto",
+  'auth.confirmed': 'Sähköpostiosoite vahvistettu. Tervetuloa!',
+  'auth.confirm_failed': 'Linkki on vanhentunut tai jo käytetty. Kirjaudu sisään tai pyydä uusi linkki.',
+  'auth.email_changed': 'Sähköpostiosoite vaihdettu.',
+  'profile.danger_zone': 'Vaaravyöhyke',
+  'profile.delete_account': 'Poista tili',
+  'profile.delete_account_hint': 'Poistaa tilisi kaikkine keskusteluineen, äänestyksineen ja tietoineen pysyvästi. Omistajuus siirtyy automaattisesti toiselle; tiimit, joissa ei ole muita jäseniä, poistetaan kaikkine tietoineen.',
+  'profile.delete_account_warning': 'Haluatko varmasti poistaa tilisi pysyvästi? Tätä ei voi perua.',
+  'profile.delete_account_do': 'Poista pysyvästi',
+  'profile.account_deleted': 'Tilisi on poistettu.',
 };

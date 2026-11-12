@@ -42,6 +42,17 @@ export function ProfilePage() {
     await sb.auth.signOut();
     location.hash = '#/login';
   };
+  const delAccount = async () => {
+    if (!(await confirmDialog({ title: t('profile.delete_account'), text: t('profile.delete_account_warning'), danger: true, ok: t('profile.delete_account_do') }))) return;
+    setBusy(true);
+    try {
+      forgetDevice().catch(() => {}); // Push-Abo best effort abmelden, nicht blockieren
+      await rpc('delete_my_account');
+      try { await sb.auth.signOut(); } catch (e) { /* Konto ist schon weg */ }
+      toast(t('profile.account_deleted'));
+      location.hash = '#/login';
+    } catch (e) { toastError(e); setBusy(false); }
+  };
 
   return html`<div style="max-width:720px" class="stack">
     <div class="hero">
@@ -91,6 +102,12 @@ export function ProfilePage() {
 
     ${!isGuest() && html`<${AdminLink} />`}
     <div class="row"><button class="btn danger" onClick=${logout}><${Icon} name="logout" />${t('profile.logout')}</button></div>
+
+    <div class="card stack">
+      <h3>${t('profile.danger_zone')}</h3>
+      <p class="small muted" style="margin:0">${t('profile.delete_account_hint')}</p>
+      <div class="row"><button class="btn danger" disabled=${busy} onClick=${delAccount}><${Icon} name="trash" />${t('profile.delete_account')}</button></div>
+    </div>
   </div>`;
 }
 

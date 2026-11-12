@@ -762,4 +762,13 @@ export default {
   "chat.reply_gone": "Üzenet törölve",
   "chat.linked": "Hivatkozás",
   "chat.link_notice": "Infó csatolása",
+  'auth.confirmed': 'E-mail-cím megerősítve. Üdvözlünk!',
+  'auth.confirm_failed': 'Ez a link lejárt vagy már felhasználták. Jelentkezz be, vagy kérj új linket.',
+  'auth.email_changed': 'E-mail-cím módosítva.',
+  'profile.danger_zone': 'Veszélyzóna',
+  'profile.delete_account': 'Fiók törlése',
+  'profile.delete_account_hint': 'Véglegesen törli a fiókodat az összes csevegéssel, szavazással és adattal együtt. A tulajdonjog automatikusan átszáll valaki másra; a további tag nélküli csapatok minden adattal együtt törlődnek.',
+  'profile.delete_account_warning': 'Biztosan véglegesen törölni szeretnéd a fiókodat? Ez nem vonható vissza.',
+  'profile.delete_account_do': 'Végleges törlés',
+  'profile.account_deleted': 'A fiókodat töröltük.',
 };

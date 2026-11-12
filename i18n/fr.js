@@ -762,4 +762,13 @@ export default {
   "chat.reply_gone": "Message supprimé",
   "chat.linked": "Référence",
   "chat.link_notice": "Lier une info",
+  'auth.confirmed': 'Adresse e-mail confirmée. Bienvenue !',
+  'auth.confirm_failed': 'Ce lien a expiré ou a déjà été utilisé. Connecte-toi ou demande un nouveau lien.',
+  'auth.email_changed': 'Adresse e-mail modifiée.',
+  'profile.danger_zone': 'Zone de danger',
+  'profile.delete_account': 'Supprimer le compte',
+  'profile.delete_account_hint': 'Supprime définitivement ton compte avec tous les messages, votes et données. La propriété est automatiquement transférée à une autre personne ; les équipes sans autre membre sont supprimées avec toutes leurs données.',
+  'profile.delete_account_warning': 'Veux-tu vraiment supprimer définitivement ton compte ? Cette action est irréversible.',
+  'profile.delete_account_do': 'Supprimer définitivement',
+  'profile.account_deleted': 'Ton compte a été supprimé.',
 };

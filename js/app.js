@@ -2,7 +2,7 @@
 import { html, render, useEffect, useState } from './lib/h.js';
 import { sb, configured } from './lib/sb.js';
 import { setLanguage, t, pickLanguage } from './lib/i18n.js';
-import { useStore, setState, getState, loadProfile, loadTeams, applyTheme, isGuest } from './lib/store.js';
+import { useStore, setState, getState, loadProfile, loadTeams, applyTheme, isGuest, toast } from './lib/store.js';
 import { Icon, BrandMark, Toasts, DialogHost, LangSelect, ThemeSwitch, Avatar, Spinner, appName, UnreadBadge } from './lib/ui.js';
 import { LoginPage, SignupPage, ForgotPage, NewPasswordPage } from './pages/auth.js';
 import { HomePage } from './pages/home.js';
@@ -207,12 +207,41 @@ async function boot() {
   if (!configured) return;
   registerServiceWorker();
 
-  const flow = new URLSearchParams(location.search).get('flow');
+  const params = new URLSearchParams(location.search);
+  const flow = params.get('flow');
+  const confirmTok = params.get('confirm');
+  const confirmType = params.get('type');
+  const authErr = params.get('error_description') || params.get('error_code') || params.get('error');
+  let gotoHash = null; // Ziel nach dem Start
+  let bootToast = null; // [Text, Art]
+
+  // Bestätigungs-/Wiederherstellungs-Link aus einer E-Mail: die App löst ihn
+  // selbst ein (verifyOtp). Das funktioniert geräte- und browserübergreifend.
+  if (confirmTok && confirmType) {
+    try {
+      // Falls im Browser schon ein anderes Konto angemeldet ist, dieses zuerst
+      // abmelden, damit der Link sein eigenes Konto sauber übernimmt.
+      const cur = (await sb.auth.getSession()).data.session;
+      if (cur) { try { await sb.auth.signOut(); } catch (e) { /* egal */ } }
+      const { error } = await sb.auth.verifyOtp({ token_hash: confirmTok, type: confirmType });
+      if (error) throw error;
+      if (confirmType === 'recovery') gotoHash = '#/new-password';
+      else if (confirmType === 'email_change') { gotoHash = '#/profile'; bootToast = [t('auth.email_changed'), 'ok']; }
+      else bootToast = [t('auth.confirmed'), 'ok'];
+    } catch (e) {
+      bootToast = [t('auth.confirm_failed'), 'error'];
+    }
+  } else if (authErr) {
+    bootToast = [t('auth.confirm_failed'), 'error'];
+  }
+
   const { data } = await sb.auth.getSession();
   await onSession(data.session);
   if (location.search) history.replaceState(null, '', location.pathname + location.hash);
-  if (flow === 'reset' && data.session) location.hash = '#/new-password';
+  if (gotoHash) location.hash = gotoHash;
+  else if (flow === 'reset' && data.session) location.hash = '#/new-password'; // alte Links
   setState({ ready: true });
+  if (bootToast) toast(bootToast[0], bootToast[1]);
 
   let lastUser = data.session ? data.session.user.id : null;
   sb.auth.onAuthStateChange((event, session) => {

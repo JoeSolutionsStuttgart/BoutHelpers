@@ -762,4 +762,13 @@ export default {
   "chat.reply_gone": "Meddelande raderat",
   "chat.linked": "Referens",
   "chat.link_notice": "Länka info",
+  'auth.confirmed': 'E-postadress bekräftad. Välkommen!',
+  'auth.confirm_failed': 'Länken har gått ut eller har redan använts. Logga in eller begär en ny länk.',
+  'auth.email_changed': 'E-postadress ändrad.',
+  'profile.danger_zone': 'Farozon',
+  'profile.delete_account': 'Radera konto',
+  'profile.delete_account_hint': 'Raderar ditt konto med alla chattar, omröstningar och data permanent. Ägarskap överförs automatiskt till någon annan; team utan andra medlemmar raderas med all data.',
+  'profile.delete_account_warning': 'Vill du verkligen radera ditt konto permanent? Detta kan inte ångras.',
+  'profile.delete_account_do': 'Radera permanent',
+  'profile.account_deleted': 'Ditt konto har raderats.',
 };

@@ -389,6 +389,25 @@ const RPC = {
   request_join: (a) => { db.join_requests.push({ id: uid('j'), team_id: a.t, user_id: state.me, message: a.msg || '', created_at: iso(Date.now()) }); save(); return null; },
   approve_join_request: (a) => { const j = db.join_requests.find((x) => x.id === a.req); if (j) { if (!db.team_members.some((m) => m.team_id === j.team_id && m.user_id === j.user_id)) db.team_members.push({ team_id: j.team_id, user_id: j.user_id, is_owner: false, joined_at: iso(Date.now()) }); db.join_requests = db.join_requests.filter((x) => x !== j); save(); } return null; },
   transfer_ownership: (a) => { db.team_members.filter((m) => m.team_id === a.t).forEach((m) => { m.is_owner = m.user_id === a.new_owner; }); save(); return null; },
+  delete_my_account: () => {
+    db.team_members.filter((m) => m.user_id === state.me).forEach((m) => {
+      const members = db.team_members.filter((x) => x.team_id === m.team_id);
+      if (members.length <= 1) {
+        db.teams = db.teams.filter((tt) => tt.id !== m.team_id);
+        cascadeDelete('teams', [m.team_id]);
+      } else if (m.is_owner) {
+        const others = members.filter((x) => x.user_id !== state.me)
+          .map((x) => ({ x, g: (db.profiles.find((p) => p.id === x.user_id) || {}).is_guest ? 1 : 0 }))
+          .sort((aa, bb) => aa.g - bb.g || String(aa.x.joined_at || '').localeCompare(String(bb.x.joined_at || '')));
+        const nxt = others[0] && others[0].x.user_id;
+        if (nxt) members.forEach((x) => { x.is_owner = x.user_id === nxt; });
+      }
+    });
+    db.team_members = db.team_members.filter((m) => m.user_id !== state.me);
+    db.profiles = db.profiles.filter((p) => p.id !== state.me);
+    save();
+    return null;
+  },
   remove_guest: (a) => { db.event_guests = db.event_guests.filter((g) => !(g.user_id === a.uid && db.events.some((e) => e.id === g.event_id && e.team_id === a.t))); save(); return null; },
   signup_shift: (a) => {
     const s = db.shifts.find((x) => x.id === a.sh); if (!s) throw new Error('not found');
@@ -471,6 +490,7 @@ export function makeDemoClient() {
       updateUser: () => Promise.resolve({ error: null }),
       resetPasswordForEmail: () => Promise.resolve({ error: null }),
       signInAnonymously: () => Promise.resolve({ error: null }),
+      verifyOtp: () => Promise.resolve({ data: { session: null }, error: null }),
     },
     channel() { const c = { on() { return c; }, subscribe() { return c; } }; return c; },
     removeChannel() {},

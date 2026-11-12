@@ -762,4 +762,13 @@ export default {
   "chat.reply_gone": "Message deleted",
   "chat.linked": "Reference",
   "chat.link_notice": "Link info",
+  'auth.confirmed': 'Email address confirmed. Welcome!',
+  'auth.confirm_failed': 'This link has expired or was already used. Please log in or request a new link.',
+  'auth.email_changed': 'Email address changed.',
+  'profile.danger_zone': 'Danger zone',
+  'profile.delete_account': 'Delete account',
+  'profile.delete_account_hint': 'Permanently deletes your account with all chats, polls and data. Ownership passes automatically to someone else; teams with no other members are deleted with all their data.',
+  'profile.delete_account_warning': 'Do you really want to permanently delete your account? This cannot be undone.',
+  'profile.delete_account_do': 'Delete permanently',
+  'profile.account_deleted': 'Your account has been deleted.',
 };

@@ -762,4 +762,13 @@ export default {
   "chat.reply_gone": "Порука обрисана",
   "chat.linked": "Референца",
   "chat.link_notice": "Повежи инфо",
+  'auth.confirmed': 'E-adresa je potvrđena. Dobrodošli!',
+  'auth.confirm_failed': 'Ovaj link je istekao ili je već iskorišćen. Prijavi se ili zatraži novi link.',
+  'auth.email_changed': 'E-adresa je promenjena.',
+  'profile.danger_zone': 'Zona opasnosti',
+  'profile.delete_account': 'Obriši nalog',
+  'profile.delete_account_hint': 'Trajno briše tvoj nalog sa svim ćaskanjima, glasanjima i podacima. Vlasništvo automatski prelazi na drugu osobu; timovi bez drugih članova brišu se sa svim podacima.',
+  'profile.delete_account_warning': 'Da li zaista želiš trajno da obrišeš svoj nalog? Ovo se ne može poništiti.',
+  'profile.delete_account_do': 'Trajno obriši',
+  'profile.account_deleted': 'Tvoj nalog je obrisan.',
 };

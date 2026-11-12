@@ -762,4 +762,13 @@ export default {
   "chat.reply_gone": "Wiadomość usunięta",
   "chat.linked": "Odnośnik",
   "chat.link_notice": "Podlinkuj info",
+  'auth.confirmed': 'Adres e-mail potwierdzony. Witamy!',
+  'auth.confirm_failed': 'Ten link wygasł lub został już użyty. Zaloguj się lub poproś o nowy link.',
+  'auth.email_changed': 'Adres e-mail zmieniony.',
+  'profile.danger_zone': 'Strefa zagrożenia',
+  'profile.delete_account': 'Usuń konto',
+  'profile.delete_account_hint': 'Trwale usuwa Twoje konto ze wszystkimi czatami, głosowaniami i danymi. Właścicielstwo przechodzi automatycznie na inną osobę; zespoły bez innych członków są usuwane wraz ze wszystkimi danymi.',
+  'profile.delete_account_warning': 'Czy na pewno chcesz trwale usunąć swoje konto? Tej operacji nie można cofnąć.',
+  'profile.delete_account_do': 'Usuń trwale',
+  'profile.account_deleted': 'Twoje konto zostało usunięte.',
 };

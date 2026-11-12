@@ -762,4 +762,13 @@ export default {
   "chat.reply_gone": "Mesaj șters",
   "chat.linked": "Referință",
   "chat.link_notice": "Leagă info",
+  'auth.confirmed': 'Adresa de e-mail a fost confirmată. Bine ai venit!',
+  'auth.confirm_failed': 'Acest link a expirat sau a fost deja folosit. Autentifică-te sau cere un link nou.',
+  'auth.email_changed': 'Adresa de e-mail a fost schimbată.',
+  'profile.danger_zone': 'Zonă periculoasă',
+  'profile.delete_account': 'Șterge contul',
+  'profile.delete_account_hint': 'Îți șterge definitiv contul cu toate conversațiile, voturile și datele. Dreptul de proprietate trece automat la altă persoană; echipele fără alți membri sunt șterse cu toate datele.',
+  'profile.delete_account_warning': 'Sigur vrei să îți ștergi definitiv contul? Această acțiune nu poate fi anulată.',
+  'profile.delete_account_do': 'Șterge definitiv',
+  'profile.account_deleted': 'Contul tău a fost șters.',
 };

@@ -762,4 +762,13 @@ export default {
   "chat.reply_gone": "Zpráva smazána",
   "chat.linked": "Odkaz",
   "chat.link_notice": "Odkázat info",
+  'auth.confirmed': 'E-mailová adresa potvrzena. Vítejte!',
+  'auth.confirm_failed': 'Tento odkaz vypršel nebo už byl použit. Přihlaste se nebo si vyžádejte nový odkaz.',
+  'auth.email_changed': 'E-mailová adresa změněna.',
+  'profile.danger_zone': 'Nebezpečná zóna',
+  'profile.delete_account': 'Smazat účet',
+  'profile.delete_account_hint': 'Trvale smaže váš účet se všemi chaty, hlasováními a daty. Vlastnictví automaticky přejde na jinou osobu; týmy bez dalších členů budou smazány se všemi daty.',
+  'profile.delete_account_warning': 'Opravdu chcete trvale smazat svůj účet? Tuto akci nelze vrátit zpět.',
+  'profile.delete_account_do': 'Trvale smazat',
+  'profile.account_deleted': 'Váš účet byl smazán.',
 };

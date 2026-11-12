@@ -762,4 +762,13 @@ export default {
   "chat.reply_gone": "Bericht verwijderd",
   "chat.linked": "Verwijzing",
   "chat.link_notice": "Info koppelen",
+  'auth.confirmed': 'E-mailadres bevestigd. Welkom!',
+  'auth.confirm_failed': 'Deze link is verlopen of al gebruikt. Log in of vraag een nieuwe link aan.',
+  'auth.email_changed': 'E-mailadres gewijzigd.',
+  'profile.danger_zone': 'Gevarenzone',
+  'profile.delete_account': 'Account verwijderen',
+  'profile.delete_account_hint': 'Verwijdert je account met alle chats, stemmingen en gegevens onherroepelijk. Eigenaarschap gaat automatisch naar iemand anders; teams zonder andere leden worden met alle gegevens verwijderd.',
+  'profile.delete_account_warning': 'Wil je je account echt definitief verwijderen? Dit kan niet ongedaan worden gemaakt.',
+  'profile.delete_account_do': 'Definitief verwijderen',
+  'profile.account_deleted': 'Je account is verwijderd.',
 };

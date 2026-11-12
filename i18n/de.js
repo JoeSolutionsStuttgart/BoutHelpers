@@ -762,4 +762,13 @@ export default {
   "chat.reply_gone": "Nachricht gelöscht",
   "chat.linked": "Verweis",
   "chat.link_notice": "Info verlinken",
+  'auth.confirmed': 'E-Mail-Adresse bestätigt. Willkommen!',
+  'auth.confirm_failed': 'Der Bestätigungslink ist abgelaufen oder wurde schon benutzt. Bitte melde dich an oder fordere einen neuen Link an.',
+  'auth.email_changed': 'E-Mail-Adresse geändert.',
+  'profile.danger_zone': 'Gefahrenzone',
+  'profile.delete_account': 'Konto löschen',
+  'profile.delete_account_hint': 'Löscht dein Konto mit allen Chats, Abstimmungen und Daten unwiderruflich. Inhaberrechte gehen automatisch an eine andere Person über; Teams ohne weitere Mitglieder werden mit allen Daten gelöscht.',
+  'profile.delete_account_warning': 'Möchtest du dein Konto wirklich endgültig löschen? Das kann nicht rückgängig gemacht werden.',
+  'profile.delete_account_do': 'Endgültig löschen',
+  'profile.account_deleted': 'Dein Konto wurde gelöscht.',
 };

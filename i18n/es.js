@@ -762,4 +762,13 @@ export default {
   "chat.reply_gone": "Mensaje eliminado",
   "chat.linked": "Referencia",
   "chat.link_notice": "Enlazar info",
+  'auth.confirmed': 'Dirección de correo confirmada. ¡Bienvenido/a!',
+  'auth.confirm_failed': 'Este enlace ha caducado o ya se ha usado. Inicia sesión o solicita un enlace nuevo.',
+  'auth.email_changed': 'Dirección de correo cambiada.',
+  'profile.danger_zone': 'Zona de peligro',
+  'profile.delete_account': 'Eliminar cuenta',
+  'profile.delete_account_hint': 'Elimina tu cuenta con todos los chats, votaciones y datos de forma irreversible. La propiedad pasa automáticamente a otra persona; los equipos sin más miembros se eliminan con todos sus datos.',
+  'profile.delete_account_warning': '¿Seguro que quieres eliminar tu cuenta de forma permanente? Esto no se puede deshacer.',
+  'profile.delete_account_do': 'Eliminar definitivamente',
+  'profile.account_deleted': 'Tu cuenta ha sido eliminada.',
 };

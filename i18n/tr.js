@@ -762,4 +762,13 @@ export default {
   "chat.reply_gone": "Mesaj silindi",
   "chat.linked": "Bağlantı",
   "chat.link_notice": "Bilgiyi bağla",
+  'auth.confirmed': 'E-posta adresi doğrulandı. Hoş geldin!',
+  'auth.confirm_failed': 'Bu bağlantının süresi dolmuş veya zaten kullanılmış. Giriş yap ya da yeni bir bağlantı iste.',
+  'auth.email_changed': 'E-posta adresi değiştirildi.',
+  'profile.danger_zone': 'Tehlikeli bölge',
+  'profile.delete_account': 'Hesabı sil',
+  'profile.delete_account_hint': 'Hesabını tüm sohbetler, oylamalar ve verilerle birlikte kalıcı olarak siler. Sahiplik otomatik olarak başka birine geçer; başka üyesi olmayan takımlar tüm verileriyle birlikte silinir.',
+  'profile.delete_account_warning': 'Hesabını kalıcı olarak silmek istediğine emin misin? Bu geri alınamaz.',
+  'profile.delete_account_do': 'Kalıcı olarak sil',
+  'profile.account_deleted': 'Hesabın silindi.',
 };

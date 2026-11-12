@@ -762,4 +762,13 @@ export default {
   "chat.reply_gone": "Besked slettet",
   "chat.linked": "Reference",
   "chat.link_notice": "Link info",
+  'auth.confirmed': 'E-mailadresse bekræftet. Velkommen!',
+  'auth.confirm_failed': 'Linket er udløbet eller allerede brugt. Log ind, eller bed om et nyt link.',
+  'auth.email_changed': 'E-mailadresse ændret.',
+  'profile.danger_zone': 'Farezone',
+  'profile.delete_account': 'Slet konto',
+  'profile.delete_account_hint': 'Sletter din konto med alle chats, afstemninger og data uigenkaldeligt. Ejerskab overføres automatisk til en anden; hold uden flere medlemmer slettes med alle data.',
+  'profile.delete_account_warning': 'Vil du virkelig slette din konto permanent? Dette kan ikke fortrydes.',
+  'profile.delete_account_do': 'Slet permanent',
+  'profile.account_deleted': 'Din konto er blevet slettet.',
 };
