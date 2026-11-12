@@ -1,5 +1,5 @@
 // Einladungslink (Team) und Gästelink (Event / Gruppe)
-import { html, useState } from '../lib/h.js';
+import { html, useState, useEffect } from '../lib/h.js';
 import { sb, rpc } from '../lib/sb.js';
 import { t, lang, fmtDateTime, fmtRelative } from '../lib/i18n.js';
 import { useStore, toast, errText, loadTeams, loadProfile, isGuest } from '../lib/store.js';
@@ -13,6 +13,7 @@ function remember(path) {
 export function InvitePage({ token }) {
   const { session } = useStore();
   const [busy, setBusy] = useState(false);
+  const [autoTried, setAutoTried] = useState(false);
   const info = useAsync(async () => (await rpc('invite_info', { tok: token }))[0] || null, [token]);
 
   const accept = async () => {
@@ -24,6 +25,14 @@ export function InvitePage({ token }) {
       go('/team/' + teamId);
     } catch (e) { toast(errText(e), 'error'); } finally { setBusy(false); }
   };
+
+  // Angemeldetes, vollwertiges Mitglied: Einladung beim Öffnen automatisch annehmen
+  useEffect(() => {
+    if (session && !isGuest() && info.data && info.data.valid && !autoTried && !busy) {
+      setAutoTried(true);
+      accept();
+    }
+  }, [session, info.data]);
 
   const body = () => {
     if (info.loading) return html`<${Spinner} />`;
@@ -39,7 +48,9 @@ export function InvitePage({ token }) {
         </div>`}
       ${session && isGuest() && html`<div class="notice warn">${t('invite.guest_cannot')}</div>
         <button class="btn" onClick=${async () => { remember('/invite/' + token); await sb.auth.signOut(); go('/signup'); }}>${t('auth.signup')}</button>`}
-      ${session && !isGuest() && html`<button class="btn primary" disabled=${busy} onClick=${accept}><${Icon} name="check" />${t('invite.join_team', { team: i.team_name })}</button>`}
+      ${session && !isGuest() && (busy
+        ? html`<${Spinner} />`
+        : html`<button class="btn primary" disabled=${busy} onClick=${accept}><${Icon} name="check" />${t('invite.join_team', { team: i.team_name })}</button>`)}
     </div>`;
   };
 
@@ -53,11 +64,13 @@ export function GuestPage({ token }) {
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [autoTried, setAutoTried] = useState(false);
   const info = useAsync(async () => (await rpc('guest_link_info', { tok: token }))[0] || null, [token]);
+  const fullMember = session && !isGuest();
   const needName = !session || isGuest();
 
   const submit = async (e) => {
-    e.preventDefault();
+    e && e.preventDefault();
     if (needName && !name.trim()) return setErr(t('auth.name_required'));
     setBusy(true); setErr('');
     try {
@@ -77,10 +90,25 @@ export function GuestPage({ token }) {
     }
   };
 
+  // Angemeldetes, vollwertiges Mitglied: Gruppe beim Öffnen direkt beitreten (kein Passwort nötig)
+  useEffect(() => {
+    if (fullMember && info.data && info.data.active && !autoTried && !busy) {
+      setAutoTried(true);
+      submit();
+    }
+  }, [session, info.data]);
+
   const body = () => {
     if (info.loading) return html`<${Spinner} />`;
     const i = info.data;
     if (!i || !i.active) return html`<${Empty} icon="alert" title=${t('err.link_invalid')} text=${t('guest.invalid_text')} />`;
+    if (fullMember) return html`<div class="stack">
+      <div class="notice">
+        ${i.kind === 'group' ? t('guest.invited_group', { group: i.group_name, event: i.event_title }) : t('guest.invited_event', { event: i.event_title })}
+        <div class="small muted" style="margin-top:4px">${i.team_name} · ${fmtDateTime(i.event_start)}</div>
+      </div>
+      ${err ? html`<div class="notice error">${err}</div>` : html`<${Spinner} />`}
+    </div>`;
     return html`<form class="stack" onSubmit=${submit}>
       <div class="notice">
         ${i.kind === 'group' ? t('guest.invited_group', { group: i.group_name, event: i.event_title }) : t('guest.invited_event', { event: i.event_title })}

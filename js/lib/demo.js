@@ -168,7 +168,7 @@ function seed() {
     { id: uid('j'), team_id: 'tA', user_id: 'u17', message: 'Ich würde gern beim Catering helfen.', created_at: iso(now - DAY) },
     { id: uid('j'), team_id: 'tA', user_id: 'u18', message: '', created_at: iso(now - 2 * DAY) },
   ];
-  const invites = [];
+  const invites = [{ id: 'inv1', team_id: 'tB', token: 'theater-ag-einladung', email: '', note: '', revoked: false, uses: 0, created_at: iso(now - DAY), expires_at: iso(now + 3 * DAY) }];
   const feedback = [
     { id: uid('f'), user_id: 'u5', kind: 'idea', body: 'Könnten wir eine Kalender-Export-Funktion bekommen?', done: false, created_at: iso(now - DAY) },
     { id: uid('f'), user_id: 'u8', kind: 'problem', body: 'Die Push-Nachricht kam bei mir doppelt an.', done: false, created_at: iso(now - 2 * DAY) },
@@ -466,9 +466,35 @@ const RPC = {
   admin_feedback_done: (a) => { const f = db.feedback.find((x) => x.id === a.f); if (f) { f.done = !!a.d; save(); } return null; },
   is_app_admin: () => state.me === 'u1',
   can_demo: () => false, // in der Demo keinen weiteren Demo-Knopf zeigen
-  guest_link_info: (a) => { const l = db.guest_links.find((x) => x.token === (a.tok || '').toLowerCase()); if (!l) return []; return [{ kind: l.position_id ? 'group' : 'event', team_name: teamName(l.team_id), event_title: eventTitle(l.event_id), event_start: (db.events.find((e) => e.id === l.event_id) || {}).starts_at, group_name: posName(l.position_id), active: l.active }]; },
-  invite_info: () => [],
-  accept_invite: () => null, redeem_guest_link: () => [{ ok: false, ev: null, pos: null }], send_invite_mail: () => null,
+  guest_link_info: (a) => {
+    const l = db.guest_links.find((x) => x.token === (a.tok || '').toLowerCase());
+    if (!l) return [];
+    const tgts = (l.position_ids && l.position_ids.length) ? l.position_ids : (l.position_id ? [l.position_id] : []);
+    return [{ kind: tgts.length ? 'group' : 'event', team_name: teamName(l.team_id), event_title: eventTitle(l.event_id), event_start: (db.events.find((e) => e.id === l.event_id) || {}).starts_at, group_name: tgts.map((p) => posName(p)).filter(Boolean).join(', '), active: l.active }];
+  },
+  invite_info: (a) => { const iv = db.invites.find((x) => x.token === a.tok); if (!iv) return []; const tm = db.teams.find((t) => t.id === iv.team_id) || {}; return [{ team_name: tm.name, team_color: tm.color, valid: !iv.revoked && new Date(iv.expires_at) > new Date(), expires_at: iv.expires_at }]; },
+  accept_invite: (a) => {
+    const iv = db.invites.find((x) => x.token === a.tok);
+    if (!iv || iv.revoked || new Date(iv.expires_at) <= new Date()) throw new Error('invite invalid');
+    if (!db.team_members.some((m) => m.team_id === iv.team_id && m.user_id === state.me)) db.team_members.push({ team_id: iv.team_id, user_id: state.me, is_owner: false, joined_at: iso(Date.now()) });
+    db.join_requests = db.join_requests.filter((j) => !(j.team_id === iv.team_id && j.user_id === state.me));
+    iv.uses = (iv.uses || 0) + 1; save();
+    return iv.team_id;
+  },
+  redeem_guest_link: (a) => {
+    const l = db.guest_links.find((x) => x.token === (a.tok || '').toLowerCase());
+    if (!l || !l.active) throw new Error('link invalid');
+    const member = db.team_members.some((m) => m.team_id === l.team_id && m.user_id === state.me);
+    if (!member && l.password !== (a.pw || '')) return [{ ok: false, ev: null, pos: null }];
+    const targets = (l.position_ids && l.position_ids.length) ? l.position_ids : (l.position_id ? [l.position_id] : []);
+    const me2 = db.profiles.find((p) => p.id === state.me);
+    if (me2 && me2.is_guest && a.nm && a.nm.trim()) me2.display_name = a.nm.trim();
+    const add = (pid) => { if (!db.event_guests.some((g) => g.event_id === l.event_id && g.user_id === state.me && g.position_id === pid)) db.event_guests.push({ id: uid('eg'), event_id: l.event_id, position_id: pid, user_id: state.me, link_id: l.id }); };
+    if (targets.length === 0) add(null); else targets.forEach(add);
+    save();
+    return [{ ok: true, ev: l.event_id, pos: targets.length === 1 ? targets[0] : null }];
+  },
+  send_invite_mail: () => null,
   unsubscribe: () => true, save_push_subscription: () => null, queue_test_push: () => true,
   push_status: () => ({ key: true, enabled: true, devices: 1, cron_status: 200, cron_error: null, last: iso(now) }),
   push_public_key: () => '',
