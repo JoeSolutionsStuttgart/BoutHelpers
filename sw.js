@@ -2,7 +2,7 @@
 // App-Name aus config.js lesen (config.js schreibt in window.TP_CONFIG)
 self.window = self;
 try { importScripts('config.js'); } catch (e) { /* ohne config.js */ }
-const APP_NAME = (self.TP_CONFIG && self.TP_CONFIG.appName) || 'Teamplaner';
+const APP_NAME = (self.TP_CONFIG && self.TP_CONFIG.appName) || 'BoutHelper';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
