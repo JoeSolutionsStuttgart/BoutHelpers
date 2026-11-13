@@ -479,9 +479,16 @@ function PositionsTab({ ctx }) {
 }
 
 // ---------------- Einladen ----------------
+const INVITE_DURATIONS = [
+  ['1h', 3600e3], ['1d', 86400e3], ['3d', 3 * 86400e3],
+  ['1w', 7 * 86400e3], ['2w', 14 * 86400e3], ['1mo', 30 * 86400e3], ['3mo', 90 * 86400e3],
+];
+
 function InviteTab({ ctx }) {
   const [email, setEmail] = useState('');
   const [note, setNote] = useState('');
+  const [dur, setDur] = useState('1d'); // Voreinstellung oder 'custom'
+  const [customDate, setCustomDate] = useState('');
   const [busy, setBusy] = useState(false);
   const [fresh, setFresh] = useState(null);
   const inv = useAsync(() => q(sb.from('invites').select('*').eq('team_id', ctx.team.id).order('created_at', { ascending: false })), [ctx.team.id]);
@@ -489,9 +496,17 @@ function InviteTab({ ctx }) {
 
   const create = async (e) => {
     e.preventDefault();
+    let expires;
+    if (dur === 'custom') {
+      expires = customDate ? fromLocalInput(customDate) : null;
+      if (!expires || new Date(expires) <= new Date()) return toast(t('invite.expiry_future'), 'error');
+    } else {
+      const ms = (INVITE_DURATIONS.find(([k]) => k === dur) || [, 86400e3])[1];
+      expires = new Date(Date.now() + ms).toISOString();
+    }
     setBusy(true);
     try {
-      const rows = await q(sb.from('invites').insert({ team_id: ctx.team.id, email: email.trim(), note: note.trim() }).select('*'));
+      const rows = await q(sb.from('invites').insert({ team_id: ctx.team.id, email: email.trim(), note: note.trim(), expires_at: expires }).select('*'));
       const i = rows[0];
       if (i.email) {
         await rpc('send_invite_mail', { inv: i.id });
@@ -514,6 +529,15 @@ function InviteTab({ ctx }) {
       <form class="form-grid" onSubmit=${create}>
         <${Field} label=${t('invite.email_optional')} hint=${t('invite.email_hint')}><input class="input" type="email" value=${email} onInput=${(e) => setEmail(e.target.value)} /><//>
         <${Field} label=${t('invite.note_optional')}><input class="input" maxlength="200" value=${note} onInput=${(e) => setNote(e.target.value)} /><//>
+        <${Field} label=${t('invite.valid_for')} hint=${t('invite.valid_for_hint')}>
+          <select class="input" value=${dur} onChange=${(e) => setDur(e.target.value)}>
+            ${INVITE_DURATIONS.map(([k]) => html`<option value=${k} key=${k}>${t('invite.dur_' + k)}</option>`)}
+            <option value="custom">${t('invite.dur_custom')}</option>
+          </select>
+        <//>
+        ${dur === 'custom' && html`<${Field} label=${t('invite.expiry_date')}>
+          <input class="input" type="datetime-local" value=${customDate} onInput=${(e) => setCustomDate(e.target.value)} />
+        <//>`}
         <div class="full"><button class="btn primary" disabled=${busy}><${Icon} name="link" />${email.trim() ? t('invite.create_send') : t('invite.create_link')}</button></div>
       </form>
       ${fresh && html`<div class="notice ok" style="margin-top:14px"><div style="margin-bottom:8px">${t('invite.ready')}</div><${CopyField} value=${appLink('/invite/' + fresh.token)} /></div>`}

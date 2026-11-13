@@ -305,7 +305,11 @@ function builder(table) {
         if (st.lim) data = data.slice(0, st.lim);
         data = data.map((r) => embed(r, st.sel));
       } else if (st.op === 'insert') {
-        data = st.payload.map((p) => { const r = Object.assign({ id: uid('d'), created_at: iso(Date.now()), updated_at: iso(Date.now()) }, p); all.push(r); return embed(r, st.retSel); });
+        data = st.payload.map((p) => {
+          const base = { id: uid('d'), created_at: iso(Date.now()), updated_at: iso(Date.now()) };
+          if (table === 'invites') { base.token = 'demo-' + Math.random().toString(36).slice(2, 10); base.revoked = false; base.uses = 0; base.created_by = state.me; base.email = p.email || ''; base.note = p.note || ''; if (!p.expires_at) base.expires_at = iso(Date.now() + 86400000); }
+          const r = Object.assign(base, p); all.push(r); return embed(r, st.retSel);
+        });
         save();
       } else if (st.op === 'update') {
         data = all.filter((r) => st.filters.every((f) => f(r))); data.forEach((r) => Object.assign(r, st.payload, { updated_at: iso(Date.now()) })); data = data.map((r) => embed(r, st.retSel)); save();
