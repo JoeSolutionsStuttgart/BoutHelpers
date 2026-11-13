@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Vuoi davvero eliminare definitivamente il tuo account? L’operazione non può essere annullata.',
   'profile.delete_account_do': 'Elimina definitivamente',
   'profile.account_deleted': 'Il tuo account è stato eliminato.',
+  'admin.feedback_link': 'Feedback',
+  'admin.unread_hint': '{n} non letti',
 };

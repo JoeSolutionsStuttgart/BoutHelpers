@@ -1,10 +1,33 @@
 // Nicht-öffentlicher Bereich: nur für die als Inhaber*in hinterlegte E-Mail-Adresse.
 // Zeigt das Feedback aus der App. Server-seitig durch is_app_admin() geschützt.
-import { html, useState } from '../lib/h.js';
+import { html, useState, useEffect } from '../lib/h.js';
 import { rpc } from '../lib/sb.js';
 import { t, fmtDateTime } from '../lib/i18n.js';
 import { toastError } from '../lib/store.js';
 import { Icon, Spinner, Empty, useAsync } from '../lib/ui.js';
+
+// Zugang zum Feedback-Bereich – erscheint AUSSCHLIESSLICH bei der hinterlegten
+// Inhaber*in. Für alle anderen rendert die Komponente nichts (null). Der rote
+// Punkt zeigt ungelesene Rückmeldungen; die Zahl kommt nur beim Admin an.
+export function AdminFeedbackLink({ variant }) {
+  const [admin, setAdmin] = useState(false);
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    let on = true;
+    rpc('is_app_admin').then((v) => {
+      if (!on || !v) return;
+      setAdmin(true);
+      rpc('feedback_unread').then((n) => { if (on) setUnread(n || 0); }).catch(() => {});
+    }).catch(() => {});
+    return () => { on = false; };
+  }, []);
+  if (!admin) return null;
+  const cls = 'btn admin-feedback-link ' + (variant === 'card' ? 'primary' : 'ghost');
+  return html`<a class=${cls} href="#/admin">
+    <${Icon} name="shield" size=${16} />${t('admin.feedback_link')}
+    ${unread > 0 && html`<span class="admin-dot" aria-label=${t('admin.unread_hint', { n: unread })} title=${t('admin.unread_hint', { n: unread })}></span>`}
+  </a>`;
+}
 
 export function AdminPage() {
   const allowed = useAsync(() => rpc('is_app_admin'), []);

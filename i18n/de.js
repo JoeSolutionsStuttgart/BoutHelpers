@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Möchtest du dein Konto wirklich endgültig löschen? Das kann nicht rückgängig gemacht werden.',
   'profile.delete_account_do': 'Endgültig löschen',
   'profile.account_deleted': 'Dein Konto wurde gelöscht.',
+  'admin.feedback_link': 'Feedback',
+  'admin.unread_hint': '{n} ungelesen',
 };

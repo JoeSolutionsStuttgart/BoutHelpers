@@ -465,6 +465,7 @@ const RPC = {
   admin_feedback: () => db.feedback.map((f) => ({ id: f.id, kind: f.kind, body: f.body, done: f.done, created_at: f.created_at, name: (db.profiles.find((p) => p.id === f.user_id) || {}).display_name })),
   admin_feedback_done: (a) => { const f = db.feedback.find((x) => x.id === a.f); if (f) { f.done = !!a.d; save(); } return null; },
   is_app_admin: () => state.me === 'u1',
+  feedback_unread: () => (state.me === 'u1' ? db.feedback.filter((f) => !f.done).length : 0),
   can_demo: () => false, // in der Demo keinen weiteren Demo-Knopf zeigen
   guest_link_info: (a) => {
     const l = db.guest_links.find((x) => x.token === (a.tok || '').toLowerCase());

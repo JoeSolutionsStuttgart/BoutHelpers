@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Наистина ли искаш да изтриеш акаунта си завинаги? Това не може да бъде отменено.',
   'profile.delete_account_do': 'Изтрий завинаги',
   'profile.account_deleted': 'Акаунтът ти беше изтрит.',
+  'admin.feedback_link': 'Обратна връзка',
+  'admin.unread_hint': '{n} непрочетени',
 };

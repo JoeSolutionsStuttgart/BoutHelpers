@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Veux-tu vraiment supprimer définitivement ton compte ? Cette action est irréversible.',
   'profile.delete_account_do': 'Supprimer définitivement',
   'profile.account_deleted': 'Ton compte a été supprimé.',
+  'admin.feedback_link': 'Retours',
+  'admin.unread_hint': '{n} non lus',
 };

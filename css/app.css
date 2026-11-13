@@ -683,6 +683,8 @@ table.simple th { font-size: 0.78rem; text-transform: uppercase; letter-spacing:
 .shift-title { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; padding: 8px 0 2px; border-bottom: 2px solid var(--surface-3); }
 .msg.pinged .bubble { box-shadow: 0 0 0 2px var(--st-uncertain); }
 .chat-hint { padding: 0 14px 10px; }
+.admin-feedback-link { position: relative; }
+.admin-dot { position: absolute; top: -5px; right: -5px; width: 11px; height: 11px; border-radius: 50%; background: var(--red); border: 2px solid var(--surface); }
 
 /* Push-Prüfung im Profil */
 .push-checks { display: grid; gap: 4px; padding: 10px 12px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border); }

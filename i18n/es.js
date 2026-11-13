@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': '¿Seguro que quieres eliminar tu cuenta de forma permanente? Esto no se puede deshacer.',
   'profile.delete_account_do': 'Eliminar definitivamente',
   'profile.account_deleted': 'Tu cuenta ha sido eliminada.',
+  'admin.feedback_link': 'Feedback',
+  'admin.unread_hint': '{n} sin leer',
 };

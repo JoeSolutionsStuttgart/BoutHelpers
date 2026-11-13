@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Ви справді хочете назавжди видалити свій акаунт? Цю дію не можна скасувати.',
   'profile.delete_account_do': 'Видалити назавжди',
   'profile.account_deleted': 'Ваш акаунт видалено.',
+  'admin.feedback_link': 'Відгуки',
+  'admin.unread_hint': '{n} непрочитаних',
 };

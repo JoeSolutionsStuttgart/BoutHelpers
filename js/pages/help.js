@@ -6,6 +6,7 @@ import { toast } from '../lib/store.js';
 import { sb } from '../lib/sb.js';
 import { Icon, Avatar, Person, PersonHover, StatusBadge, Progress, UnreadBadge } from '../lib/ui.js';
 import { DateBox } from './shared.js';
+import { AdminFeedbackLink } from './admin.js';
 import { isDemo, enableDemo } from '../lib/demo.js';
 
 // ---------- Beispieldaten ----------
@@ -358,6 +359,7 @@ export function HelpPage() {
       <p class="muted" style="margin:0">${t('help.intro')}</p>
     </div>
     <${DemoAccess} />
+    <div class="row" style="justify-content:flex-end"><${AdminFeedbackLink} /></div>
     <nav class="help-toc" aria-label=${t('help.toc')}>
       ${SECTIONS.map((id) => html`<a class="chip" href=${'#/help'} key=${id} onClick=${jump(id)}><${Icon} name=${ICONS[id]} size=${14} />${t('help.' + id + '_title')}</a>`)}
     </nav>

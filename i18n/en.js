@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Do you really want to permanently delete your account? This cannot be undone.',
   'profile.delete_account_do': 'Delete permanently',
   'profile.account_deleted': 'Your account has been deleted.',
+  'admin.feedback_link': 'Feedback',
+  'admin.unread_hint': '{n} unread',
 };

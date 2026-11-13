@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Biztosan véglegesen törölni szeretnéd a fiókodat? Ez nem vonható vissza.',
   'profile.delete_account_do': 'Végleges törlés',
   'profile.account_deleted': 'A fiókodat töröltük.',
+  'admin.feedback_link': 'Visszajelzés',
+  'admin.unread_hint': '{n} olvasatlan',
 };

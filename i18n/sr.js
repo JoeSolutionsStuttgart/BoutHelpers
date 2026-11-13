@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Da li zaista želiš trajno da obrišeš svoj nalog? Ovo se ne može poništiti.',
   'profile.delete_account_do': 'Trajno obriši',
   'profile.account_deleted': 'Tvoj nalog je obrisan.',
+  'admin.feedback_link': 'Povratne informacije',
+  'admin.unread_hint': '{n} nepročitanih',
 };

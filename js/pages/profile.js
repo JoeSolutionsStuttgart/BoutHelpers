@@ -5,6 +5,7 @@ import { pushSupported, isIOS, isStandalone, currentSubscription, enablePush, di
 import { t, PRONOUNS, pronounText } from '../lib/i18n.js';
 import { useStore, setState, toast, toastError, errText, isGuest, confirmDialog } from '../lib/store.js';
 import { Icon, Field, PasswordInput, Avatar, LangSelect, ThemeSwitch } from '../lib/ui.js';
+import { AdminFeedbackLink } from './admin.js';
 
 export function ProfilePage() {
   const { user, profile } = useStore();
@@ -100,7 +101,7 @@ export function ProfilePage() {
 
     ${isGuest() && html`<div class="notice">${t('profile.guest_info')}</div>`}
 
-    ${!isGuest() && html`<${AdminLink} />`}
+    ${!isGuest() && html`<div class="row"><${AdminFeedbackLink} /></div>`}
     <div class="row"><button class="btn danger" onClick=${logout}><${Icon} name="logout" />${t('profile.logout')}</button></div>
 
     <div class="card stack">
@@ -111,13 +112,6 @@ export function ProfilePage() {
   </div>`;
 }
 
-// Zugang zum nicht-öffentlichen Bereich – erscheint nur bei der hinterlegten Inhaber*in.
-function AdminLink() {
-  const [isAdmin, setAdmin] = useState(false);
-  useEffect(() => { rpc('is_app_admin').then((v) => setAdmin(!!v)).catch(() => {}); }, []);
-  if (!isAdmin) return null;
-  return html`<div class="row"><a class="btn ghost" href="#/admin"><${Icon} name="shield" size=${16} />${t('admin.title')}</a></div>`;
-}
 
 // Pro Info-Art wählbar: Push, E-Mail oder beides. E-Mail gibt es nur für Einteilung und Deadline.
 const NOTIF_TYPES = [

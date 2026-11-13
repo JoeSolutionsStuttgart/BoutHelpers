@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Haluatko varmasti poistaa tilisi pysyvästi? Tätä ei voi perua.',
   'profile.delete_account_do': 'Poista pysyvästi',
   'profile.account_deleted': 'Tilisi on poistettu.',
+  'admin.feedback_link': 'Palaute',
+  'admin.unread_hint': '{n} lukematta',
 };

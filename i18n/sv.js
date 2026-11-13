@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Vill du verkligen radera ditt konto permanent? Detta kan inte ångras.',
   'profile.delete_account_do': 'Radera permanent',
   'profile.account_deleted': 'Ditt konto har raderats.',
+  'admin.feedback_link': 'Feedback',
+  'admin.unread_hint': '{n} olästa',
 };

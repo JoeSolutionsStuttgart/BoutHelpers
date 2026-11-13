@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Hesabını kalıcı olarak silmek istediğine emin misin? Bu geri alınamaz.',
   'profile.delete_account_do': 'Kalıcı olarak sil',
   'profile.account_deleted': 'Hesabın silindi.',
+  'admin.feedback_link': 'Geri bildirim',
+  'admin.unread_hint': '{n} okunmamış',
 };

@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Θέλεις πραγματικά να διαγράψεις οριστικά τον λογαριασμό σου; Αυτό δεν μπορεί να αναιρεθεί.',
   'profile.delete_account_do': 'Οριστική διαγραφή',
   'profile.account_deleted': 'Ο λογαριασμός σου διαγράφηκε.',
+  'admin.feedback_link': 'Σχόλια',
+  'admin.unread_hint': '{n} μη αναγνωσμένα',
 };

@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Вы действительно хотите навсегда удалить свой аккаунт? Это действие нельзя отменить.',
   'profile.delete_account_do': 'Удалить навсегда',
   'profile.account_deleted': 'Ваш аккаунт удалён.',
+  'admin.feedback_link': 'Отзывы',
+  'admin.unread_hint': '{n} непрочитанных',
 };

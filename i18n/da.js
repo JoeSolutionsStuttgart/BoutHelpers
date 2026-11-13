@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Vil du virkelig slette din konto permanent? Dette kan ikke fortrydes.',
   'profile.delete_account_do': 'Slet permanent',
   'profile.account_deleted': 'Din konto er blevet slettet.',
+  'admin.feedback_link': 'Feedback',
+  'admin.unread_hint': '{n} ulæste',
 };

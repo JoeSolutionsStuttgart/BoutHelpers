@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Wil je je account echt definitief verwijderen? Dit kan niet ongedaan worden gemaakt.',
   'profile.delete_account_do': 'Definitief verwijderen',
   'profile.account_deleted': 'Je account is verwijderd.',
+  'admin.feedback_link': 'Feedback',
+  'admin.unread_hint': '{n} ongelezen',
 };

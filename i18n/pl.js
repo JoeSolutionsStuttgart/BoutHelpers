@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Czy na pewno chcesz trwale usunąć swoje konto? Tej operacji nie można cofnąć.',
   'profile.delete_account_do': 'Usuń trwale',
   'profile.account_deleted': 'Twoje konto zostało usunięte.',
+  'admin.feedback_link': 'Opinie',
+  'admin.unread_hint': '{n} nieprzeczytanych',
 };

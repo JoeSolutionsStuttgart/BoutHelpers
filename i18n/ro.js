@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Sigur vrei să îți ștergi definitiv contul? Această acțiune nu poate fi anulată.',
   'profile.delete_account_do': 'Șterge definitiv',
   'profile.account_deleted': 'Contul tău a fost șters.',
+  'admin.feedback_link': 'Feedback',
+  'admin.unread_hint': '{n} necitite',
 };

@@ -771,4 +771,6 @@ export default {
   'profile.delete_account_warning': 'Opravdu chcete trvale smazat svůj účet? Tuto akci nelze vrátit zpět.',
   'profile.delete_account_do': 'Trvale smazat',
   'profile.account_deleted': 'Váš účet byl smazán.',
+  'admin.feedback_link': 'Zpětná vazba',
+  'admin.unread_hint': '{n} nepřečtených',
 };
