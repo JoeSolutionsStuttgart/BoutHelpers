@@ -1,6 +1,6 @@
 {
-  "name": "Teamplaner",
-  "short_name": "Teamplaner",
+  "name": "BoutHelper",
+  "short_name": "BoutHelper",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
